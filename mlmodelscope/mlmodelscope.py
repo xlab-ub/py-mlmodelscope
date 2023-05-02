@@ -62,12 +62,11 @@ class MLModelScope:
     if not os.path.exists('./' + dataset_path): 
       raise RuntimeError(f"{dataset_path}, which is the path of {dataset_name} dataset, does not exist") 
     
-    _load_dataset_span_name = dataset_name + ' dataset load'
-    self.startSpanFromContext(_load_dataset_span_name) 
-    self.dataset = datasets.load(dataset_name, root=dataset_path) 
-    self.batch_size = batch_size 
-    self.dataloader = DataLoader(self.dataset, self.batch_size) 
-    self.endSpanFromContext(_load_dataset_span_name) 
+    with self.tracer.start_as_current_span(dataset_name + ' dataset load') as dataset_load_span: 
+      self.prop.inject(carrier=self.carrier, context=set_span_in_context(dataset_load_span)) 
+      self.dataset = datasets.load(dataset_name, root=dataset_path) 
+      self.batch_size = batch_size 
+      self.dataloader = DataLoader(self.dataset, self.batch_size) 
 
     return 
 
@@ -95,14 +94,13 @@ class MLModelScope:
       raise NotImplementedError(f"{model_name} model is not supported, the available models are as follows:\n{', '.join(model_list)}") 
     self.model_name = model_name 
 
-    _load_model_span_name = self.model_name + ' model load'
-    self.startSpanFromContext(_load_model_span_name) 
-    self.model = load(model_name=self.model_name, backend=self.agent) 
-    if self.agent == 'pytorch': 
-      # Making the code device-agnostic
-      self.device = 'cuda' if ((self.architecture == "gpu") and torch.cuda.is_available()) else 'cpu' 
-      self.model.model = self.model.model.to(self.device) 
-    self.endSpanFromContext(_load_model_span_name) 
+    with self.tracer.start_as_current_span(self.model_name + ' model load') as model_load_span: 
+      self.prop.inject(carrier=self.carrier, context=set_span_in_context(model_load_span)) 
+      self.model = load(model_name=self.model_name, backend=self.agent) 
+      if self.agent == 'pytorch': 
+        # Making the code device-agnostic
+        self.device = 'cuda' if ((self.architecture == "gpu") and torch.cuda.is_available()) else 'cpu' 
+        self.model.model = self.model.model.to(self.device) 
 
     if self.agent == 'pytorch': 
       all_spans = {} 
