@@ -11,14 +11,14 @@ logger = logging.getLogger(__name__)
 
 def main(): 
   parser = argparse.ArgumentParser(description="mlmodelscope") 
-  parser.add_argument("task", type=str, nargs='?', default="image_classification", help="The name of the task to predict.") 
-  parser.add_argument("agent", type=str, nargs='?', default="pytorch", help="Which framework to use") 
-  parser.add_argument("model_name", type=str, nargs='?', default="alexnet", help="The name of the model") 
-  parser.add_argument("architecture", type=str, nargs='?', default="gpu", help="Which Processing Unit to use") 
-  parser.add_argument("num_warmup", type=int, nargs='?', default=2, help="Total number of warmup steps for predict.") 
-  parser.add_argument("dataset_name", type=str, nargs='?', default="test", help="The name of the dataset for predict.") 
-  parser.add_argument("dataset_path", type=str, nargs='?', default="./test_data", help="The input data dir for predict.") 
-  parser.add_argument("batch_size", type=int, nargs='?', default=2, help="Total batch size for predict.") 
+  parser.add_argument("--task", type=str, nargs='?', default="image_classification", help="The name of the task to predict.") 
+  parser.add_argument("--agent", type=str, nargs='?', default="pytorch", help="Which framework to use") 
+  parser.add_argument("--model_name", type=str, nargs='?', default="alexnet", help="The name of the model") 
+  parser.add_argument("--architecture", type=str, nargs='?', default="gpu", help="Which Processing Unit to use") 
+  parser.add_argument("--num_warmup", type=int, nargs='?', default=2, help="Total number of warmup steps for predict.") 
+  parser.add_argument("--dataset_name", type=str, nargs='?', default="test", help="The name of the dataset for predict.") 
+  parser.add_argument("--dataset_path", type=str, nargs='?', default="./test_data", help="The input data dir for predict.") 
+  parser.add_argument("--batch_size", type=int, nargs='?', default=2, help="Total batch size for predict.") 
   args = parser.parse_args() 
   
   task          = args.task 
