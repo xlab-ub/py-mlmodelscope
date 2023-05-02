@@ -92,8 +92,10 @@ class CUPTI:
                 nvperf_host_path = os.environ.get('CUDA_PATH') + '/extras/CUPTI/lib64/nvperf_host.dll' 
                 utils_path = str(pathlib.Path(__file__).parent.resolve()) + '/csrc/utils.dll' 
             elif CUPTI._system == 'Linux': 
-                path = '/usr/local/cuda/lib64/libcupti.so'
-                nvperf_host_path = '/usr/local/cuda/lib64/libnvperf_host.so' 
+                # path = '/usr/local/cuda/lib64/libcupti.so'
+                path = '/usr/local/cuda/extras/CUPTI/lib64/libcupti.so' 
+                # nvperf_host_path = '/usr/local/cuda/lib64/libnvperf_host.so' 
+                nvperf_host_path = '/usr/local/cuda/extras/CUPTI/lib64/libnvperf_host.so' 
                 utils_path = str(pathlib.Path(__file__).parent.resolve()) + '/csrc/libutils.so' 
             else: 
                 raise NotImplementedError("Only supports for Windows and Linux")
