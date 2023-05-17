@@ -12,12 +12,13 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor 
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter 
 
-from . import datasets 
+# from . import datasets 
 from .dataloader import DataLoader 
 from .load import load 
 
 # https://stackoverflow.com/questions/714063/importing-modules-from-parent-folder 
 sys.path.insert(1, os.path.join(sys.path[0], '..')) 
+import pydldataset 
 from pycupti import CUPTI 
 
 logger = logging.getLogger(__name__) 
@@ -50,21 +51,21 @@ class MLModelScope:
 
     return 
 
-  def load_dataset(self, dataset_name, dataset_path, batch_size): 
-    if dataset_name == "datasets": 
-      raise RuntimeError(f"dataset name: {dataset_name} occurs an error, please try another name") 
-    dataset_list = [dataset[:-3] for dataset in os.listdir(f'./mlmodelscope/datasets/') if (dataset[0] != '_' and dataset != 'datasets.py')] 
+  def load_dataset(self, dataset_name, batch_size): 
+    # if dataset_name == "datasets": 
+    #   raise RuntimeError(f"dataset name: {dataset_name} occurs an error, please try another name") 
+    dataset_list = [dataset[:-3] for dataset in os.listdir(f'./pydldataset/datasets/') if dataset[-3:] == '.py'] 
     if dataset_name in dataset_list: 
       print(f"{dataset_name} dataset exists") 
     else: 
       raise NotImplementedError(f"{dataset_name} dataset is not supported, the available datasets are as follows:\n{', '.join(dataset_list)}") 
     
-    if not os.path.exists('./' + dataset_path): 
-      raise RuntimeError(f"{dataset_path}, which is the path of {dataset_name} dataset, does not exist") 
+    # if not os.path.exists('./' + dataset_path): 
+    #   raise RuntimeError(f"{dataset_path}, which is the path of {dataset_name} dataset, does not exist") 
     
     with self.tracer.start_as_current_span(dataset_name + ' dataset load') as dataset_load_span: 
       self.prop.inject(carrier=self.carrier, context=set_span_in_context(dataset_load_span)) 
-      self.dataset = datasets.load(dataset_name, root=dataset_path) 
+      self.dataset = pydldataset.load(dataset_name) 
       self.batch_size = batch_size 
       self.dataloader = DataLoader(self.dataset, self.batch_size) 
 
@@ -102,7 +103,7 @@ class MLModelScope:
         self.device = 'cuda' if ((self.architecture == "gpu") and torch.cuda.is_available()) else 'cpu' 
         self.model.model = self.model.model.to(self.device) 
 
-    if self.agent == 'pytorch': 
+    if (self.agent == 'pytorch') and (not hasattr(self.model, "isScriptModule")): 
       all_spans = {} 
       def pre_hook(layer_name): 
         def pre_hook(module, input): 
