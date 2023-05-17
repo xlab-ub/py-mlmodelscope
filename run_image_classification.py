@@ -17,7 +17,7 @@ def main():
   parser.add_argument("--architecture", type=str, nargs='?', default="gpu", help="Which Processing Unit to use") 
   parser.add_argument("--num_warmup", type=int, nargs='?', default=2, help="Total number of warmup steps for predict.") 
   parser.add_argument("--dataset_name", type=str, nargs='?', default="test", help="The name of the dataset for predict.") 
-  parser.add_argument("--dataset_path", type=str, nargs='?', default="./test_data", help="The input data dir for predict.") 
+  # parser.add_argument("--dataset_path", type=str, nargs='?', default="./test_data", help="The input data dir for predict.") 
   parser.add_argument("--batch_size", type=int, nargs='?', default=2, help="Total batch size for predict.") 
   args = parser.parse_args() 
   
@@ -35,7 +35,7 @@ def main():
   model_name    = args.model_name 
   num_warmup    = args.num_warmup 
   dataset_name  = args.dataset_name 
-  dataset_path  = args.dataset_path 
+  # dataset_path  = args.dataset_path 
   batch_size    = args.batch_size 
   
 
@@ -43,7 +43,7 @@ def main():
   
   mlms.load_model(task, agent, model_name) 
   print(f"{model_name} model is loaded\n") 
-  mlms.load_dataset(dataset_name, dataset_path, batch_size) 
+  mlms.load_dataset(dataset_name, batch_size) 
   print(f"{dataset_name} dataset is loaded\n") 
   print(f"prediction starts") 
   outputs = mlms.predict(num_warmup) 
