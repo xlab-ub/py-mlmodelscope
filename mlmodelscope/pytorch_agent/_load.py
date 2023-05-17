@@ -1,3 +1,3 @@
-def _load(model_name):
-  exec('from .' + model_name + ' import init', globals())
+def _load(task, model_name):
+  exec(f'from .models.{task}.' + model_name + ' import init', globals())
   return init()

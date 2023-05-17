@@ -88,7 +88,7 @@ class MLModelScope:
       raise NotImplementedError(f"{agent} agent is not supported") 
     self.agent = agent 
     
-    model_list = [model[:-3] for model in os.listdir(f'./mlmodelscope/{self.agent}_agent') if model[0] != '_'] 
+    model_list = [model[:-3] for model in os.listdir(f'./mlmodelscope/{self.agent}_agent/models/{task}') if model[0] != '_'] 
     if model_name in model_list: 
       print(f"{model_name} model exists") 
     else: 
