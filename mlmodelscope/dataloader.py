@@ -22,3 +22,7 @@ class DataLoader:
         data[i] = self.dataset[start + i]
       self.idx += self.batch_size
       return data
+
+  def reset(self): 
+    self.idx = 0 
+    return 

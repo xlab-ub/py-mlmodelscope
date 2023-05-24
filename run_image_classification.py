@@ -41,8 +41,8 @@ def main():
 
   mlms = MLModelScope(architecture) 
   
-  mlms.load_model(task, agent, model_name) 
-  print(f"{model_name} model is loaded\n") 
+  mlms.load_agent(task, agent, model_name) 
+  print(f"{agent}-agent is loaded with {model_name} model\n") 
   mlms.load_dataset(dataset_name, batch_size) 
   print(f"{dataset_name} dataset is loaded\n") 
   print(f"prediction starts") 

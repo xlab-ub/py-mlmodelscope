@@ -1,3 +1,3 @@
-from ._load import _load 
+from .pytorch_agent import PyTorch_Agent 
 
-__all__ = ['_load'] 
+__all__ = ['PyTorch_Agent'] 
