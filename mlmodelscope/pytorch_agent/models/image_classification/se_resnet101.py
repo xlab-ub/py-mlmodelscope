@@ -310,7 +310,7 @@ class SE_ResNet101:
     # if torch.__version__[:5] != "1.8.1": 
     #   raise RuntimeError("This model needs pytorch v1.8.1") 
 
-    temp_path = os.path.join(pathlib.Path(__file__).resolve().parent, 'tmp') 
+    temp_path = os.path.join(pathlib.Path(__file__).resolve().parent.parent.parent, 'tmp') 
     if not os.path.isdir(temp_path): 
       os.mkdir(temp_path) 
 

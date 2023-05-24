@@ -372,7 +372,7 @@ class PNASNet5Large(nn.Module):
 
 class PNASNet_5_Large:
   def __init__(self):
-    temp_path = os.path.join(pathlib.Path(__file__).resolve().parent, 'tmp') 
+    temp_path = os.path.join(pathlib.Path(__file__).resolve().parent.parent.parent, 'tmp') 
     if not os.path.isdir(temp_path): 
       os.mkdir(temp_path) 
 
