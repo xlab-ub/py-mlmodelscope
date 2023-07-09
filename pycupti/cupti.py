@@ -169,7 +169,9 @@ class CUPTI:
         self.profilingAPI = True if self.getProfilingAPI() == 1 else False # bool, true=1, false=0 
 
         self.subscriber = None 
-        if (err := self.Subscribe()) is not None: 
+        # if (err := self.Subscribe()) is not None: 
+        err = self.Subscribe() 
+        if err is not None: 
             raise RuntimeError("Error occurred in Subscribe() of CUPTI") 
 
         CUPTI.startTimeStamp = CUPTI.cuptiGetTimestamp() 
@@ -198,13 +200,19 @@ class CUPTI:
 
     def Subscribe(self): 
         #TODO: Fix cuptiActivityRegisterCallbacks(), which has problems. 
-        if (err := self.startActivities()) is not None: 
+        # if (err := self.startActivities()) is not None: 
+        err = self.startActivities() 
+        if err is not None: 
             return err 
         
-        if (err := self.cuptiSubscribe()) is not None: 
+        # if (err := self.cuptiSubscribe()) is not None: 
+        err = self.cuptiSubscribe() 
+        if err is not None: 
             return err 
         
-        if (err := self.enableCallbacks()) is not None: 
+        # if (err := self.enableCallbacks()) is not None: 
+        err = self.enableCallbacks() 
+        if err is not None: 
             return err 
         
         if self.samplingPeriod != 0: 
@@ -217,17 +225,25 @@ class CUPTI:
         return None 
 
     def Unsubscribe(self): 
-        if (err := self.cuptiActivityFlushAll(1)) is not None: 
+        # if (err := self.cuptiActivityFlushAll(1)) is not None: 
+        err = self.cuptiActivityFlushAll(1) 
+        if err is not None: 
             return err 
 
-        if (err := self.stopActivies()) is not None: 
+        # if (err := self.stopActivies()) is not None: 
+        err = self.stopActivies() 
+        if err is not None: 
             return err 
         
         if not self.profilingAPI: 
-            if (err := self.deleteEventGroups()) is not None: 
+            # if (err := self.deleteEventGroups()) is not None: 
+            err = self.deleteEventGroups() 
+            if err is not None: 
                 return err 
             
-        if (err := self.cuptiUnsubscribe()) is not None: 
+        # if (err := self.cuptiUnsubscribe()) is not None: 
+        err = self.cuptiUnsubscribe() 
+        if err is not None: 
             return err 
         
         return None 
@@ -2335,9 +2351,13 @@ class CUPTI:
 
             return None 
         
-        if (err := onContextCreateAddMetricGroup(domain, cuCtx)) is not None: 
+        # if (err := onContextCreateAddMetricGroup(domain, cuCtx)) is not None: 
+        err = onContextCreateAddMetricGroup(domain, cuCtx) 
+        if err is not None: 
             return err 
-        if (err := onContextCreateAddEventGroup(domain, cuCtx)) is not None: 
+        # if (err := onContextCreateAddEventGroup(domain, cuCtx)) is not None: 
+        err = onContextCreateAddEventGroup(domain, cuCtx) 
+        if err is not None: 
             return err 
         return None 
 
@@ -2347,9 +2367,13 @@ class CUPTI:
         def onContextDestroyEventGroup(domain, cuCtx): 
             return None 
         
-        if (err := onContextDestroyMetricGroup(domain, cuCtx)) is not None: 
+        # if (err := onContextDestroyMetricGroup(domain, cuCtx)) is not None: 
+        err = onContextDestroyMetricGroup(domain, cuCtx) 
+        if err is not None: 
             return err 
-        if (err := onContextDestroyEventGroup(domain, cuCtx)) is not None: 
+        # if (err := onContextDestroyEventGroup(domain, cuCtx)) is not None: 
+        err = onContextDestroyEventGroup(domain, cuCtx) 
+        if err is not None: 
             return err 
         return None 
 

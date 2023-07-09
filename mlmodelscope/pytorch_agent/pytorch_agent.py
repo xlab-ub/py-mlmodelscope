@@ -22,8 +22,9 @@ class PyTorch_Agent:
     # self.startSpanFromContext("pytorch_agent") 
     # self.ctx = self.prop.extract(carrier=self.carrier) 
 
-    self.span = self.tracer.start_span(name="pytorch-agent") 
-    self.prop.inject(carrier=self.carrier, context=set_span_in_context(self.span)) 
+    self.span = self.tracer.start_span(name="pytorch-agent", context=self.prop.extract(carrier=self.carrier)) 
+    self.ctx = set_span_in_context(self.span) 
+    self.prop.inject(carrier=self.carrier, context=self.ctx) 
 
     self.device = 'cuda' if ((architecture == "gpu") and torch.cuda.is_available()) else 'cpu' 
 
@@ -33,8 +34,18 @@ class PyTorch_Agent:
   def load_model(self, task, model_name): 
     if task == "image_classification": 
       pass 
+    elif task == "image_object_detection": 
+      pass 
+    elif task == "image_semantic_segmentation": 
+      pass 
+    elif task == "image_enhancement": 
+      pass 
+    elif task == "translation_english_to_german": 
+      pass 
     else: 
       raise NotImplementedError(f"{task} task is not supported")  
+
+    self.task = task 
 
     model_list = [model[:-3] for model in os.listdir(f'{pathlib.Path(__file__).parent.resolve()}/models/{task}') if model[0] != '_'] 
     if model_name in model_list: 
@@ -43,12 +54,12 @@ class PyTorch_Agent:
       raise NotImplementedError(f"{model_name} model is not supported, the available models are as follows:\n{', '.join(model_list)}") 
     self.model_name = model_name 
 
-    with self.tracer.start_as_current_span(self.model_name + ' model load') as model_load_span: 
+    with self.tracer.start_as_current_span(self.model_name + ' model load', context=self.ctx) as model_load_span: 
       self.prop.inject(carrier=self.carrier, context=set_span_in_context(model_load_span)) 
       self.model = _load(task=task, model_name=self.model_name) 
       self.model.model = self.model.model.to(self.device) 
 
-    if not hasattr(self.model, "isScriptModule"): 
+    if not hasattr(self.model.model, "isScriptModule"): 
       all_spans = {} 
       def pre_hook(layer_name): 
         def pre_hook(module, input): 
@@ -82,7 +93,7 @@ class PyTorch_Agent:
 
     outputs = [] 
 
-    with tracer.start_as_current_span(self.model_name + ' start') as model_start_span: 
+    with tracer.start_as_current_span(self.model_name + ' start', context=self.ctx) as model_start_span: 
       prop.inject(carrier=carrier, context=set_span_in_context(model_start_span)) 
       with torch.no_grad(): 
         if num_warmup > 0: 
@@ -123,7 +134,14 @@ class PyTorch_Agent:
                 model_output = self.model.predict(model_input) 
               with tracer.start_as_current_span("postprocess") as postprocess_span: 
                 prop.inject(carrier=carrier, context=set_span_in_context(postprocess_span)) 
-                outputs.extend(self.model.postprocess(model_output)) 
+                if (self.task == "image_object_detection" or 
+                  self.task == "image_instance_segmentation" or self.task == "image_instance_segmentation_raw"): 
+                  # outputs.append(self.model.postprocess(model_output)) 
+                  post_processed_model_output = self.model.postprocess(model_output) 
+                  for i in range(len(post_processed_model_output[0])): 
+                    outputs.append([[output[i]] for output in post_processed_model_output]) 
+                else: # "image_classification", "image_semantic_segmentation", "image_enhancement" 
+                  outputs.extend(self.model.postprocess(model_output)) 
   
     return outputs 
 

@@ -38,10 +38,7 @@ MLModelScope can be used as an application with a command line, API or web inter
 ## Requirements 
 
 ``` 
-python>=3.8 
-cuda>=11.7.1 
-numpy>=1.23.5 
-protobuf>=3.20.3 
+python>=3.7 
 ``` 
 
 ## Prerequsite System Library Installation
@@ -49,7 +46,11 @@ We first discuss a bare minimum pytorch-agent installation without the tracing a
 
 - The CUDA library (required)
 - The CUPTI library (required)
-- The Pytorch Python library (optional for pytorch-agent) `pytorch>=1.13.1` `torchvision>=0.14.1` 
+- The cuDNN library (optional for mxnet-agent) 
+- The Pytorch Python library (optional for pytorch-agent) 
+- The Tensorflow Python library (optional for tensorflow-agent) 
+- The ONNXRuntime and ONNX Python library (optional for onnxruntime-agent) 
+- The MXNet Python library (optional for mxnet-agent) 
 
 ### The CUDA Library
 
@@ -83,6 +84,264 @@ After running above commands, please check whether  `libutils.so` on Linux or `u
 The Pytorch Python library is required for our pytorch-agent. 
 
 You can install Pytorch Python by referencing [Pytorch](https://pytorch.org/get-started/locally/). 
+
+### The Tensorflow Python Library (optional for tensorflow-agent) 
+
+The Tensorflow Python library is required for our tensorflow-agent. 
+
+<details> 
+<summary>Tensorflow v2 Installation in Anaconda Environment</summary> 
+
+## Anaconda Environment 
+
+```bash 
+conda create -n tf2gpu python=3.8 
+conda activate tf2gpu 
+``` 
+
+**On Windows** 
+
+```bash 
+conda install -c conda-forge cudatoolkit=11.2 cudnn=8.1.0 
+# Anything above 2.10 is not supported on the GPU on Windows Native 
+python -m pip install "tensorflow<2.11" 
+# Verify install: 
+python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))" 
+``` 
+
+## OpenCV 
+
+```bash 
+pip install opencv-contrib-python 
+``` 
+
+## OpenTelemetry 
+
+```bash 
+pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc grpcio 
+```
+
+## aenum 
+
+```bash 
+pip install aenum 
+``` 
+
+</details> 
+
+<details> 
+<summary>Tensorflow v1.14.0 with CUDA v10.0 Installation in Anaconda Environment</summary> 
+
+## Anaconda Environment 
+
+```bash 
+conda create -n tf114gpu 
+conda activate tf114gpu 
+``` 
+
+**On Windows** 
+
+```bash 
+conda install -c anaconda tensorflow-gpu=1.14.0 
+
+# Verify install: 
+python -c "import tensorflow as tf; print(tf.test.is_gpu_available())" 
+``` 
+
+## OpenTelemetry 
+
+```bash 
+pip install opentelemetry-api 
+pip install opentelemetry-sdk 
+pip install opentelemetry-exporter-otlp-proto-grpc 
+pip install grpcio==1.27.2 
+pip install google-pasta # for tensorflow v1.14.0 
+``` 
+
+## OpenCV 
+
+```bash 
+pip install opencv-python # conda install -c conda-forge opencv 
+``` 
+
+## Pillow 
+
+```bash 
+pip install Pillow 
+``` 
+
+## aenum 
+
+```bash 
+pip install aenum 
+``` 
+
+</details>
+
+### The ONNXRuntime and ONNX Python Library (optional for onnxruntime-agent) 
+
+The ONNXRuntime and ONNX Python library is required for our onnxruntime-agent. 
+
+<details> 
+<summary>ONNXRuntime v1.7.0 Installation in Anaconda Environment</summary> 
+
+## Anaconda Environment 
+
+```bash 
+conda create -n ort170 python=3.8 
+conda activate ort170 
+``` 
+
+**On Windows and Linux** 
+
+```bash
+pip install onnxruntime-gpu==1.7.0 
+conda install -c conda-forge cudatoolkit=11.0 cudnn 
+# Verify install: 
+# Even if the result is ['TensorrtExecutionProvider', 'CUDAExecutionProvider', 'CPUExecutionProvider'], it does not mean that GPU device can be used. 
+python -c "import onnxruntime as ort;print(ort.get_available_providers())" 
+``` 
+
+## OpenTelemetry 
+
+```bash 
+pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc grpcio 
+``` 
+
+## aenum 
+
+```bash 
+pip install aenum 
+```
+
+## TorchVision 
+
+```bash
+conda install -c pytorch torchvision 
+```
+
+## ONNX 
+
+```bash 
+conda install -c conda-forge onnx 
+``` 
+
+## Scipy 
+
+```bash
+conda install -c anaconda scipy 
+```
+
+## OpenCV 
+
+```bash 
+pip install opencv-python # conda install -c conda-forge opencv 
+``` 
+
+</details>
+
+### The MXNet Python Library (optional for mxnet-agent) 
+
+The MXNet Python library is required for our mxnet-agent. 
+
+<details> 
+<summary>MXNet v1.8.0 with CUDA v10.2 Installation in Anaconda Environment</summary> 
+
+**v1.8.0 cannot be installed on Windows.** 
+
+## cuDNN 
+
+[cuDNN](https://developer.nvidia.com/rdp/cudnn-download) local installation is required for MXNet. 
+
+Before issuing the following commands, you must replace X.Y and v8.x.x.x with your specific CUDA and cuDNN versions and package date. 
+
+1. Navigate to your <cudnnpath> directory containing the cuDNN tar file.
+2. Unzip the cuDNN package.
+
+```bash
+tar -xvf cudnn-linux-x86_64-8.x.x.x_cudaX.Y-archive.tar.xz 
+```
+
+3. Copy the following files into the CUDA toolkit directory.
+
+```bash
+sudo cp cudnn-*-archive/include/cudnn*.h /usr/local/cuda/include 
+sudo cp -P cudnn-*-archive/lib/libcudnn* /usr/local/cuda/lib64 
+sudo chmod a+r /usr/local/cuda/include/cudnn*.h /usr/local/cuda/lib64/libcudnn* 
+```
+
+4. Edit the environment variables. 
+
+```bash 
+export PATH="/usr/local/cuda/bin:$PATH" 
+export LD_LIBRARY_PATH="/usr/local/cuda/lib64:$LD_LIBRARY_PATH" 
+```
+
+**References** 
+
+1. https://docs.nvidia.com/deeplearning/cudnn/install-guide/index.html 
+2. https://github.com/tensorflow/tensorflow/issues/41041 
+
+## Anaconda Environment 
+
+```bash 
+conda create -n mxnet180cu102 python=3.8 
+conda activate mxnet180cu102 
+``` 
+
+**On Linux** 
+
+v1.8.0 cannot be installed on Windows 
+
+```bash
+conda install -c anaconda cudatoolkit=10.2 cudnn=7.6.5 
+conda install -c conda-forge libcblas # important 
+pip install mxnet-cu102==1.8.0 
+conda install -c conda-forge nccl 
+python -m pip uninstall numpy 
+python -m pip install numpy==1.23.1 
+
+# Verify install: 
+python -c "import mxnet as mx;print(mx.context.num_gpus())" 
+``` 
+
+## OpenTelemetry 
+
+```bash 
+pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc grpcio 
+``` 
+
+## aenum 
+
+```bash 
+pip install aenum 
+``` 
+
+## TorchVision 
+
+```bash
+pip install torchvision==0.9.0 
+```
+
+## Scipy 
+
+```bash
+conda install -c anaconda scipy 
+```
+
+## Chardet 
+
+```bash
+pip install chardet 
+```
+
+## OpenCV 
+
+```bash 
+pip install opencv-contrib-python 
+``` 
+
+</details>
 
 ## Test Installation
 
@@ -127,7 +386,43 @@ An example run is
 
 ```bash 
 python run_image_classification.py --task image_classification --agent pytorch --model_name alexnet --architecture gpu --num_warmup 2 --dataset_name test --dataset_path ./test_data --batch_size 2
-``` 
+```
+
+## Image Classification 
+
+```bash 
+python run_image_classification.py --task image_classification --agent pytorch --model_name alexnet --architecture gpu --num_warmup 2 --dataset_name test --batch_size 2 --gpu_trace false 
+```
+
+## Image Object Detection 
+
+```bash 
+python run_image_object_detection.py --task image_object_detection --agent pytorch --model_name mobilenet_ssd_v1_0 --architecture cpu --num_warmup 2 --dataset_name test --batch_size 1 --gpu_trace false 
+```
+
+## Image Semantic Segmentation 
+
+```bash 
+python run_image_semantic_segmentation.py --task image_semantic_segmentation --agent tensorflow --model_name deeplabv3_mobilenet_v2_dm_05_pascal_voc_train_aug --architecture cpu --num_warmup 2 --dataset_name test_cv2 --batch_size 1 --gpu_trace false 
+```
+
+## Image Enhancement 
+
+```bash 
+python run_image_enhancement.py --task image_enhancement --agent pytorch --model_name srgan --architecture cpu --num_warmup 2 --dataset_name test --batch_size 1 --gpu_trace false 
+```
+
+## Image Instance Segmentation 
+
+```bash 
+python run_image_instance_segmentation.py --task image_instance_segmentation --agent tensorflow --model_name mask_rcnn_inception_v2_coco --architecture cpu --num_warmup 2 --dataset_name test_cv2 --batch_size 1 --gpu_trace false 
+```
+
+## Image Instance Segmentation Raw 
+
+```bash 
+python run_image_instance_segmentation_raw.py --task image_instance_segmentation_raw --agent tensorflow --model_name mask_rcnn_inception_v2_coco_raw --architecture cpu --num_warmup 2 --dataset_name test_cv2 --batch_size 1 --gpu_trace false 
+```
 
 # References 
 

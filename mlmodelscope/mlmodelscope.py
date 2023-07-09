@@ -16,12 +16,12 @@ from .dataloader import DataLoader
 # https://stackoverflow.com/questions/714063/importing-modules-from-parent-folder 
 sys.path.insert(1, os.path.join(sys.path[0], '..')) 
 import pydldataset 
-from pycupti import CUPTI 
+# from pycupti import CUPTI 
 
 logger = logging.getLogger(__name__) 
 
 class MLModelScope: 
-  def __init__(self, architecture): 
+  def __init__(self, architecture, gpu_trace=False): 
     resource = Resource(attributes={
         # SERVICE_NAME: "mlmodelscope-service"
         SERVICE_NAME: "mlms"
@@ -40,7 +40,9 @@ class MLModelScope:
     self.prop.inject(carrier=self.carrier, context=self.ctx) 
 
     self.architecture = architecture 
-    if self.architecture == "gpu": 
+    self.gpu_trace = gpu_trace 
+    if self.architecture == "gpu" and self.gpu_trace: 
+      from pycupti import CUPTI 
       self.c = CUPTI(tracer=self.tracer, prop=self.prop, carrier=self.carrier) 
       print("CUPTI version", self.c.cuptiGetVersion()) 
 
@@ -53,7 +55,7 @@ class MLModelScope:
     else: 
       raise NotImplementedError(f"{dataset_name} dataset is not supported, the available datasets are as follows:\n{', '.join(dataset_list)}") 
     
-    with self.tracer.start_as_current_span(dataset_name + ' dataset load') as dataset_load_span: 
+    with self.tracer.start_as_current_span(dataset_name + ' dataset load', context=self.ctx) as dataset_load_span: 
       self.prop.inject(carrier=self.carrier, context=set_span_in_context(dataset_load_span)) 
       self.dataset = pydldataset.load(dataset_name) 
       self.batch_size = batch_size 
@@ -62,18 +64,23 @@ class MLModelScope:
     return 
 
   def load_agent(self, task, agent, model_name): 
-    if task == "image_classification": 
-      pass 
-    else: 
-      raise NotImplementedError(f"{task} task is not supported")  
+    # if task == "image_classification": 
+    #   pass 
+    # else: 
+    #   raise NotImplementedError(f"{task} task is not supported")  
 
     if agent == 'pytorch': 
       from mlmodelscope.pytorch_agent import PyTorch_Agent 
       self.agent = PyTorch_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier) 
     elif agent == 'tensorflow': 
-      raise NotImplementedError(f"{agent} agent is not supported") 
+      from mlmodelscope.tensorflow_agent import TensorFlow_Agent 
+      self.agent = TensorFlow_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier) 
     elif agent == 'onnxruntime': 
-      raise NotImplementedError(f"{agent} agent is not supported") 
+      from mlmodelscope.onnxruntime_agent import ONNXRuntime_Agent 
+      self.agent = ONNXRuntime_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier) 
+    elif agent == 'mxnet': 
+      from mlmodelscope.mxnet_agent import MXNet_Agent 
+      self.agent = MXNet_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier) 
     else: 
       raise NotImplementedError(f"{agent} agent is not supported") 
     
@@ -83,7 +90,7 @@ class MLModelScope:
     outputs = self.agent.predict(num_warmup, self.dataloader) 
     self.agent.Close() 
 
-    if self.architecture == "gpu": 
+    if self.architecture == "gpu" and self.gpu_trace: 
       self.c.Close() 
 
     return outputs 

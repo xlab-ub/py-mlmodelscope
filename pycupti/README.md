@@ -6,11 +6,11 @@ Python binding to NVIDIA CUPTI, the CUDA Performance Tool Interface.
 
 **On Linux**
 
-```bash 
+```bash
 cd pycupti/csrc 
 export PATH="/usr/local/cuda/bin:$PATH" 
 nvcc -O3 --shared -Xcompiler -fPIC utils.cpp -o libutils.so -lcuda -lcudart -lcupti -lnvperf_host -lnvperf_target -I /usr/local/cuda/extras/CUPTI/include -L /usr/local/cuda/extras/CUPTI/lib64 
-``` 
+```
 
 **On Windows**
 
