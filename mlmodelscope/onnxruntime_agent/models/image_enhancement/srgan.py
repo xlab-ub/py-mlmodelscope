@@ -5,6 +5,7 @@ import requests
 
 # https://github.com/xlab-ub/py-mlmodelscope/blob/a8e395ff39f3c6718b386af70327807e34199b2a/mlmodelscope/onnxruntime_agent/models/image_classification/alexnet.py 
 from torchvision import transforms
+from PIL import Image 
 import numpy as np
 import onnxruntime as ort
 import onnx 
@@ -44,7 +45,7 @@ class ONNXRuntime_SRGAN:
       transforms.ToTensor(), 
     ])
     for i in range(len(input_images)):
-      input_images[i] = preprocessor(input_images[i].convert('RGB')).numpy() 
+      input_images[i] = preprocessor(Image.open(input_images[i]).convert('RGB')).numpy() 
     model_input = np.asarray(input_images) 
     return model_input
 

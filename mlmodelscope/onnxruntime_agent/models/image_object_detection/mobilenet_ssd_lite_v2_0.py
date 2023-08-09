@@ -5,6 +5,7 @@ import requests
 
 # https://github.com/xlab-ub/py-mlmodelscope/blob/a8e395ff39f3c6718b386af70327807e34199b2a/mlmodelscope/onnxruntime_agent/models/image_classification/alexnet.py 
 from torchvision import transforms
+from PIL import Image 
 import numpy as np
 import onnxruntime as ort
 import onnx 
@@ -40,6 +41,24 @@ class ONNXRuntime_MobileNet_SSD_Lite_V2_0:
     self.output_names = [output.name for output in self.session.get_outputs()] 
     self.model = onnx.load(model_path) 
 
+    # https://github.com/c3sr/dlmodel/blob/master/models_demo/vision/image_object_detection/onnxruntime/mobilenet/MobileNet_SSD_Lite_v2.0.yml 
+    features_file_url = "https://s3.amazonaws.com/store.carml.org/models/tensorflow/models/deeplabv3_mnv2_pascal_train_aug_2018_01_29/pascal-voc-classes.txt" 
+
+    features_file_name = features_file_url.split('/')[-1] 
+    features_path = os.path.join(temp_path, features_file_name) 
+
+    if not os.path.exists(features_path): 
+      print("Start download the features file") 
+      # https://stackoverflow.com/questions/66195254/downloading-a-file-with-a-url-using-python 
+      data = requests.get(features_file_url) 
+      with open(features_path, 'wb') as f: 
+        f.write(data.content) 
+      print("Download complete") 
+
+    # https://stackoverflow.com/questions/3277503/how-to-read-a-file-line-by-line-into-a-list 
+    with open(features_path, 'r') as f_f: 
+      self.features = [line.rstrip() for line in f_f] 
+
   def preprocess(self, input_images):
     preprocessor = transforms.Compose([
       transforms.Resize((300, 300)),
@@ -47,7 +66,7 @@ class ONNXRuntime_MobileNet_SSD_Lite_V2_0:
       transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]) 
     ])
     for i in range(len(input_images)):
-      input_images[i] = preprocessor(input_images[i].convert('RGB')).numpy() 
+      input_images[i] = preprocessor(Image.open(input_images[i]).convert('RGB')).numpy() 
     model_input = np.asarray(input_images) 
     return model_input
 

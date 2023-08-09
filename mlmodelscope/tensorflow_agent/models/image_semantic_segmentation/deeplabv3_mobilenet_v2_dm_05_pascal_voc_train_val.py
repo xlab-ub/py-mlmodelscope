@@ -1,6 +1,7 @@
 import warnings 
 import os 
 import pathlib 
+import requests 
 
 import tensorflow as tf 
 import numpy as np 
@@ -38,6 +39,23 @@ class TensorFlow_DeepLabv3_MobileNet_v2_DM_05_PASCAL_VOC_Train_Val:
     self.load_pb(model_path) 
 
     self.sess = tf.compat.v1.Session(graph=self.model) 
+
+    features_file_url = "https://s3.amazonaws.com/store.carml.org/models/tensorflow/models/deeplabv3_mnv2_pascal_train_aug_2018_01_29/pascal-voc-classes.txt" 
+
+    features_file_name = features_file_url.split('/')[-1] 
+    features_path = os.path.join(temp_path, features_file_name) 
+
+    if not os.path.exists(features_path): 
+      print("Start download the features file") 
+      # https://stackoverflow.com/questions/66195254/downloading-a-file-with-a-url-using-python 
+      data = requests.get(features_file_url) 
+      with open(features_path, 'wb') as f: 
+        f.write(data.content) 
+      print("Download complete") 
+
+    # https://stackoverflow.com/questions/3277503/how-to-read-a-file-line-by-line-into-a-list 
+    with open(features_path, 'r') as f_f: 
+      self.features = [line.rstrip() for line in f_f] 
   
   # https://stackoverflow.com/questions/51278213/what-is-the-use-of-a-pb-file-in-tensorflow-and-how-does-it-work 
   def load_pb(self, path_to_pb):
@@ -77,7 +95,7 @@ class TensorFlow_DeepLabv3_MobileNet_v2_DM_05_PASCAL_VOC_Train_Val:
   def preprocess(self, input_images):
     self.wlist, self.hlist = [], [] 
     for i in range(len(input_images)):
-      input_images[i] = self.preprocess_image(input_images[i], dims=[513, 513, 3]) 
+      input_images[i] = self.preprocess_image(cv2.imread(input_images[i]), dims=[513, 513, 3]) 
     model_input = np.asarray(input_images) 
     return model_input
 

@@ -62,7 +62,7 @@ class ONNXRuntime_MLCommons_SSD_ResNet_34_1200x1200:
 
   def preprocess(self, input_images):
     for i in range(len(input_images)):
-      input_images[i] = self.pre_process_coco_resnet34(input_images[i], [1200, 1200, 3], True) 
+      input_images[i] = self.pre_process_coco_resnet34(cv2.imread(input_images[i]), [1200, 1200, 3], True) 
     model_input = np.asarray(input_images) 
     return model_input
 

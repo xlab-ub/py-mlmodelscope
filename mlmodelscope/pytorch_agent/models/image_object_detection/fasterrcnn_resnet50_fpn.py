@@ -2,6 +2,7 @@ import warnings
 
 import torch
 from torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_ResNet50_FPN_Weights 
+from PIL import Image 
 
 class PyTorch_TorchVision_FasterRCNN_ResNet50_FPN: 
   def __init__(self): 
@@ -13,7 +14,7 @@ class PyTorch_TorchVision_FasterRCNN_ResNet50_FPN:
   def preprocess(self, input_images):
     preprocessor = FasterRCNN_ResNet50_FPN_Weights.DEFAULT.transforms() 
     for i in range(len(input_images)):
-      input_images[i] = preprocessor(input_images[i].convert('RGB')) 
+      input_images[i] = preprocessor(Image.open(input_images[i]).convert('RGB')) 
     model_input = torch.stack(input_images) 
     return model_input
 

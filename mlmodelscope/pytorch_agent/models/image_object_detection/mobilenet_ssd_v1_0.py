@@ -1,14 +1,15 @@
 import os 
 import pathlib 
+import requests 
 # https://stackoverflow.com/questions/50236117/scraping-ssl-certificate-verify-failed-error-for-http-en-wikipedia-org 
 import ssl 
 
 import torch 
 from torchvision import transforms
-
+from PIL import Image 
 import numpy as np 
 
-class PyTorch_MobileNet_SSD_V1_0: 
+class MobileNet_SSD_v1_0: 
   def __init__(self):
     if torch.__version__[:5] != "1.8.1": 
       raise RuntimeError("This model needs pytorch v1.8.1") 
@@ -34,6 +35,24 @@ class PyTorch_MobileNet_SSD_V1_0:
     self.model.isScriptModule = True 
     self.model.eval() 
 
+    # https://github.com/c3sr/dlmodel/blob/master/models_demo/vision/image_object_detection/pytorch/mobilenet/MobileNet_SSD_v1.0.yml 
+    features_file_url = "https://s3.amazonaws.com/store.carml.org/models/tensorflow/models/deeplabv3_mnv2_pascal_train_aug_2018_01_29/pascal-voc-classes.txt" 
+
+    features_file_name = features_file_url.split('/')[-1] 
+    features_path = os.path.join(temp_path, features_file_name) 
+
+    if not os.path.exists(features_path): 
+      print("Start download the features file") 
+      # https://stackoverflow.com/questions/66195254/downloading-a-file-with-a-url-using-python 
+      data = requests.get(features_file_url) 
+      with open(features_path, 'wb') as f: 
+        f.write(data.content) 
+      print("Download complete") 
+
+    # https://stackoverflow.com/questions/3277503/how-to-read-a-file-line-by-line-into-a-list 
+    with open(features_path, 'r') as f_f: 
+      self.features = [line.rstrip() for line in f_f] 
+
   def preprocess(self, input_images):
     preprocessor = transforms.Compose([
       transforms.Resize((300, 300)),
@@ -41,7 +60,7 @@ class PyTorch_MobileNet_SSD_V1_0:
       transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])
     for i in range(len(input_images)):
-      input_images[i] = preprocessor(input_images[i].convert('RGB'))
+      input_images[i] = preprocessor(Image.open(input_images[i]).convert('RGB'))
     model_input = torch.stack(input_images)
     return model_input
 
@@ -72,4 +91,4 @@ class PyTorch_MobileNet_SSD_V1_0:
     return probabilities, classes, boxes
     
 def init():
-  return PyTorch_MobileNet_SSD_V1_0() 
+  return MobileNet_SSD_v1_0() 

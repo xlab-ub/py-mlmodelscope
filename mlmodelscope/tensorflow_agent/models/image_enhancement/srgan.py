@@ -63,7 +63,7 @@ class Tensorflow_SRGAN:
 
   def preprocess(self, input_images):
     for i in range(len(input_images)):
-      input_images[i] = self.preprocess_image(input_images[i]) 
+      input_images[i] = self.preprocess_image(cv2.imread(input_images[i])) 
     model_input = np.asarray(input_images) 
     return model_input
 

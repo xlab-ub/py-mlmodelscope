@@ -1,12 +1,13 @@
 import warnings 
 import os 
 import pathlib 
+import requests 
 
 import tensorflow as tf 
 import numpy as np 
 import cv2 
 
-class TensorFlow_Mask_RCNN_Inception_ResNet_V2_Atrous_COCO: 
+class TensorFlow_Mask_RCNN_Inception_ResNet_v2_Atrous_COCO: 
   def __init__(self):
     warnings.warn("If the size of the images is not consistent, the batch size should be 1.") 
     temp_path = os.path.join(pathlib.Path(__file__).resolve().parent.parent.parent, 'tmp') 
@@ -38,6 +39,23 @@ class TensorFlow_Mask_RCNN_Inception_ResNet_V2_Atrous_COCO:
     self.load_pb(model_path) 
 
     self.sess = tf.compat.v1.Session(graph=self.model) 
+
+    features_file_url = "https://s3.amazonaws.com/store.carml.org/synsets/coco/coco_labels_paper_background.txt" 
+
+    features_file_name = features_file_url.split('/')[-1] 
+    features_path = os.path.join(temp_path, features_file_name) 
+
+    if not os.path.exists(features_path): 
+      print("Start download the features file") 
+      # https://stackoverflow.com/questions/66195254/downloading-a-file-with-a-url-using-python 
+      data = requests.get(features_file_url) 
+      with open(features_path, 'wb') as f: 
+        f.write(data.content) 
+      print("Download complete") 
+
+    # https://stackoverflow.com/questions/3277503/how-to-read-a-file-line-by-line-into-a-list 
+    with open(features_path, 'r') as f_f: 
+      self.features = [line.rstrip() for line in f_f] 
   
   # https://stackoverflow.com/questions/51278213/what-is-the-use-of-a-pb-file-in-tensorflow-and-how-does-it-work 
   def load_pb(self, path_to_pb):
@@ -67,7 +85,7 @@ class TensorFlow_Mask_RCNN_Inception_ResNet_V2_Atrous_COCO:
   def preprocess(self, input_images):
     self.wlist, self.hlist = [], [] 
     for i in range(len(input_images)):
-      input_images[i] = self.preprocess_image(input_images[i]) 
+      input_images[i] = self.preprocess_image(cv2.imread(input_images[i])) 
     model_input = np.asarray(input_images) 
     return model_input
 
@@ -101,4 +119,4 @@ class TensorFlow_Mask_RCNN_Inception_ResNet_V2_Atrous_COCO:
     return masks, labels 
     
 def init(): 
-  return TensorFlow_Mask_RCNN_Inception_ResNet_V2_Atrous_COCO() 
+  return TensorFlow_Mask_RCNN_Inception_ResNet_v2_Atrous_COCO() 

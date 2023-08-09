@@ -4,6 +4,7 @@ import requests
 
 # https://github.com/xlab-ub/py-mlmodelscope/blob/a8e395ff39f3c6718b386af70327807e34199b2a/mlmodelscope/onnxruntime_agent/models/image_classification/alexnet.py 
 from torchvision import transforms
+from PIL import Image 
 import numpy as np
 import onnxruntime as ort
 import onnx 
@@ -38,6 +39,24 @@ class ONNXRuntime_ResNext_101_32x4D:
     self.output_name = self.session.get_outputs()[0].name
     self.model = onnx.load(model_path) 
 
+    # https://github.com/c3sr/dlmodel/blob/master/models_demo/vision/image_classification/onnxruntime/resnext/ResNext_101_32x4D.yml 
+    features_file_url = "http://s3.amazonaws.com/store.carml.org/synsets/imagenet/synset.txt" 
+
+    features_file_name = features_file_url.split('/')[-1] 
+    features_path = os.path.join(temp_path, features_file_name) 
+
+    if not os.path.exists(features_path): 
+      print("Start download the features file") 
+      # https://stackoverflow.com/questions/66195254/downloading-a-file-with-a-url-using-python 
+      data = requests.get(features_file_url) 
+      with open(features_path, 'wb') as f: 
+        f.write(data.content) 
+      print("Download complete") 
+
+    # https://stackoverflow.com/questions/3277503/how-to-read-a-file-line-by-line-into-a-list 
+    with open(features_path, 'r') as f_f: 
+      self.features = [line.rstrip() for line in f_f] 
+
   def preprocess(self, input_images):
     preprocessor = transforms.Compose([
       transforms.Resize(256),
@@ -46,7 +65,7 @@ class ONNXRuntime_ResNext_101_32x4D:
       transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]) 
     ])
     for i in range(len(input_images)):
-      input_images[i] = preprocessor(input_images[i].convert('RGB')).numpy() 
+      input_images[i] = preprocessor(Image.open(input_images[i]).convert('RGB')).numpy() 
     model_input = np.asarray(input_images) 
     return model_input
 

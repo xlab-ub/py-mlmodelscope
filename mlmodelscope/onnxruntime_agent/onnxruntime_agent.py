@@ -2,6 +2,11 @@ import os
 import pathlib 
 import logging 
 
+import base64 
+from io import BytesIO 
+import numpy as np 
+from PIL import Image 
+
 from opentelemetry import trace, context 
 from opentelemetry.trace import set_span_in_context 
 
@@ -82,7 +87,7 @@ class ONNXRuntime_Agent:
     #   layer.register_forward_pre_hook(pre_hook(layer_name)) 
     #   layer.register_forward_hook(hook(layer_name)) 
 
-  def predict(self, num_warmup, dataloader): 
+  def predict(self, num_warmup, dataloader, detailed=False): 
     tracer = self.tracer 
     prop = self.prop 
     carrier = self.carrier 
@@ -129,12 +134,59 @@ class ONNXRuntime_Agent:
               model_output = self.model.predict(model_input) 
             with tracer.start_as_current_span("postprocess") as postprocess_span: 
               prop.inject(carrier=carrier, context=set_span_in_context(postprocess_span)) 
-              if self.task != "image_object_detection": 
-                outputs.extend(self.model.postprocess(model_output)) 
-              else: 
+              if (self.task == "image_object_detection" or 
+                  self.task == "image_instance_segmentation" or self.task == "image_instance_segmentation_raw"): 
                 outputs.append(self.model.postprocess(model_output)) 
+              else: # "image_classification", "image_semantic_segmentation", "image_enhancement" 
+                outputs.extend(self.model.postprocess(model_output)) 
   
-    return outputs 
+    if detailed and (hasattr(self.model, 'features') or self.task == 'image_enhancement'): 
+      # from bson.objectid import ObjectId 
+      detailed_outputs = [] 
+      if self.task == 'image_classification': 
+        for output in outputs: 
+          features = [] 
+          output = {k: v for k, v in enumerate(output)} 
+          output = dict(sorted(output.items(), key=lambda item: item[1], reverse=True)) 
+          for idx, o in output.items(): 
+            # features.append({"classification":{"index":idx,"label":self.model.features[idx]},"id":str(ObjectId()),"probability":round(o, 11),"type":"CLASSIFICATION"})
+            # features.append({"classification":{"index":idx,"label":self.model.features[idx]},"id":None,"probability":round(o, 11),"type":"CLASSIFICATION"})
+            features.append({"classification":{"index":idx,"label":self.model.features[idx]},"probability":round(o, 11),"type":"CLASSIFICATION"})
+            
+            # features.append({"classification":{"index":idx,"label":self.model.features[idx]},"probability":f"{o:.11f}","type":"CLASSIFICATION"}) all probability <1% 
+            
+          detailed_outputs.append({"duration":None,"duration_for_inference":None,"responses":[{"features":features,"id":None}]}) 
+      elif self.task == 'image_object_detection': 
+        for probabilities, classes, boxes in outputs: 
+          features = [] 
+          for p, c, b in zip(probabilities[0], classes[0], boxes[0]): 
+            features.append({"bounding_box":{"index":int(c),"label":self.model.features[c],"xmax":float(b[3]),"xmin":float(b[1]),"ymax":float(b[2]),"ymin":float(b[0])},"probability":round(float(p), 8),"type":"BOUNDINGBOX"}) 
+
+          detailed_outputs.append({"duration":None,"duration_for_inference":None,"responses":[{"features":features,"id":None}]}) 
+      elif self.task == 'image_semantic_segmentation': 
+        for idx, output in enumerate(outputs): 
+          features = [{"semantic_segment":{"height":len(output),"int_mask":[o_sub for o in output for o_sub in o],"labels":self.model.features,"width":len(output[0])},"probability":1,"type":"SEMANTICSEGMENT"}] 
+      
+          detailed_outputs.append({"duration":None,"duration_for_inference":None,"responses":[{"features":features,"id":None}]})
+      elif self.task == 'image_enhancement': 
+        # import base64 
+        # from io import BytesIO 
+        # import numpy as np 
+        # from PIL import Image 
+        # features = [] 
+        for idx, output in enumerate(outputs): 
+          img = Image.fromarray(np.array(output, dtype='uint8'), 'RGB') 
+          buffer = BytesIO() 
+          img.save(buffer, format="JPEG") 
+          jpeg_data = base64.b64encode(buffer.getvalue()).decode('utf-8')  
+          features = [{"raw_image":{"channels":len(output[0][0]),"char_list":None,"data_type":str(type(output[0][0][0])),"float_list":None,"height":len(output),"jpeg_data":jpeg_data,"width":len(output[0])},"probability":1,"type":"RAW_IMAGE"}] 
+
+        detailed_outputs.append({"duration":None,"duration_for_inference":None,"responses":[{"features":features,"id":None}]})
+      else: 
+        raise NotImplementedError 
+      return detailed_outputs 
+    else: 
+      return outputs 
 
   def Close(self): 
     self.span.end() 

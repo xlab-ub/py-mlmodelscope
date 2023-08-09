@@ -1,5 +1,6 @@
 import torch
 from torchvision import transforms
+from PIL import Image 
 
 class TorchVision_MNASNet1_0:
   def __init__(self):
@@ -14,7 +15,7 @@ class TorchVision_MNASNet1_0:
       transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
     for i in range(len(input_images)):
-      input_images[i] = preprocessor(input_images[i].convert('RGB'))
+      input_images[i] = preprocessor(Image.open(input_images[i]).convert('RGB'))
     model_input = torch.stack(input_images)
     return model_input
 

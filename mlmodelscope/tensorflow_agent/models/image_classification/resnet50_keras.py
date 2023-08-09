@@ -46,7 +46,7 @@ class TensorFlow_ResNet50_Keras:
 
   def preprocess(self, input_images):
     for i in range(len(input_images)):
-      input_images[i] = self.preprocess_image(input_images[i], [224, 224, 3], False) 
+      input_images[i] = self.preprocess_image(cv2.imread(input_images[i]), [224, 224, 3], False) 
     model_input = np.asarray(input_images) 
     return model_input
 

@@ -75,7 +75,7 @@ class ONNXRuntime_MLCommons_ResNet_50_V1_5:
 
   def preprocess(self, input_images):
     for i in range(len(input_images)):
-      input_images[i] = self.pre_process_vgg(input_images[i], [224, 224, 3], True) 
+      input_images[i] = self.pre_process_vgg(cv2.imread(input_images[i]), [224, 224, 3], True) 
     model_input = np.asarray(input_images) 
     return model_input
 

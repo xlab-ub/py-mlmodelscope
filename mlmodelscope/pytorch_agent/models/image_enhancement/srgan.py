@@ -6,7 +6,7 @@ import ssl
 
 import torch 
 from torchvision import transforms
-
+from PIL import Image 
 import numpy as np 
 
 class PyTorch_SRGAN: 
@@ -41,7 +41,7 @@ class PyTorch_SRGAN:
       transforms.ToTensor(), 
     ])
     for i in range(len(input_images)):
-      input_images[i] = preprocessor(input_images[i].convert('RGB'))
+      input_images[i] = preprocessor(Image.open(input_images[i]).convert('RGB'))
     model_input = torch.stack(input_images)
     return model_input
 

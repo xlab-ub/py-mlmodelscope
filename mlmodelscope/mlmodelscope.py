@@ -49,15 +49,24 @@ class MLModelScope:
     return 
 
   def load_dataset(self, dataset_name, batch_size): 
-    dataset_list = [dataset[:-3] for dataset in os.listdir(f'./pydldataset/datasets/') if dataset[-3:] == '.py'] 
-    if dataset_name in dataset_list: 
-      print(f"{dataset_name} dataset exists") 
-    else: 
-      raise NotImplementedError(f"{dataset_name} dataset is not supported, the available datasets are as follows:\n{', '.join(dataset_list)}") 
+    url = False 
+    if isinstance(dataset_name, list): 
+      if dataset_name[0].startswith('http'): 
+        url = True 
+      else: 
+        dataset_name = dataset_name[0] 
+    if not url: 
+      dataset_list = [dataset[:-3] for dataset in os.listdir(f'./pydldataset/datasets/') if dataset.endswith('.py')]
+      dataset_list.remove('url_data') 
+      if dataset_name in dataset_list: 
+        print(f"{dataset_name} dataset exists") 
+      else: 
+        raise NotImplementedError(f"{dataset_name} dataset is not supported, the available datasets are as follows:\n{', '.join(dataset_list)}") 
     
-    with self.tracer.start_as_current_span(dataset_name + ' dataset load', context=self.ctx) as dataset_load_span: 
+    name = 'url' if url else dataset_name 
+    with self.tracer.start_as_current_span(name + ' dataset load', context=self.ctx) as dataset_load_span: 
       self.prop.inject(carrier=self.carrier, context=set_span_in_context(dataset_load_span)) 
-      self.dataset = pydldataset.load(dataset_name) 
+      self.dataset = pydldataset.load(dataset_name, url) 
       self.batch_size = batch_size 
       self.dataloader = DataLoader(self.dataset, self.batch_size) 
 
@@ -86,8 +95,8 @@ class MLModelScope:
     
     return 
   
-  def predict(self, num_warmup): 
-    outputs = self.agent.predict(num_warmup, self.dataloader) 
+  def predict(self, num_warmup, detailed=False): 
+    outputs = self.agent.predict(num_warmup, self.dataloader, detailed) 
     self.agent.Close() 
 
     if self.architecture == "gpu" and self.gpu_trace: 

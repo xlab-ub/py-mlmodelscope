@@ -59,7 +59,7 @@ class ONNXRuntime_MLCommons_SSD_MobileNet_300x300:
 
   def preprocess(self, input_images):
     for i in range(len(input_images)):
-      input_images[i] = self.pre_process_coco_mobilenet(input_images[i], [300, 300, 3], False) 
+      input_images[i] = self.pre_process_coco_mobilenet(cv2.imread(input_images[i]), [300, 300, 3], False) 
     model_input = np.asarray(input_images) 
     return model_input
 

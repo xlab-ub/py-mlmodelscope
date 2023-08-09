@@ -2,6 +2,7 @@ import warnings
 
 import torch 
 from torchvision.models.segmentation import deeplabv3_resnet50, DeepLabV3_ResNet50_Weights 
+from PIL import Image 
 
 class PyTorch_TorchVision_DeepLabV3_ResNet50: 
   def __init__(self): 
@@ -18,7 +19,7 @@ class PyTorch_TorchVision_DeepLabV3_ResNet50:
     '''
     preprocessor = DeepLabV3_ResNet50_Weights.DEFAULT.transforms() 
     for i in range(len(input_images)): 
-      input_images[i] = preprocessor(input_images[i].convert('RGB')) 
+      input_images[i] = preprocessor(Image.open(input_images[i]).convert('RGB')) 
     model_input = torch.stack(input_images) 
     return model_input 
 
