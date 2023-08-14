@@ -24,7 +24,8 @@ To achieve this, MLModelScope:
   - abstractions for evaluation and profiling using different frameworks
   - data consumption for evaluation outputs
 - Enables profiling of experiments throughout the entire pipeline and at different abstraction levels (application, model, framework, layer, library and hardware, as shown on the right)
-- Is framework and hardware agnostic - with current support for TensorFlow, MXNet, TensorRT, Caffe, Caffe2, CNTK running on X86, PowerPC, and ARM CPU with GPU and FPGA
+<!-- - Is framework and hardware agnostic - with current support for PyTorch, TensorFlow, ONNXRuntime, MXNet running on X86, PowerPC, and ARM CPU with GPU and FPGA --> 
+- Is framework agnostic - with current support for PyTorch, TensorFlow, ONNXRuntime, MXNet 
 - Is extensible and customizable - allowing users to extend MLModelScope by adding models, frameworks, or library and system profilers.
 - Can run experiments on separate machines, and behind firewall (does not exposing model weights or machine specification)
 - Allows parallel evaluation (multiple instantiations of the same experiment set-up across systems)
@@ -38,7 +39,11 @@ MLModelScope can be used as an application with a command line, API or web inter
 ## Requirements 
 
 ``` 
-python>=3.7 
+python>=3.7
+opentelemetry-api 
+opentelemetry-sdk 
+opentelemetry-exporter-otlp-proto-grpc 
+grpcio 
 ``` 
 
 ## Prerequsite System Library Installation
@@ -46,11 +51,11 @@ We first discuss a bare minimum pytorch-agent installation without the tracing a
 
 - The CUDA library (required)
 - The CUPTI library (required)
-- The cuDNN library (optional for mxnet-agent) 
-- The Pytorch Python library (optional for pytorch-agent) 
-- The Tensorflow Python library (optional for tensorflow-agent) 
-- The ONNXRuntime and ONNX Python library (optional for onnxruntime-agent) 
-- The MXNet Python library (optional for mxnet-agent) 
+- The cuDNN library (not compulsory, required for mxnet-agent) 
+- The Pytorch Python library (not compulsory, required for pytorch-agent) 
+- The Tensorflow Python library (not compulsory, required for tensorflow-agent) 
+- The ONNXRuntime and ONNX Python library (not compulsory, required for onnxruntime-agent) 
+- The MXNet Python library (not compulsory, required for mxnet-agent) 
 
 ### The CUDA Library
 
@@ -79,13 +84,68 @@ nvcc -O3 --shared utils.cpp -o utils.dll -I"%CUDA_PATH%/include" -I"%CUDA_PATH%/
 
 After running above commands, please check whether  `libutils.so` on Linux or `utils.dll` on Windows is in `pycupti/csrc` directory. 
 
-### The Pytorch Python Library (optional for pytorch-agent) 
+### The Pytorch Python Library (not compulsory, required for pytorch-agent) 
 
 The Pytorch Python library is required for our pytorch-agent. 
 
 You can install Pytorch Python by referencing [Pytorch](https://pytorch.org/get-started/locally/). 
 
-### The Tensorflow Python Library (optional for tensorflow-agent) 
+<details> 
+<summary>PyTorch v1.8.1 with CUDA v11.1 Installation in Anaconda Environment</summary> 
+
+## Anaconda Environment 
+
+```bash 
+conda create -n pytorch181cu111 python=3.8 
+conda activate pytorch181cu111 
+``` 
+
+## PyTorch 
+
+```bash 
+pip install torch==1.8.1+cu111 torchvision==0.9.1+cu111 torchaudio==0.8.1 -f https://download.pytorch.org/whl/torch_stable.html 
+``` 
+
+## OpenTelemetry 
+
+```bash 
+pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc grpcio 
+``` 
+
+## OpenCV 
+
+```bash 
+pip install opencv-contrib-python 
+``` 
+
+## aenum 
+
+```bash 
+pip install aenum 
+```
+
+## requests 
+
+```bash
+pip install requests
+``` 
+
+## Psycopg (not compulsory, required for communicating with database) 
+
+```bash
+pip install psycopg
+pip install "psycopg[binary]"
+``` 
+
+## Pika (not compulsory, required for communicating with messagequeue) 
+
+```bash
+pip install Pika 
+``` 
+
+</details>
+
+### The Tensorflow Python Library (not compulsory, required for tensorflow-agent) 
 
 The Tensorflow Python library is required for our tensorflow-agent. 
 
@@ -125,6 +185,25 @@ pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-prot
 
 ```bash 
 pip install aenum 
+``` 
+
+## requests 
+
+```bash
+pip install requests
+``` 
+
+## Psycopg (not compulsory, required for communicating with database) 
+
+```bash
+pip install psycopg
+pip install "psycopg[binary]"
+``` 
+
+## Pika (not compulsory, required for communicating with messagequeue) 
+
+```bash
+pip install Pika 
 ``` 
 
 </details> 
@@ -176,9 +255,28 @@ pip install Pillow
 pip install aenum 
 ``` 
 
+## requests 
+
+```bash
+pip install requests
+``` 
+
+## Psycopg (not compulsory, required for communicating with database) 
+
+```bash
+pip install psycopg
+pip install "psycopg[binary]"
+``` 
+
+## Pika (not compulsory, required for communicating with messagequeue) 
+
+```bash
+pip install Pika 
+``` 
+
 </details>
 
-### The ONNXRuntime and ONNX Python Library (optional for onnxruntime-agent) 
+### The ONNXRuntime and ONNX Python Library (not compulsory, required for onnxruntime-agent) 
 
 The ONNXRuntime and ONNX Python library is required for our onnxruntime-agent. 
 
@@ -236,11 +334,30 @@ conda install -c anaconda scipy
 
 ```bash 
 pip install opencv-python # conda install -c conda-forge opencv 
+```
+
+## requests 
+
+```bash
+pip install requests
+``` 
+
+## Psycopg (not compulsory, required for communicating with database) 
+
+```bash
+pip install psycopg
+pip install "psycopg[binary]"
+``` 
+
+## Pika (not compulsory, required for communicating with messagequeue) 
+
+```bash
+pip install Pika 
 ``` 
 
 </details>
 
-### The MXNet Python Library (optional for mxnet-agent) 
+### The MXNet Python Library (not compulsory, required for mxnet-agent) 
 
 The MXNet Python library is required for our mxnet-agent. 
 
@@ -339,6 +456,25 @@ pip install chardet
 
 ```bash 
 pip install opencv-contrib-python 
+``` 
+
+## requests 
+
+```bash
+pip install requests
+``` 
+
+## Psycopg (not compulsory, required for communicating with database) 
+
+```bash
+pip install psycopg
+pip install "psycopg[binary]"
+``` 
+
+## Pika (not compulsory, required for communicating with messagequeue) 
+
+```bash
+pip install Pika 
 ``` 
 
 </details>
