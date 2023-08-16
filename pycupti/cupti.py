@@ -92,19 +92,34 @@ class CUPTI:
                 nvperf_host_path = os.environ.get('CUDA_PATH') + '/extras/CUPTI/lib64/nvperf_host.dll' 
                 utils_path = str(pathlib.Path(__file__).parent.resolve()) + '/csrc/utils.dll' 
             elif CUPTI._system == 'Linux': 
-                # path = '/usr/local/cuda/lib64/libcupti.so'
                 path = '/usr/local/cuda/extras/CUPTI/lib64/libcupti.so' 
-                # nvperf_host_path = '/usr/local/cuda/lib64/libnvperf_host.so' 
+                path2 = '/usr/local/cuda/lib64/libcupti.so' 
                 nvperf_host_path = '/usr/local/cuda/extras/CUPTI/lib64/libnvperf_host.so' 
+                nvperf_host_path2 = '/usr/local/cuda/lib64/libnvperf_host.so' 
                 utils_path = str(pathlib.Path(__file__).parent.resolve()) + '/csrc/libutils.so' 
             else: 
                 raise NotImplementedError("Only supports for Windows and Linux")
-            CUPTI.cupti = ctypes.cdll.LoadLibrary(path) 
+            
+            try: 
+                CUPTI.cupti = ctypes.cdll.LoadLibrary(path) 
+            except FileNotFoundError: 
+                if CUPTI._system == 'Linux': 
+                    CUPTI.cupti = ctypes.cdll.LoadLibrary(path2) 
+                else: 
+                    CUPTI.cupti = None 
             if CUPTI.cupti is None: 
                 raise RuntimeError("failed to load cupti") 
-            CUPTI.nvperf_host = ctypes.cdll.LoadLibrary(nvperf_host_path) 
+            
+            try: 
+                CUPTI.nvperf_host = ctypes.cdll.LoadLibrary(nvperf_host_path) 
+            except FileNotFoundError: 
+                if CUPTI._system == 'Linux': 
+                    CUPTI.nvperf_host = ctypes.cdll.LoadLibrary(nvperf_host_path2) 
+                else: 
+                    CUPTI.nvperf_host = None
             if CUPTI.nvperf_host is None: 
                 raise RuntimeError("failed to load nvperf_host") 
+            
             CUPTI.utils = ctypes.cdll.LoadLibrary(utils_path) 
             if CUPTI.utils is None: 
                 raise RuntimeError("failed to load utils dynamic library") 
