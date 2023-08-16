@@ -51,11 +51,11 @@ We first discuss a bare minimum pytorch-agent installation without the tracing a
 
 - The CUDA library (required)
 - The CUPTI library (required)
-- The cuDNN library (not compulsory, required for mxnet-agent) 
-- The Pytorch Python library (not compulsory, required for pytorch-agent) 
-- The Tensorflow Python library (not compulsory, required for tensorflow-agent) 
-- The ONNXRuntime and ONNX Python library (not compulsory, required for onnxruntime-agent) 
-- The MXNet Python library (not compulsory, required for mxnet-agent) 
+- The cuDNN library (required for mxnet-agent) 
+- The Pytorch Python library (required for pytorch-agent) 
+- The Tensorflow Python library (required for tensorflow-agent) 
+- The ONNXRuntime and ONNX Python library (required for onnxruntime-agent) 
+- The MXNet Python library (required for mxnet-agent) 
 
 ### The CUDA Library
 
@@ -84,7 +84,7 @@ nvcc -O3 --shared utils.cpp -o utils.dll -I"%CUDA_PATH%/include" -I"%CUDA_PATH%/
 
 After running above commands, please check whether  `libutils.so` on Linux or `utils.dll` on Windows is in `pycupti/csrc` directory. 
 
-### The Pytorch Python Library (not compulsory, required for pytorch-agent) 
+### The Pytorch Python Library (required for pytorch-agent) 
 
 The Pytorch Python library is required for our pytorch-agent. 
 
@@ -130,14 +130,14 @@ pip install aenum
 pip install requests
 ``` 
 
-## Psycopg (not compulsory, required for communicating with database) 
+## Psycopg (required for communicating with database) 
 
 ```bash
 pip install psycopg
 pip install "psycopg[binary]"
 ``` 
 
-## Pika (not compulsory, required for communicating with messagequeue) 
+## Pika (required for communicating with messagequeue) 
 
 ```bash
 pip install Pika 
@@ -145,7 +145,7 @@ pip install Pika
 
 </details>
 
-### The Tensorflow Python Library (not compulsory, required for tensorflow-agent) 
+### The Tensorflow Python Library (required for tensorflow-agent) 
 
 The Tensorflow Python library is required for our tensorflow-agent. 
 
@@ -193,14 +193,14 @@ pip install aenum
 pip install requests
 ``` 
 
-## Psycopg (not compulsory, required for communicating with database) 
+## Psycopg (required for communicating with database) 
 
 ```bash
 pip install psycopg
 pip install "psycopg[binary]"
 ``` 
 
-## Pika (not compulsory, required for communicating with messagequeue) 
+## Pika (required for communicating with messagequeue) 
 
 ```bash
 pip install Pika 
@@ -261,14 +261,14 @@ pip install aenum
 pip install requests
 ``` 
 
-## Psycopg (not compulsory, required for communicating with database) 
+## Psycopg (required for communicating with database) 
 
 ```bash
 pip install psycopg
 pip install "psycopg[binary]"
 ``` 
 
-## Pika (not compulsory, required for communicating with messagequeue) 
+## Pika (required for communicating with messagequeue) 
 
 ```bash
 pip install Pika 
@@ -276,7 +276,7 @@ pip install Pika
 
 </details>
 
-### The ONNXRuntime and ONNX Python Library (not compulsory, required for onnxruntime-agent) 
+### The ONNXRuntime and ONNX Python Library (required for onnxruntime-agent) 
 
 The ONNXRuntime and ONNX Python library is required for our onnxruntime-agent. 
 
@@ -342,14 +342,14 @@ pip install opencv-python # conda install -c conda-forge opencv
 pip install requests
 ``` 
 
-## Psycopg (not compulsory, required for communicating with database) 
+## Psycopg (required for communicating with database) 
 
 ```bash
 pip install psycopg
 pip install "psycopg[binary]"
 ``` 
 
-## Pika (not compulsory, required for communicating with messagequeue) 
+## Pika (required for communicating with messagequeue) 
 
 ```bash
 pip install Pika 
@@ -357,7 +357,7 @@ pip install Pika
 
 </details>
 
-### The MXNet Python Library (not compulsory, required for mxnet-agent) 
+### The MXNet Python Library (required for mxnet-agent) 
 
 The MXNet Python library is required for our mxnet-agent. 
 
@@ -464,14 +464,14 @@ pip install opencv-contrib-python
 pip install requests
 ``` 
 
-## Psycopg (not compulsory, required for communicating with database) 
+## Psycopg (required for communicating with database) 
 
 ```bash
 pip install psycopg
 pip install "psycopg[binary]"
 ``` 
 
-## Pika (not compulsory, required for communicating with messagequeue) 
+## Pika (required for communicating with messagequeue) 
 
 ```bash
 pip install Pika 
