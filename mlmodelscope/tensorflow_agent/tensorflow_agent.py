@@ -144,7 +144,7 @@ class TensorFlow_Agent:
     #   layer.register_forward_pre_hook(pre_hook(layer_name)) 
     #   layer.register_forward_hook(hook(layer_name)) 
 
-  def predict(self, num_warmup, dataloader, detailed=False): 
+  def predict(self, num_warmup, dataloader, detailed=False, mlharness=False): 
     tracer = self.tracer 
     prop = self.prop 
     carrier = self.carrier 
@@ -242,6 +242,27 @@ class TensorFlow_Agent:
       else: 
         raise NotImplementedError 
       return detailed_outputs 
+    elif mlharness: 
+      mlharness_outputs = [] 
+      if self.task == 'image_object_detection': 
+        # https://github.com/mlcommons/inference/blob/master/vision/classification_and_detection/tools/accuracy-coco.py#L66 
+        # reconstruct from mlperf accuracy log
+        # what is written by the benchmark is an array of float32's:
+        # id, box[0], box[1], box[2], box[3], score, detection_class
+        # note that id is a index into instances_val2017.json, not the actual image_id
+
+        # https://github.com/c3sr/mlharness/blob/master/sut/sut.go#L206 
+        # for _, f := range out.GetData().(dl.Features) {
+				# resSlice[st+j] = append(resSlice[st+j], []float32{float32(sampleList[st+j]), f.GetBoundingBox().GetYmin(), f.GetBoundingBox().GetXmin(),
+				# 	f.GetBoundingBox().GetYmax(), f.GetBoundingBox().GetXmax(), f.GetProbability(), float32(f.GetBoundingBox().GetIndex())})
+        for probabilities, classes, boxes in outputs: 
+          features = [] 
+          for p, c, b in zip(probabilities[0], classes[0], boxes[0]): 
+            features.append([float(b[0]), float(b[1]), float(b[2]), float(b[3]), float(p), float(c)]) 
+          mlharness_outputs.append(features) 
+      else: 
+        raise NotImplementedError 
+      return mlharness_outputs 
     else: 
       return outputs 
 
