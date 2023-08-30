@@ -76,6 +76,8 @@ class PyTorch_Agent:
       pass 
     elif task == "translation_english_to_german": 
       pass 
+    elif task == "question_answering": 
+      pass 
     else: 
       raise NotImplementedError(f"{task} task is not supported")  
 
@@ -240,6 +242,8 @@ class PyTorch_Agent:
           for p, c, b in zip(probabilities[0], classes[0], boxes[0]): 
             features.append([float(b[0]), float(b[1]), float(b[2]), float(b[3]), float(p), float(c)]) 
           mlharness_outputs.append(features) 
+      elif self.task == 'question_answering': 
+        return outputs 
       else: 
         raise NotImplementedError 
       return mlharness_outputs 
