@@ -260,6 +260,10 @@ class TensorFlow_Agent:
           for p, c, b in zip(probabilities[0], classes[0], boxes[0]): 
             features.append([float(b[0]), float(b[1]), float(b[2]), float(b[3]), float(p), float(c)]) 
           mlharness_outputs.append(features) 
+      elif self.task == 'question_answering': 
+        return outputs 
+      elif self.task == 'image_classification': 
+        return np.argmax(outputs, axis=1) 
       else: 
         raise NotImplementedError 
       return mlharness_outputs 

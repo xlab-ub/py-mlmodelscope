@@ -244,6 +244,8 @@ class PyTorch_Agent:
           mlharness_outputs.append(features) 
       elif self.task == 'question_answering': 
         return outputs 
+      elif self.task == 'image_classification': 
+        return np.argmax(outputs, axis=1) 
       else: 
         raise NotImplementedError 
       return mlharness_outputs 
