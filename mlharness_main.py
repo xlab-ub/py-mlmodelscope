@@ -62,14 +62,14 @@ BACKENDS = ("pytorch", "onnxruntime", "tensorflow", "mxnet")
 def get_args():
     """Parse commandline."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", default='imagenet', choices=['coco', 'imagenet', 'squad', 'brats2019'], help="select accuracy script for dataset")
+    parser.add_argument("--dataset", default='cnn', choices=['coco', 'imagenet', 'squad', 'brats2019', 'cnn'], help="select accuracy script for dataset")
     parser.add_argument("--scenario", default="SingleStream",
                         help="mlcommons inference benchmark scenario, one of " + str(list(SCENARIO_MAP.keys())))
     # in MLPerf the default max-batchsize value is 128, but in Onnxruntime some models can only support size of 1
     parser.add_argument("--max_batchsize", type=int, default=1, help="max batch size in a single inference")
-    parser.add_argument("--backend", default='tensorflow', choices=BACKENDS, help="runtime to use")
-    parser.add_argument("--task", type=str, nargs='?', default="image_classification", help="The name of the task to predict.") 
-    parser.add_argument("--model_name", type=str, nargs='?', default="mlperf_resnet50_v1_5", help="The name of the model") 
+    parser.add_argument("--backend", default='pytorch', choices=BACKENDS, help="runtime to use")
+    parser.add_argument("--task", type=str, nargs='?', default="summarization", help="The name of the task to predict.") 
+    parser.add_argument("--model_name", type=str, nargs='?', default="gpt_j", help="The name of the model") 
     parser.add_argument("--qps", type=int, help="target qps")
     # parser.add_argument("--accuracy", action="store_true", help="enable accuracy pass")
     parser.add_argument("--accuracy", default=True, help="enable accuracy pass")
@@ -78,8 +78,8 @@ def get_args():
     # file to use mlperf rules compliant parameters
     parser.add_argument("--mlperf_conf", default="./inference/mlperf.conf", help="mlperf rules config")
     # file for user LoadGen settings such as target QPS
-    parser.add_argument("--user_conf", default="./inference/vision/classification_and_detection/user.conf", help="user config for user LoadGen settings such as target QPS")
-    # parser.add_argument("--user_conf", default="./inference/language/bert/user.conf", help="user config for user LoadGen settings such as target QPS")
+    # parser.add_argument("--user_conf", default="./inference/vision/classification_and_detection/user.conf", help="user config for user LoadGen settings such as target QPS")
+    parser.add_argument("--user_conf", default="./inference/language/gpt-j/user.conf", help="user config for user LoadGen settings such as target QPS")
     # log path for loadgen
     parser.add_argument("--log_dir", default='./logs')
     
@@ -224,7 +224,8 @@ def main():
                 if args.dataset == 'coco': 
                     for j in range(len(processed_results[index])): 
                         processed_results[index][j] = [idx[index]] + processed_results[index][j] 
-                response_array = array.array("B", np.array(processed_results[index], np.float32).tobytes())
+                dtype = np.int64 if args.dataset == 'cnn' else np.float32 
+                response_array = array.array("B", np.array(processed_results[index], dtype).tobytes()) 
                 response_array_refs.append(response_array)
                 bi = response_array.buffer_info()
                 response.append(lg.QuerySampleResponse(qid, bi[0], bi[1]))
@@ -289,7 +290,8 @@ def main():
         accuracy_script_paths = {'coco': os.path.realpath('./inference/vision/classification_and_detection/tools/accuracy-coco.py'),
                         'imagenet': os.path.realpath('./inference/vision/classification_and_detection/tools/accuracy-imagenet.py'),
                         'squad': os.path.realpath('./inference/language/bert/accuracy-squad.py'),
-                        'brats2019': os.path.realpath('./inference/vision/medical_imaging/3d-unet/accuracy-brats.py'),}
+                        'brats2019': os.path.realpath('./inference/vision/medical_imaging/3d-unet/accuracy-brats.py'),
+                        'cnn': os.path.realpath('./inference/language/gpt-j/evaluation.py')} 
         accuracy_script_path = accuracy_script_paths[args.dataset]
         accuracy_file_path = os.path.join(log_dir, 'mlperf_log_accuracy.json')
         data_dir = os.environ['DATA_DIR']
@@ -314,6 +316,8 @@ def main():
             os.makedirs(post_dir, exist_ok=True)
             subprocess.check_call('python3 {} --log_file {} --preprocessed_data_dir {} --postprocessed_data_dir {} --label_data_dir {}'.
             format(accuracy_script_path, accuracy_file_path, data_dir, post_dir, label_dir), shell=True)
+        elif args.dataset == 'cnn':   # cnn
+            subprocess.check_call('python3 {} --mlperf-accuracy-file {} --dataset-file {}'.format(accuracy_script_path, accuracy_file_path, os.path.join(data_dir, 'cnn_eval.json')), shell=True)
         else:
             raise RuntimeError('Dataset not Implemented.')
 
