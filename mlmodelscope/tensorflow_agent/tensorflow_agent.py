@@ -48,6 +48,7 @@ class TensorFlow_Agent:
         tf.config.set_visible_devices([], 'GPU') 
 
     self.load_model(task, model_name) 
+    
     return 
   
   def load_model(self, task, model_name): 
