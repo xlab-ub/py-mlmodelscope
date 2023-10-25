@@ -8,12 +8,15 @@ import cv2
 
 class Efficientnet_v2:
   def __init__(self):
+
+    """
+    ==============================================================================================
+    Filepath code (Load Model)
+    ==============================================================================================
+    """
     temp_path = os.path.join(pathlib.Path(__file__).resolve().parent.parent.parent, 'tmp') 
     if not os.path.isdir(temp_path): 
       os.mkdir(temp_path) 
-
-    #The key name of the logits in model output. Used in predictions method to extract logits from output dict
-    self.outLayer = 'output_1'
 
     #Currently stored in local "tmp" diretory
     model_file_url = "efficientnet_v2" 
@@ -25,11 +28,16 @@ class Efficientnet_v2:
       # https://www.tensorflow.org/api_docs/python/tf/keras/utils/get_file 
       tf.keras.utils.get_file(fname=model_file_name, origin=model_file_url, cache_subdir='.', cache_dir=temp_path) 
 
-    #Save model to self.model using model_path
+    #LOAD MODEL using model_path
     self.load_pb(model_path) 
 
+    """
+    ==============================================================================================
+    Filepath code (Load Features)
+    ==============================================================================================
+    """
 
-    #Efficientnetv2 is trained on Imagenet (ILSVRC-2012-CLS)
+    #LOAD FEATURES. Efficientnetv2 is trained on Imagenet (ILSVRC-2012-CLS)
     features_file_url = "https://s3.amazonaws.com/store.carml.org/synsets/imagenet/synset.txt" 
 
     features_file_name = features_file_url.split('/')[-1] 
@@ -47,6 +55,15 @@ class Efficientnet_v2:
     with open(features_path, 'r') as f_f: 
       self.features = [line.rstrip() for line in f_f] 
   
+    """
+    ==============================================================================================
+    Set up dict keys
+    ==============================================================================================
+    """
+    #The key name of the logits in model output. Used in predictions method to extract logits from output dict
+    self.outLayer = 'output_1'
+
+
   # https://stackoverflow.com/questions/51278213/what-is-the-use-of-a-pb-file-in-tensorflow-and-how-does-it-work 
   def load_pb(self, path_to_pb):
 
