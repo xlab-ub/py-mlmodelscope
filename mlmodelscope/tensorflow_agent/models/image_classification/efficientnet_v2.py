@@ -12,7 +12,7 @@ class Efficientnet_v2:
     if not os.path.isdir(temp_path): 
       os.mkdir(temp_path) 
 
-
+    #The key name of the logits in model output. Used in predictions method to extract logits from output dict
     self.outLayer = 'output_1'
 
     #Currently stored in local "tmp" diretory
@@ -51,8 +51,6 @@ class Efficientnet_v2:
   def load_pb(self, path_to_pb):
 
     loaded_model = tf.saved_model.load(path_to_pb)
-    #infer = loaded_model.signatures["serving_default"]
-
     self.model = loaded_model
 
 
@@ -95,13 +93,18 @@ class Efficientnet_v2:
   
   #Model expects color values of range [0, 1]
   def preprocess_image(self, img, dims=None, need_transpose=False):
+    #Convert color format
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    #Set proper dims
     output_height, output_width, _ = dims
     cv2_interpol = cv2.INTER_AREA
     img = self.resize_with_aspectratio(img, output_height, output_width, inter_pol=cv2_interpol)
     img = self.center_crop(img, output_height, output_width)
+    #Set datatypes
     img = np.asarray(img, dtype='float32')
+    #Normalize images to [0, 1]
     img = img/255.0
+
     if need_transpose:
       img = img.transpose([2, 0, 1])
     return img 
@@ -118,9 +121,9 @@ class Efficientnet_v2:
     return output[self.outLayer].numpy()
   
   def postprocess(self, model_output): 
-    # https://github.com/tensorflow/docs/blob/r1.14/site/en/api_docs/python/tf/nn/softmax.md 
-    # https://github.com/keras-team/keras/issues/9621 
-    probabilities = tf.nn.softmax(model_output, axis = 1) 
+    #Softmax activation function to turn logits into probabilities
+    probabilities = tf.nn.softmax(model_output, axis = 1)
+
     return probabilities 
     
 def init():
