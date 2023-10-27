@@ -96,9 +96,15 @@ class Efficientnet_v2:
     return img
   
   def resize_with_aspectratio(self, img, out_height, out_width, scale=87.5, inter_pol=cv2.INTER_LINEAR):
+
     height, width, _ = img.shape
+
+    #WIP
+    scale = (out_height/(out_height + 32)) * 100
+
     new_height = int(100. * out_height / scale)
     new_width = int(100. * out_width / scale)
+
     if height > width:
       w = new_width
       h = int(new_height * height / width)
@@ -106,6 +112,8 @@ class Efficientnet_v2:
       h = new_height
       w = int(new_width * width / height)
     img = cv2.resize(img, (w, h), interpolation=inter_pol)
+
+
     return img
   
   #Model expects color values of range [0, 1]
@@ -120,7 +128,7 @@ class Efficientnet_v2:
     #Set datatypes
     img = np.asarray(img, dtype='float32')
     #Normalize images to [0, 1]
-    img = img/255.0
+    img = (img - 128.0)/128.0
 
     if need_transpose:
       img = img.transpose([2, 0, 1])
