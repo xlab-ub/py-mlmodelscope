@@ -70,51 +70,26 @@ class Efficientnet_v2:
     loaded_model = tf.saved_model.load(path_to_pb)
     self.model = loaded_model
 
-
-    """ Old Code for tf v1
-    # https://gist.github.com/apivovarov/4ff23d9d3ff44b722a8655edd507faa5 
-    with tf.compat.v1.gfile.GFile(path_to_pb, "rb") as f:
-      graph_def = tf.compat.v1.GraphDef()
-      graph_def.ParseFromString(f.read())
-
-    with tf.Graph().as_default() as graph:
-      tf.import_graph_def(graph_def, name='') 
-      self.model = graph 
-
-      # https://github.com/tensorflow/models/issues/4114 
-      self.inNode = graph.get_tensor_by_name(f"{self.inLayer}:0") 
-      self.outNode = graph.get_tensor_by_name(f"{self.outLayer}:0") 
-    """
-
-  def center_crop(self, img, out_height, out_width):
-    height, width, _ = img.shape
-    left = int((width - out_width) / 2)
-    right = int((width + out_width) / 2)
-    top = int((height - out_height) / 2)
-    bottom = int((height + out_height) / 2)
-    img = img[top:bottom, left:right]
-    return img
   
-  def resize_with_aspectratio(self, img, out_height, out_width, scale=87.5, inter_pol=cv2.INTER_LINEAR):
+  def crop_and_resize(self, img, image_size):
+    if image_size < 320:
+      height, width = tf.shape(img)[0], tf.shape(img)[1]
+      ratio = image_size / (image_size + 32)
+      smallest_dim = tf.cast(tf.minimum(height, width), tf.float32)
+      crop_size = tf.cast((ratio * smallest_dim), tf.int32)
 
-    height, width, _ = img.shape
-
-    #WIP
-    scale = (out_height/(out_height + 32)) * 100
-
-    new_height = int(100. * out_height / scale)
-    new_width = int(100. * out_width / scale)
-
-    if height > width:
-      w = new_width
-      h = int(new_height * height / width)
-    else:
-      h = new_height
-      w = int(new_width * width / height)
-    img = cv2.resize(img, (w, h), interpolation=inter_pol)
+      total_y_offset = height - crop_size
+      total_x_offset = width - crop_size
+      single_y_offset = total_y_offset//2
+      single_x_offset = total_x_offset//2
 
 
+      img = tf.image.crop_to_bounding_box(img, single_y_offset, single_x_offset, crop_size, crop_size)
+
+    img.set_shape([None, None, 3])
+    img = tf.image.resize(img, [image_size, image_size])
     return img
+
   
   #Model expects color values of range [0, 1]
   def preprocess_image(self, img, dims=None, need_transpose=False):
@@ -122,9 +97,7 @@ class Efficientnet_v2:
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     #Set proper dims
     output_height, output_width, _ = dims
-    cv2_interpol = cv2.INTER_AREA
-    img = self.resize_with_aspectratio(img, output_height, output_width, inter_pol=cv2_interpol)
-    img = self.center_crop(img, output_height, output_width)
+    img = self.crop_and_resize(img, output_height)
     #Set datatypes
     img = np.asarray(img, dtype='float32')
     #Normalize images to [0, 1]
