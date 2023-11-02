@@ -16,7 +16,7 @@ from .dataloader import DataLoader
 # https://stackoverflow.com/questions/714063/importing-modules-from-parent-folder 
 sys.path.insert(1, os.path.join(sys.path[0], '..')) 
 import pydldataset 
-# from pycupti import CUPTI 
+sys.path.pop(1) 
 
 logger = logging.getLogger(__name__) 
 
@@ -42,7 +42,9 @@ class MLModelScope:
     self.architecture = architecture 
     self.gpu_trace = gpu_trace 
     if self.architecture == "gpu" and self.gpu_trace: 
+      sys.path.insert(1, os.path.join(sys.path[0], '..')) 
       from pycupti import CUPTI 
+      sys.path.pop(1) 
       self.c = CUPTI(tracer=self.tracer, prop=self.prop, carrier=self.carrier) 
       print("CUPTI version", self.c.cuptiGetVersion()) 
 
