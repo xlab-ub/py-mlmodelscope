@@ -9,7 +9,7 @@ class Efficientnet_v2(TensorFlowAbstractClass):
   def __init__(self):
 
     #Load Model
-    model_file_url = "efficientnet_v2" 
+    model_file_url = "efficientnet_v2" #Currently manually loaded in the tmp/efficientnet_v2 folder in TF2 saved_model format
     model_path = self.model_file_download(model_file_url) 
     self.model = tf.saved_model.load(model_path)
 
@@ -73,6 +73,3 @@ class Efficientnet_v2(TensorFlowAbstractClass):
     probabilities = tf.nn.softmax(model_output, axis = 1)
 
     return probabilities 
-    
-def init():
-  return Efficientnet_v2()
