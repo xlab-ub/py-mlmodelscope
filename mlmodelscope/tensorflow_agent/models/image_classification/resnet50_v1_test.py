@@ -66,5 +66,3 @@ class TensorFlow_ResNet50_v1(TensorFlowAbstractClass):
     probabilities = tf.compat.v1.nn.softmax(model_output, dim = 1) 
     return probabilities 
     
-def init():
-  return TensorFlow_ResNet50_v1()

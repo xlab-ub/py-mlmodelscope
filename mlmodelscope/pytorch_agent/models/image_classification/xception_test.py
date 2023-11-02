@@ -219,5 +219,3 @@ class Xception(PyTorchAbstractClass):
     probabilities = torch.nn.functional.softmax(model_output, dim = 1)
     return probabilities.tolist()
     
-def init():
-  return Xception() 
