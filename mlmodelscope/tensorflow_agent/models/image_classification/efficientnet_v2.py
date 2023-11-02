@@ -11,8 +11,8 @@ class Efficientnet_v2(TensorFlowAbstractClass):
     #Load Model
     model_file_url = "efficientnet_v2" 
     model_path = self.model_file_download(model_file_url) 
-    loaded_model = tf.saved_model.load(model_path)
-    self.model = loaded_model
+    self.model = tf.saved_model.load(model_path)
+
     #Load Features (Imagenet 2012)
     features_file_url = "http://s3.amazonaws.com/store.carml.org/synsets/imagenet/synset.txt" 
     self.features = self.features_download(features_file_url) 
