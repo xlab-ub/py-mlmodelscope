@@ -80,6 +80,8 @@ class PyTorch_Agent:
       pass 
     elif task == "summarization": 
       pass 
+    elif task == "text_to_code":
+      pass
     else: 
       raise NotImplementedError(f"{task} task is not supported")  
 
@@ -95,6 +97,7 @@ class PyTorch_Agent:
     with self.tracer.start_as_current_span(self.model_name + ' model load', context=self.ctx) as model_load_span: 
       self.prop.inject(carrier=self.carrier, context=set_span_in_context(model_load_span)) 
       self.model = _load(task=task, model_name=self.model_name) 
+      self.model.model.eval()
       self.model.model = self.model.model.to(self.device) 
 
     if not hasattr(self.model.model, "isScriptModule"): 
@@ -181,7 +184,7 @@ class PyTorch_Agent:
                 else: # "image_classification", "image_semantic_segmentation", "image_enhancement" 
                   outputs.extend(self.model.postprocess(model_output)) 
   
-    if detailed and (hasattr(self.model, 'features') or self.task == 'image_enhancement'): 
+    if detailed and (hasattr(self.model, 'features') or self.task == 'image_enhancement' or self.task == 'text_to_code' or self.task == 'text_to_text'): 
       # from bson.objectid import ObjectId 
       detailed_outputs = [] 
       if self.task == 'image_classification': 
@@ -210,17 +213,17 @@ class PyTorch_Agent:
       
           detailed_outputs.append({"duration":None,"duration_for_inference":None,"responses":[{"features":features,"id":None}]})
       elif self.task == 'image_enhancement': 
-        # import base64 
-        # from io import BytesIO 
-        # import numpy as np 
-        # from PIL import Image 
-        # features = [] 
         for idx, output in enumerate(outputs): 
           img = Image.fromarray(np.array(output, dtype='uint8'), 'RGB') 
           buffer = BytesIO() 
           img.save(buffer, format="JPEG") 
           jpeg_data = base64.b64encode(buffer.getvalue()).decode('utf-8')  
           features = [{"raw_image":{"channels":len(output[0][0]),"char_list":None,"data_type":str(type(output[0][0][0])),"float_list":None,"height":len(output),"jpeg_data":jpeg_data,"width":len(output[0])},"probability":1,"type":"RAW_IMAGE"}] 
+
+        detailed_outputs.append({"duration":None,"duration_for_inference":None,"responses":[{"features":features,"id":None}]})
+      elif self.task == 'text_to_code' or self.task == 'text_to_text':
+        for idx, output in enumerate(outputs): 
+          features = [{"text":output,"type":"TEXT"}] 
 
         detailed_outputs.append({"duration":None,"duration_for_inference":None,"responses":[{"features":features,"id":None}]})
       else: 

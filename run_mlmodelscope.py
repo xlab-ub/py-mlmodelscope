@@ -198,7 +198,7 @@ def main():
     
       mlms.load_agent(task, agent, model_name) 
       print(f"{agent}-agent is loaded with {model_name} model\n") 
-      mlms.load_dataset(dataset_name, batch_size) 
+      mlms.load_dataset(dataset_name, batch_size, task) 
       print(f"{dataset_name} dataset is loaded\n") 
       print(f"prediction starts") 
       # measure duration_for_inference 
