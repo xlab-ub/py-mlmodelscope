@@ -4,7 +4,7 @@ import pathlib
 from abc import ABC, abstractmethod 
 import requests 
 from tqdm import tqdm 
-from typing import List, Tuple, Union
+from typing import List, Union
 
 import tensorflow as tf
 
@@ -51,7 +51,7 @@ class TensorFlowAbstractClass(ABC):
         path_to_pb: str,
         input_node: Union[str, List[str]],
         output_node: Union[str, List[str]]
-    ) -> Tuple[Union[List[tf.Tensor], tf.Tensor], Union[List[tf.Tensor], tf.Tensor]]:
+    ) -> None:
         '''
         Load the tensorflow v1 model file, create the session and replace the predict method
 
@@ -131,7 +131,7 @@ class TensorFlowAbstractClass(ABC):
         source_file_name = inspect.stack()[1].filename.replace('\\', '/').split('/')[-1][:-3] 
         model_path = os.path.join(temp_path, source_file_name + '/' + model_file_url.split('/')[-1]) 
         if not os.path.exists(model_path): 
-            os.mkdir(model_path.split('/')[0])
+            os.mkdir('/'.join(model_path.replace('\\', '/').split('/')[:-1])) 
             print("The model file does not exist")
             print("Start download the model file") 
             self.file_download(model_file_url, model_path)
