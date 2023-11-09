@@ -30,6 +30,7 @@ class Tensorflow_Efficientdet_d0(TensorFlowAbstractClass):
         for image_path in input_images:
             # Model does not support batching. Model input should be of shape [1, height, width, 3]
             img = cv2.imread(image_path)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             processed_img = tf.cast(tf.expand_dims(img, axis = 0), dtype = tf.uint8)
             processed_images.append(processed_img)
 
@@ -46,11 +47,46 @@ class Tensorflow_Efficientdet_d0(TensorFlowAbstractClass):
 
     def postprocess(self, model_output): 
         current_dict = model_output[0]
-        boxes = current_dict["detection_boxes"] 
+        boxes = current_dict["detection_boxes"] #NMS and whatnot should already be handled based on the model card. I wonder why it doesnt work.
         classes = current_dict["detection_classes"]
         scores = current_dict["detection_scores"]
        
         return scores, classes, boxes 
+
+    """
+    def postprocess(self, model_output, k=50, iou_threshold=0.5):
+        output = model_output[0]
+        
+        # Extract scores, boxes, and classes
+        scores = np.squeeze(output['detection_scores'].numpy())
+        boxes = np.squeeze(output['detection_boxes'].numpy())
+        classes = np.squeeze(output['detection_classes'].numpy())
+
+        # Get the top k indices sorted by score
+        top_k_indices = np.argsort(scores)[::-1][:k]
+
+        # Extract top k items
+        top_k_scores = scores[top_k_indices]
+        top_k_boxes = boxes[top_k_indices]
+        top_k_classes = classes[top_k_indices]
+
+        # Apply Non-Max Suppression
+        selected_indices = tf.image.non_max_suppression(
+            boxes=top_k_boxes,
+            scores=top_k_scores,
+            max_output_size=k,
+            iou_threshold=iou_threshold
+         )
+
+        # Select final information based on NMS indices
+        nms_scores = tf.expand_dims(tf.gather(top_k_scores, selected_indices), axis = 0).numpy()
+        nms_boxes = tf.expand_dims(tf.gather(top_k_boxes, selected_indices), axis = 0).numpy()
+        nms_classes = tf.expand_dims(tf.gather(top_k_classes, selected_indices), axis = 0).numpy()
+
+        print(nms_classes)
+        return nms_scores, nms_classes, nms_boxes
+
+        """
 
 """
     #not needed? Might be useful down the line
