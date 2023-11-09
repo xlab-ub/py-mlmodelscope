@@ -17,14 +17,43 @@ class Tensorflow_Efficientdet_d0(TensorFlowAbstractClass):
         self.model = tf.saved_model.load(model_path)
 
         #Load Extra Params
-        self.target_image_size = (512, 512)
+        #self.target_image_size = (512, 512)
 
         #Load Features (COCO-2017)
         features_file_url = "https://s3.amazonaws.com/store.carml.org/synsets/coco/coco_labels_paper_background.txt" 
         self.features = self.features_download(features_file_url) 
 
+    
+    def preprocess(self, input_images):
+        processed_images = []
 
-    #Maybe not needed?
+        for image_path in input_images:
+            # Model does not support batching. Model input should be of shape [1, height, width, 3]
+            img = cv2.imread(image_path)
+            processed_img = tf.cast(tf.expand_dims(img, axis = 0), dtype = tf.uint8)
+            processed_images.append(processed_img)
+
+        return processed_images
+    
+
+    def predict(self, model_input):
+        output = []
+        for image_tensor in model_input:
+            output.append(self.model.signatures["serving_default"](image_tensor))
+
+        return output
+    
+
+    def postprocess(self, model_output): 
+        current_dict = model_output[0]
+        boxes = current_dict["detection_boxes"] 
+        classes = current_dict["detection_classes"]
+        scores = current_dict["detection_scores"]
+       
+        return scores, classes, boxes 
+
+"""
+    #not needed? Might be useful down the line
     def crop_and_resize(self, img):
         height = tf.shape(img)[0]
         width = tf.shape(img)[1]
@@ -77,45 +106,5 @@ class Tensorflow_Efficientdet_d0(TensorFlowAbstractClass):
 
         if need_transpose:
             img = tf.transpose(img, perm = [2, 0, 1])
-        return img 
-    
-
-    def preprocess(self, input_images):
-        processed_images = []
-
-        for image_path in input_images:
-            # Model does not support batching. Model input should be of shape [1, height, width, 3]
-            img = cv2.imread(image_path)
-            
-            #???????
-            #processed_img = tf.expand_dims(self.preprocess_image(img), axis=0)
-            processed_img = tf.cast(tf.expand_dims(img, axis = 0), dtype = tf.uint8)
-            processed_images.append(processed_img)
-
-        return processed_images
-    
-
-    def predict(self, model_input):
-        output = []
-        for image_tensor in model_input:
-            output.append(self.model.signatures["serving_default"](image_tensor))
-
-        return output
-    
+        return img  
     """
-    def postprocess(self, model_output): 
-        probs, labels, boxes = [], [], []
-        for i in range(len(model_output)):
-            
-            current_dict = model_output[i]
-
-            probs.append(current_dict["detection_scores"])
-            labels.append(current_dict["detection_classes"])
-            boxes.append(current_dict["detection_boxes"])
-
-        return probs, labels, boxes 
-    """
-    def postprocess(self, model_output): 
-        current_dict = model_output[0]
-        return current_dict["detection_scores"], current_dict["detection_classes"], current_dict["detection_boxes"] 
-
