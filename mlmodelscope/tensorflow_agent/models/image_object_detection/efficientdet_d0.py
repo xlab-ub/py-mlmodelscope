@@ -47,9 +47,10 @@ class Tensorflow_Efficientdet_d0(TensorFlowAbstractClass):
 
     def postprocess(self, model_output): 
         current_dict = model_output[0]
-        boxes = current_dict["detection_boxes"] #NMS and whatnot should already be handled based on the model card. I wonder why it doesnt work.
-        classes = current_dict["detection_classes"]
-        scores = current_dict["detection_scores"]
+        boxes = current_dict["detection_boxes"].numpy() 
+        #NMS and whatnot should already be handled based on the model card. I wonder why it doesnt work.
+        classes = current_dict["detection_classes"].numpy()
+        scores = current_dict["detection_scores"].numpy()
        
         return scores, classes, boxes 
 

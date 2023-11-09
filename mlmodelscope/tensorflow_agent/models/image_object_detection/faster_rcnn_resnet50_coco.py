@@ -105,7 +105,6 @@ class TensorFlow_Faster_RCNN_ResNet50_COCO:
       labels.append(cur_labels)
       boxes.append(cur_boxes)
 
-    print(labels)
     return probs, labels, boxes 
     
 def init(): 
