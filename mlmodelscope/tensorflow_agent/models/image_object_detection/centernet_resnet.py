@@ -4,7 +4,7 @@ import tensorflow as tf
 import numpy as np
 import cv2
 
-class Tensorflow_Efficientdet_d0(TensorFlowAbstractClass):
+class Tensorflow_Centernet_Resnet(TensorFlowAbstractClass):
 
     def __init__(self):
 
@@ -12,7 +12,7 @@ class Tensorflow_Efficientdet_d0(TensorFlowAbstractClass):
         warnings.warn("If the size of the images is not consistent, the batch size should be 1.") 
 
         #Load Model
-        model_file_url = "efficientdet_d0" 
+        model_file_url = "centernet_resnet"
         model_path = self.model_file_download(model_file_url) 
         self.model = tf.saved_model.load(model_path)
 
