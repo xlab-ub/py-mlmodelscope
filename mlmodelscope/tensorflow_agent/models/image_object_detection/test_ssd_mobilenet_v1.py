@@ -4,7 +4,7 @@ import tensorflow as tf
 import numpy as np
 import cv2
 
-class Tensorflow_Efficientdet_d0(TensorFlowAbstractClass):
+class Test_ssd_mobilenet_v1(TensorFlowAbstractClass):
 
     def __init__(self):
 
@@ -12,7 +12,7 @@ class Tensorflow_Efficientdet_d0(TensorFlowAbstractClass):
         warnings.warn("If the size of the images is not consistent, the batch size should be 1.") 
 
         #Load Model
-        model_file_url = "efficientdet_d0" 
+        model_file_url = "test_ssd_mobilenet_v1" 
         model_path = self.model_file_download(model_file_url) 
         self.model = tf.saved_model.load(model_path)
 
@@ -45,7 +45,7 @@ class Tensorflow_Efficientdet_d0(TensorFlowAbstractClass):
         return output
     
 
-    #HARD NMS
+  #HARD NMS
     def postprocess(self, model_output, k=20, iou_threshold=0.5, score_threshold= float('-inf')):
         output = model_output[0]
         
@@ -78,7 +78,6 @@ class Tensorflow_Efficientdet_d0(TensorFlowAbstractClass):
 
         return nms_scores, nms_classes, nms_boxes
 
-        
 
 """
     #not needed? Might be useful down the line
