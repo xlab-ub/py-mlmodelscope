@@ -28,14 +28,11 @@ class TensorFlow_Agent:
     self.prop = prop 
     self.carrier = carrier 
 
-    # self.spans = {} 
     self.all_spans = {} 
-
-    # self.startSpanFromContext("tensorflow_agent") 
-    # self.ctx = self.prop.extract(carrier=self.carrier) 
 
     self.span = self.tracer.start_span(name="tensorflow-agent", context=self.prop.extract(carrier=self.carrier)) 
     self.ctx = set_span_in_context(self.span) 
+    self.token = context.attach(self.ctx)
     self.prop.inject(carrier=self.carrier, context=self.ctx) 
 
     # self.device = 'cuda' if ((architecture == "gpu") and torch.cuda.is_available()) else 'cpu' 
@@ -117,32 +114,6 @@ class TensorFlow_Agent:
 
     if hasattr(self.model.model, "layers"): 
       register_pre_hook_and_hook(self.model.model.layers, forward_pre_hook=pre_hook, forward_hook=hook) 
-
-    # all_spans = {} 
-    # def pre_hook(layer_name): 
-    #   def pre_hook(module, input): 
-    #     prev_ctx = self.prop.extract(carrier=self.carrier) 
-    #     token = context.attach(prev_ctx) 
-    #     span = self.tracer.start_span(layer_name, context=prev_ctx) 
-    #     self.prop.inject(carrier=self.carrier, context=set_span_in_context(span)) 
-    #     all_spans[layer_name] = (span, token, prev_ctx) 
-    #     trace.use_span(span) 
-    #   return pre_hook 
-
-    # def hook(layer_name): 
-    #   def hook(module, input, output): 
-    #     span, token, prev_ctx = all_spans[layer_name] 
-    #     span.end() 
-    #     context.detach(token) 
-    #     self.prop.inject(carrier=self.carrier, context=prev_ctx) 
-
-    #     del all_spans[layer_name] 
-    #   return hook 
-
-    # for name, layer in self.model.model.named_modules(): 
-    #   layer_name = name + '_' + type(layer).__name__ 
-    #   layer.register_forward_pre_hook(pre_hook(layer_name)) 
-    #   layer.register_forward_hook(hook(layer_name)) 
 
   def predict(self, num_warmup, dataloader, detailed=False, mlharness=False): 
     tracer = self.tracer 
@@ -271,29 +242,6 @@ class TensorFlow_Agent:
       return outputs 
 
   def Close(self): 
+    context.detach(self.token)
     self.span.end() 
-    # self.endSpanFromContext("pytorch_agent") 
     return None 
-  
-  # def setSpanContextCorrelationId(self, span, name): 
-  #   self.spans[f'{name}'] = span 
-  # def removeSpanByCorrelationId(self, name): 
-  #   del self.spans[f'{name}']
-  # def spanFromContextCorrelationId(self, name): 
-  #   return self.spans[f'{name}'] 
-
-  # def startSpanFromContext(self, name): 
-  #   prev_ctx = self.prop.extract(carrier=self.carrier)
-  #   token = context.attach(prev_ctx) 
-  #   span = self.tracer.start_span(name=name, context=prev_ctx) 
-  #   ctx = set_span_in_context(span) 
-  #   self.prop.inject(carrier=self.carrier, context=ctx) 
-  #   self.setSpanContextCorrelationId((span, token, prev_ctx), name) 
-  #   trace.use_span(span) 
-
-  # def endSpanFromContext(self, name): 
-  #   span, token, prev_ctx = self.spanFromContextCorrelationId(name) 
-  #   span.end() 
-  #   context.detach(token) 
-  #   self.prop.inject(carrier=self.carrier, context=prev_ctx) 
-  #   self.removeSpanByCorrelationId(name) 

@@ -3,7 +3,7 @@ import os
 
 import logging 
 
-from opentelemetry import trace 
+from opentelemetry import trace, context 
 from opentelemetry.trace import set_span_in_context 
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator 
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource 
@@ -28,7 +28,7 @@ class MLModelScope:
     }) 
     trace.set_tracer_provider(TracerProvider(resource=resource)) 
     # https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html 
-    span_processor = BatchSpanProcessor(OTLPSpanExporter(endpoint='http://localhost:4317', insecure=True)) 
+    span_processor = BatchSpanProcessor(OTLPSpanExporter(endpoint='http://localhost:4317', insecure=True), max_queue_size=4096) 
     trace.get_tracer_provider().add_span_processor(span_processor) 
 
     self.tracer = trace.get_tracer(__name__) 
@@ -37,6 +37,7 @@ class MLModelScope:
 
     self.span = self.tracer.start_span(name="mlmodelscope") 
     self.ctx = set_span_in_context(self.span) 
+    self.token = context.attach(self.ctx) 
     self.prop.inject(carrier=self.carrier, context=self.ctx) 
 
     self.architecture = architecture 
@@ -107,5 +108,6 @@ class MLModelScope:
     return outputs 
 
   def Close(self): 
+    context.detach(self.token)
     self.span.end() 
     return None 
