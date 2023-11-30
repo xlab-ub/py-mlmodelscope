@@ -46,13 +46,13 @@ class Tensorflow_Efficientdet_d0(TensorFlowAbstractClass):
     
 
     #HARD NMS
-    def postprocess(self, model_output, k=20, iou_threshold=0.5, score_threshold= float('-inf')):
+    def postprocess(self, model_output, k=50, iou_threshold=0.5, score_threshold = 0.15):
         output = model_output[0]
         
         # Extract scores, boxes, and classes
-        scores = np.squeeze(output['detection_scores'].numpy())
-        boxes = np.squeeze(output['detection_boxes'].numpy())
-        classes = np.squeeze(output['detection_classes'].numpy())
+        scores = tf.squeeze(output['detection_scores'], axis = 0).numpy()
+        boxes = tf.squeeze(output['detection_boxes'], axis = 0).numpy()
+        classes = tf.squeeze(output['detection_classes'], axis = 0).numpy()
 
         # Get the top k indices sorted by score
         top_k_indices = np.argsort(scores)[::-1][:k]
@@ -68,71 +68,30 @@ class Tensorflow_Efficientdet_d0(TensorFlowAbstractClass):
             scores=top_k_scores,
             max_output_size=k,
             iou_threshold=iou_threshold,
-            score_threshold = 0.15,
+            score_threshold = score_threshold,
          )
+        
+        # Create padded arrays
+        padded_scores = np.ones_like(scores) * 1.0  # Initialize with 1.0
+        padded_boxes = np.zeros_like(boxes)         # Initialize with zeros
+        padded_classes = np.ones_like(classes) * 1.0  # Initialize with 1.0
 
-        # Select final information based on NMS indices
-        nms_scores = tf.expand_dims(tf.gather(top_k_scores, selected_indices), axis = 0).numpy()
-        nms_boxes = tf.expand_dims(tf.gather(top_k_boxes, selected_indices), axis = 0).numpy()
-        nms_classes = tf.expand_dims(tf.gather(top_k_classes, selected_indices), axis = 0).numpy()
+        #Gather NMS outputs and directly update padded array with them
+        for idx in selected_indices:
+            original_idx = top_k_indices[idx]
+            padded_scores[original_idx] = scores[original_idx]
+            padded_boxes[original_idx] = boxes[original_idx]
+            padded_classes[original_idx] = classes[original_idx]
 
-        return nms_scores, nms_classes, nms_boxes
+        #Wrap the output to maintain form
+        padded_scores = tf.expand_dims(padded_scores, axis = 0).numpy().tolist()
+        padded_boxes = tf.expand_dims(padded_boxes, axis = 0).numpy().tolist()
+        padded_classes = tf.expand_dims(padded_classes, axis = 0).numpy().tolist()
+
+        print(padded_boxes)  
+
+
+        return padded_scores, padded_classes, padded_boxes
 
         
 
-"""
-    #not needed? Might be useful down the line
-    def crop_and_resize(self, img):
-        height = tf.shape(img)[0]
-        width = tf.shape(img)[1]
-        target_height = tf.cast(self.target_image_size[0], dtype=tf.float32)
-        target_width = tf.cast(self.target_image_size[1], dtype=tf.float32)
-
-        y_scale = target_height/tf.cast(height, tf.float32)
-        x_scale = target_width/tf.cast(width, tf.float32)
-        min_scale = tf.minimum(y_scale, x_scale)
-
-        self.image_scale = min_scale #Storing for reverting to original sizes
-
-        scaled_y = height * min_scale
-        scaled_x = width * min_scale
-
-        scaled_img = tf.image.resize(img, [scaled_y, scaled_x], method = tf.image.ResizeMethod.BILINEAR)
-        
-        # Calculate padding offsets
-        pad_height = (target_height - scaled_y) // 2
-        pad_width = (target_width - scaled_x) // 2
-        pad_height = tf.cast(pad_height, tf.int32)
-        pad_width = tf.cast(pad_width, tf.int32)
-
-        scaled_img = tf.image.pad_to_bounding_box(
-            scaled_img,
-            pad_height,
-            pad_width,
-            target_height,
-            target_width
-        )
-
-        return scaled_img #Tensor w/ Dtype tf.float32
-    def preprocess_image(self, img, dims=None, need_transpose=False):
-        #Convert image to tensor
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        img = tf.constant(img, dtype= tf.float32)
-
-        #Normalize the image. Numbers are obtained from Google Brain Automl repo. (The default image normalization is identical to Cloud TPU ResNet).
-        mean_rgb = [0.485 * 255, 0.456 * 255, 0.406 * 255]
-        stddev_rgb = [0.229 * 255, 0.224 * 255, 0.225 * 255]
-        
-
-        img -= tf.constant(mean_rgb, shape=(1,1,3), dtype = tf.float32) #The shape ensures that the mean_rgb vector is the right shape for broadcasting
-        img /= tf.constant(stddev_rgb, shape=(1,1,3), dtype = tf.float32)
-        
-        #img = tf.cast(self.crop_and_resize(img), dtype = tf.uint8)
-
-        #image_scale = 1.0 / self.image_scale
-        
-
-        if need_transpose:
-            img = tf.transpose(img, perm = [2, 0, 1])
-        return img  
-    """
