@@ -44,12 +44,7 @@ class TensorFlow_Agent:
         # https://stackoverflow.com/questions/37660312/how-to-run-tensorflow-on-cpu 
         tf.config.set_visible_devices([], 'GPU') 
 
-<<<<<<< HEAD
-    self.load_model(task, model_name) 
-    
-=======
     self.load_model(task, model_name, security_check) 
->>>>>>> upstream/main
     return 
   
   def load_model(self, task, model_name, security_check=True): 
