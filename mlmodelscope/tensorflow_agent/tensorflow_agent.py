@@ -23,7 +23,7 @@ if tf.__version__[0] == '1':
 logger = logging.getLogger(__name__) 
 
 class TensorFlow_Agent: 
-  def __init__(self, task, model_name, architecture, tracer, prop, carrier): 
+  def __init__(self, task, model_name, architecture, tracer, prop, carrier, security_check=True): 
     self.tracer = tracer 
     self.prop = prop 
     self.carrier = carrier 
@@ -44,10 +44,10 @@ class TensorFlow_Agent:
         # https://stackoverflow.com/questions/37660312/how-to-run-tensorflow-on-cpu 
         tf.config.set_visible_devices([], 'GPU') 
 
-    self.load_model(task, model_name) 
+    self.load_model(task, model_name, security_check) 
     return 
   
-  def load_model(self, task, model_name): 
+  def load_model(self, task, model_name, security_check=True): 
     if task == "image_classification": 
       pass 
     elif task == "image_instance_segmentation": 
@@ -74,7 +74,7 @@ class TensorFlow_Agent:
 
     with self.tracer.start_as_current_span(self.model_name + ' model load', context=self.ctx) as model_load_span: 
       self.prop.inject(carrier=self.carrier, context=set_span_in_context(model_load_span)) 
-      self.model = _load(task=task, model_name=self.model_name) 
+      self.model = _load(task=task, model_name=self.model_name, security_check=security_check) 
       # self.model.model = self.model.model.to(self.device) 
 
     # https://github.com/tensorflow/tensorflow/issues/33478 

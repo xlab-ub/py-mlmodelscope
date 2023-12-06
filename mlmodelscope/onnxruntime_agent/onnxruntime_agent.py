@@ -15,7 +15,7 @@ from ._load import _load
 logger = logging.getLogger(__name__) 
 
 class ONNXRuntime_Agent: 
-  def __init__(self, task, model_name, architecture, tracer, prop, carrier): 
+  def __init__(self, task, model_name, architecture, tracer, prop, carrier, security_check=True): 
     self.tracer = tracer 
     self.prop = prop 
     self.carrier = carrier 
@@ -28,10 +28,10 @@ class ONNXRuntime_Agent:
     # self.device = 'cuda' if ((architecture == "gpu") and torch.cuda.is_available()) else 'cpu' 
     self.providers = ['CUDAExecutionProvider'] if architecture == "gpu" else ['CPUExecutionProvider'] 
 
-    self.load_model(task, model_name) 
+    self.load_model(task, model_name, security_check) 
     return 
   
-  def load_model(self, task, model_name): 
+  def load_model(self, task, model_name, security_check=True): 
     if task == "image_classification": 
       pass 
     elif task == "image_enhancement": 
@@ -54,7 +54,7 @@ class ONNXRuntime_Agent:
 
     with self.tracer.start_as_current_span(self.model_name + ' model load', context=self.ctx) as model_load_span: 
       self.prop.inject(carrier=self.carrier, context=set_span_in_context(model_load_span)) 
-      self.model = _load(task=task, model_name=self.model_name, providers=self.providers) 
+      self.model = _load(task=task, model_name=self.model_name, providers=self.providers, security_check=security_check) 
 
   def predict(self, num_warmup, dataloader, detailed=False, mlharness=False): 
     tracer = self.tracer 

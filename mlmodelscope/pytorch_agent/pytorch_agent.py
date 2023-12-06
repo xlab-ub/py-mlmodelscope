@@ -1,4 +1,5 @@
 import os 
+import sys
 import pathlib 
 import logging 
 
@@ -17,7 +18,7 @@ from ._load import _load
 logger = logging.getLogger(__name__) 
 
 class PyTorch_Agent: 
-  def __init__(self, task, model_name, architecture, tracer, prop, carrier): 
+  def __init__(self, task, model_name, architecture, tracer, prop, carrier, security_check=True): 
     self.tracer = tracer 
     self.prop = prop 
     self.carrier = carrier 
@@ -29,10 +30,10 @@ class PyTorch_Agent:
 
     self.device = 'cuda' if ((architecture == "gpu") and torch.cuda.is_available()) else 'cpu' 
 
-    self.load_model(task, model_name) 
+    self.load_model(task, model_name, security_check) 
     return 
   
-  def load_model(self, task, model_name): 
+  def load_model(self, task, model_name, security_check=True): 
     if task == "image_classification": 
       pass 
     elif task == "image_object_detection": 
@@ -63,11 +64,12 @@ class PyTorch_Agent:
 
     with self.tracer.start_as_current_span(self.model_name + ' model load', context=self.ctx) as model_load_span: 
       self.prop.inject(carrier=self.carrier, context=set_span_in_context(model_load_span)) 
-      self.model = _load(task=task, model_name=self.model_name) 
-      self.model.model.eval()
-      self.model.model = self.model.model.to(self.device) 
+      self.model = _load(task=task, model_name=self.model_name, security_check=security_check) 
+      if hasattr(self.model, 'model'):
+        self.model.model.eval()
+        self.model.model = self.model.model.to(self.device) 
 
-    if not hasattr(self.model.model, "isScriptModule"): 
+    if hasattr(self.model, 'model') and (not hasattr(self.model.model, "isScriptModule")): 
       all_spans = {} 
       def pre_hook(layer_name): 
         def pre_hook(module, input): 
@@ -122,7 +124,8 @@ class PyTorch_Agent:
                 with tracer.start_as_current_span("preprocess") as preprocess_span: 
                   prop.inject(carrier=carrier, context=set_span_in_context(preprocess_span)) 
                   model_input = self.model.preprocess(data) 
-                  model_input = model_input.to(self.device) 
+                  if hasattr(model_input, 'to'):
+                    model_input = model_input.to(self.device) 
                 with tracer.start_as_current_span("predict") as predict_span: 
                   prop.inject(carrier=carrier, context=set_span_in_context(predict_span)) 
                   model_output = self.model.predict(model_input) 
@@ -136,7 +139,8 @@ class PyTorch_Agent:
               with tracer.start_as_current_span("preprocess") as preprocess_span: 
                 prop.inject(carrier=carrier, context=set_span_in_context(preprocess_span)) 
                 model_input = self.model.preprocess(data)
-                model_input = model_input.to(self.device) 
+                if hasattr(model_input, 'to'):
+                  model_input = model_input.to(self.device) 
               with tracer.start_as_current_span("predict") as predict_span:  
                 prop.inject(carrier=carrier, context=set_span_in_context(predict_span)) 
                 model_output = self.model.predict(model_input) 

@@ -75,7 +75,7 @@ class MLModelScope:
 
     return 
 
-  def load_agent(self, task, agent, model_name): 
+  def load_agent(self, task, agent, model_name, security_check=True): 
     # if task == "image_classification": 
     #   pass 
     # else: 
@@ -83,16 +83,16 @@ class MLModelScope:
 
     if agent == 'pytorch': 
       from mlmodelscope.pytorch_agent import PyTorch_Agent 
-      self.agent = PyTorch_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier) 
+      self.agent = PyTorch_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
     elif agent == 'tensorflow': 
       from mlmodelscope.tensorflow_agent import TensorFlow_Agent 
-      self.agent = TensorFlow_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier) 
+      self.agent = TensorFlow_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
     elif agent == 'onnxruntime': 
       from mlmodelscope.onnxruntime_agent import ONNXRuntime_Agent 
-      self.agent = ONNXRuntime_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier) 
+      self.agent = ONNXRuntime_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
     elif agent == 'mxnet': 
       from mlmodelscope.mxnet_agent import MXNet_Agent 
-      self.agent = MXNet_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier) 
+      self.agent = MXNet_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
     else: 
       raise NotImplementedError(f"{agent} agent is not supported") 
     
