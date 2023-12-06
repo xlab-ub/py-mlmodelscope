@@ -50,6 +50,8 @@ class PyTorch_Agent:
       pass 
     elif task == "text_to_code":
       pass
+    elif task == "talking_head_generation":
+      pass
     else: 
       raise NotImplementedError(f"{task} task is not supported")  
 
@@ -152,6 +154,8 @@ class PyTorch_Agent:
                   post_processed_model_output = self.model.postprocess(model_output) 
                   for i in range(len(post_processed_model_output[0])): 
                     outputs.append([[output[i]] for output in post_processed_model_output]) 
+                elif self.task == "talking_head_generation":
+                  self.model.postprocess(model_output)
                 else: # "image_classification", "image_semantic_segmentation", "image_enhancement" 
                   outputs.extend(self.model.postprocess(model_output)) 
   
