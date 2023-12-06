@@ -102,7 +102,7 @@ class CUPTI:
             
             try: 
                 CUPTI.cupti = ctypes.cdll.LoadLibrary(path) 
-            except FileNotFoundError: 
+            except (FileNotFoundError, OSError): 
                 if CUPTI._system == 'Linux': 
                     CUPTI.cupti = ctypes.cdll.LoadLibrary(path2) 
                 else: 
@@ -112,7 +112,7 @@ class CUPTI:
             
             try: 
                 CUPTI.nvperf_host = ctypes.cdll.LoadLibrary(nvperf_host_path) 
-            except FileNotFoundError: 
+            except (FileNotFoundError, OSError): 
                 if CUPTI._system == 'Linux': 
                     CUPTI.nvperf_host = ctypes.cdll.LoadLibrary(nvperf_host_path2) 
                 else: 
