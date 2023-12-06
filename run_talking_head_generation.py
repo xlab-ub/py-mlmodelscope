@@ -21,7 +21,7 @@ def main():
     parser.add_argument("--num_warmup", type=int, nargs='?', default=0, help="Total number of warmup steps for predict.") 
     parser.add_argument("--dataset_name", type=str, nargs='?', default="sadtalker_data", help="The name of the dataset for predict.") 
     parser.add_argument("--batch_size", type=int, nargs='?', default=1, help="Total batch size for predict.") 
-    parser.add_argument("--gpu_trace", type=str, nargs='?', default="true", choices=["false", "true"], help="Whether to trace GPU activities") 
+    parser.add_argument("--gpu_trace", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to trace GPU activities") 
     parser.add_argument("--detailed_result", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to get detailed result") 
     parser.add_argument("--security_check", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to perform security check on the model file")
 
