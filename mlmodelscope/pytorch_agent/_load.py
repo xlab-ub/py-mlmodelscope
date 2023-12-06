@@ -49,14 +49,13 @@ def perform_syntax_and_security_check(file_name):
     except SyntaxError as e:
       raise Exception(f"Syntax Error in the file: {e}")
 
-def create_instance_from_model_manifest_file(task, model_name):
+def create_instance_from_model_manifest_file(task, model_name, security_check=True):
   '''
   Create an instance of a class from a file.
   '''
   # parent_dir = pathlib.Path(__file__).resolve().parent.__str__()
   file_name = os.path.join(pathlib.Path(__file__).resolve().parent, f'models/{task}/{model_name}.py') # Get the path of the model file
-  
-  if not perform_syntax_and_security_check(file_name):
+  if security_check and (not perform_syntax_and_security_check(file_name)):
     raise Exception("Security issue detected. Aborting.")
 
   with open(file_name, 'r') as file:
@@ -64,6 +63,7 @@ def create_instance_from_model_manifest_file(task, model_name):
     
     globals_dict = {
       '__name__': '.'.join(__name__.split('.')[:-1]) + '.models' + '.' + task + '.', 
+      '__file__': file_name, 
     }
 
     exec(code, globals_dict)  # Execute the code in the current scope
@@ -86,10 +86,10 @@ def create_instance_from_model_manifest_file(task, model_name):
   else:
     raise ModuleNotFoundError("No subclass of PyTorchAbstractClass was found in the module.") 
 
-def _load(task, model_name):
+def _load(task, model_name, security_check=True):
   try: 
     exec(f'from .models.{task}.' + model_name + ' import init', globals())
     return init()
   except ImportError as e:
     if e.msg.split()[3] == "'init'": 
-      return create_instance_from_model_manifest_file(task, model_name) # Create an instance of the model class 
+      return create_instance_from_model_manifest_file(task, model_name, security_check) # Create an instance of the model class 

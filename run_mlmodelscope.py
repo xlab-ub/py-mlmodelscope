@@ -23,6 +23,7 @@ def main():
     parser.add_argument("--batch_size", type=int, nargs='?', default=2, help="Total batch size for predict.") 
     parser.add_argument("--gpu_trace", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to trace GPU activities") 
     parser.add_argument("--detailed_result", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to get detailed result") 
+    parser.add_argument("--security_check", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to perform security check on the model file")
 
   else: 
     parser.add_argument("--env_file", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to use env file") 
@@ -65,10 +66,11 @@ def main():
     dataset_name  = args.dataset_name 
     batch_size    = args.batch_size 
     detailed = True if args.detailed_result == "true" else False 
+    security_check = True if args.security_check == "true" else False
 
     mlms = MLModelScope(architecture, gpu_trace) 
     
-    mlms.load_agent(task, agent, model_name) 
+    mlms.load_agent(task, agent, model_name, security_check) 
     print(f"{agent}-agent is loaded with {model_name} model\n") 
     mlms.load_dataset(dataset_name, batch_size) 
     print(f"{dataset_name} dataset is loaded\n") 
