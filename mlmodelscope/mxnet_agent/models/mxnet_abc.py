@@ -5,11 +5,15 @@ from abc import ABC, abstractmethod
 import requests 
 from tqdm import tqdm 
 from typing import List, Union
+import warnings
 
-import tensorflow as tf
+import mxnet as mx 
+import numpy as np
 
-class TensorFlowAbstractClass(ABC):
-    sess = None 
+class MXNetAbstractClass(ABC):
+    @abstractmethod
+    def __init__(self, architecture):
+        pass
 
     @abstractmethod
     def preprocess(self, input_data):
@@ -46,48 +50,37 @@ class TensorFlowAbstractClass(ABC):
         '''
         pass
 
-    def load_v1_pb(
-        self,
-        path_to_pb: str,
-        input_node: Union[str, List[str]],
-        output_node: Union[str, List[str]]
-    ) -> None:
+    def load_mx(self, model_symbol_path: str, model_params_path: str, input_layer: List[str], architecture: str) -> None:
         '''
-        Load the tensorflow v1 model file, create the session and replace the predict method
+        Load the mxnet model file, create the session and replace the predict method
 
         Args:
-            path_to_pb (str): The path of the model file
-            input_node (str/list): The name of the input node(s)
-            output_node (str/list): The name of the output node(s)
+            model_symbol_path (str): The path of the model symbol file
+            model_params_path (str): The path of the model params file
+            input_layer (list): The input names of the model
+            architecture (str): The architecture of the model
         '''
-        with tf.compat.v1.gfile.GFile(path_to_pb, "rb") as f:
-            graph_def = tf.compat.v1.GraphDef()
-            graph_def.ParseFromString(f.read()) 
+        self.ctx = mx.cpu() if architecture == "cpu" else mx.gpu() 
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.model = mx.gluon.nn.SymbolBlock.imports(model_symbol_path, input_layer, model_params_path, ctx=self.ctx) 
 
-        with tf.Graph().as_default() as graph:
-            tf.import_graph_def(graph_def, name='') 
-            self.sess = tf.compat.v1.Session(graph=graph)
-            self.model = graph 
-
-            self.inNode = [graph.get_tensor_by_name(f"{node}:0") for node in input_node] if isinstance(input_node, list) else graph.get_tensor_by_name(f"{input_node}:0")
-            self.outNode = [graph.get_tensor_by_name(f"{node}:0") for node in output_node] if isinstance(output_node, list) else graph.get_tensor_by_name(f"{output_node}:0")
-        
-        self.predict = self.predict_v1 
-
-    def predict_v1(
+        self.predict = self.predict_mx
+    
+    def predict_mx(
         self,
-        model_input: Union[List[tf.Tensor], tf.Tensor]
-        ) -> Union[List[tf.Tensor], tf.Tensor]:
+        model_input: Union[List[np.ndarray], np.ndarray]
+        ) -> Union[List[np.ndarray], np.ndarray]:
         '''
-        Predict the tensorflow v1 model output
+        Predict the mxnet model output
 
         Args:
             model_input (list): The input data
 
         Returns:
-            list: The model output
+            list: model output
         '''
-        return self.sess.run(self.outNode, feed_dict={self.inNode: model_input})
+        return self.model(model_input)
 
     def file_download(self, file_url: str, file_path: str) -> None:
         '''
@@ -114,31 +107,39 @@ class TensorFlowAbstractClass(ABC):
         if total_bytes != 0 and progress_bar.n != total_bytes:
             raise Exception(f"File from {file_url} download incomplete. {progress_bar.n} out of {total_bytes} bytes")
 
-    def model_file_download(self, model_file_url: str) -> None:
+    def model_symbol_and_params_download(self, model_symbol_url: str, model_params_url: str) -> None:
         '''
-        Download the model file from the given url and save it then return the path
+        Download the model symbol and params file from the given urls and save them
 
         Args:
-            model_file_url (str): The url of the model file
+            model_symbol_url (str): The url of the model symbol file
+            model_params_url (str): The url of the model params file
 
         Returns:
-            str: The path of the model file
+            str: The path of the model symbol file
+            str: The path of the model params file
         '''
         temp_path = os.path.join(pathlib.Path(__file__).resolve().parent.parent, 'tmp') 
         if not os.path.isdir(temp_path): 
             os.mkdir(temp_path) 
 
         source_file_name = inspect.stack()[1].filename.replace('\\', '/').split('/')[-1][:-3] 
-        model_path = os.path.join(temp_path, source_file_name + '/' + model_file_url.split('/')[-1]) 
-        print(model_path)
-        if not os.path.exists(model_path): 
-            os.mkdir('/'.join(model_path.replace('\\', '/').split('/')[:-1])) 
-            print("The model file does not exist")
-            print("Start download the model file") 
-            self.file_download(model_file_url, model_path)
-            print("Model file download complete")
+        model_symbol_path = os.path.join(temp_path, source_file_name + '/' + model_symbol_url.split('/')[-1]) 
+        model_params_path = os.path.join(temp_path, source_file_name + '/' + model_params_url.split('/')[-1])
+        if not os.path.exists(model_symbol_path): 
+            os.mkdir('/'.join(model_symbol_path.replace('\\', '/').split('/')[:-1])) 
+            print("The model symbol file does not exist")
+            print("Start download the model symbol file") 
+            self.file_download(model_symbol_url, model_symbol_path)
+            print("Model symbol file download complete")
         
-        return model_path
+        if not os.path.exists(model_params_path):
+            print("The model params file does not exist")
+            print("Start download the model params file") 
+            self.file_download(model_params_url, model_params_path)
+            print("Model params file download complete")
+        
+        return model_symbol_path, model_params_path 
     
     def features_download(self, features_file_url: str) -> None:
         '''

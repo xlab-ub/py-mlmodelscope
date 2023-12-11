@@ -3,7 +3,7 @@ import os
 
 import logging 
 
-from opentelemetry import trace 
+from opentelemetry import trace, context 
 from opentelemetry.trace import set_span_in_context 
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator 
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource 
@@ -28,7 +28,7 @@ class MLModelScope:
     }) 
     trace.set_tracer_provider(TracerProvider(resource=resource)) 
     # https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html 
-    span_processor = BatchSpanProcessor(OTLPSpanExporter(endpoint='http://localhost:4317', insecure=True)) 
+    span_processor = BatchSpanProcessor(OTLPSpanExporter(endpoint='http://localhost:4317', insecure=True), max_queue_size=4096) 
     trace.get_tracer_provider().add_span_processor(span_processor) 
 
     self.tracer = trace.get_tracer(__name__) 
@@ -37,6 +37,7 @@ class MLModelScope:
 
     self.span = self.tracer.start_span(name="mlmodelscope") 
     self.ctx = set_span_in_context(self.span) 
+    self.token = context.attach(self.ctx) 
     self.prop.inject(carrier=self.carrier, context=self.ctx) 
 
     self.architecture = architecture 
@@ -74,7 +75,7 @@ class MLModelScope:
 
     return 
 
-  def load_agent(self, task, agent, model_name): 
+  def load_agent(self, task, agent, model_name, security_check=True): 
     # if task == "image_classification": 
     #   pass 
     # else: 
@@ -82,16 +83,16 @@ class MLModelScope:
 
     if agent == 'pytorch': 
       from mlmodelscope.pytorch_agent import PyTorch_Agent 
-      self.agent = PyTorch_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier) 
+      self.agent = PyTorch_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
     elif agent == 'tensorflow': 
       from mlmodelscope.tensorflow_agent import TensorFlow_Agent 
-      self.agent = TensorFlow_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier) 
+      self.agent = TensorFlow_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
     elif agent == 'onnxruntime': 
       from mlmodelscope.onnxruntime_agent import ONNXRuntime_Agent 
-      self.agent = ONNXRuntime_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier) 
+      self.agent = ONNXRuntime_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
     elif agent == 'mxnet': 
       from mlmodelscope.mxnet_agent import MXNet_Agent 
-      self.agent = MXNet_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier) 
+      self.agent = MXNet_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
     else: 
       raise NotImplementedError(f"{agent} agent is not supported") 
     
@@ -107,5 +108,6 @@ class MLModelScope:
     return outputs 
 
   def Close(self): 
+    context.detach(self.token)
     self.span.end() 
     return None 
