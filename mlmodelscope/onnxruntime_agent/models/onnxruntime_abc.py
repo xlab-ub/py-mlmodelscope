@@ -55,6 +55,7 @@ class ONNXRuntimeAbstractClass(ABC):
     def load_onnx(self, model_path: str, providers: List[str]) -> None:
         '''
         Load the onnx model file, create the session and replace the predict method
+        If the model has only one input, predict method will be replaced with predict_onnx method 
 
         Args:
             model_path (str): The path of the model file
@@ -109,7 +110,7 @@ class ONNXRuntimeAbstractClass(ABC):
         if total_bytes != 0 and progress_bar.n != total_bytes:
             raise Exception(f"File from {file_url} download incomplete. {progress_bar.n} out of {total_bytes} bytes")
 
-    def model_file_download(self, model_file_url: str) -> None:
+    def model_file_download(self, model_file_url: str) -> str:
         '''
         Download the model file from the given url and save it then return the path
 
@@ -134,7 +135,7 @@ class ONNXRuntimeAbstractClass(ABC):
         
         return model_path
     
-    def features_download(self, features_file_url: str) -> None:
+    def features_download(self, features_file_url: str) -> List[str]:
         '''
         Download the features file from the given url and save it then return the features list
 
