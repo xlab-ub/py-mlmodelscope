@@ -1,8 +1,10 @@
+from ..tensorflow_abc import TensorFlowAbstractClass 
+
 import tensorflow as tf 
 import numpy as np 
 import cv2 
 
-class TensorFlow_ResNet50_Keras:
+class TensorFlow_ResNet50_Keras(TensorFlowAbstractClass):
   def __init__(self):
     # https://www.tensorflow.org/api_docs/python/tf/keras/applications/resnet50/ResNet50 
     self.model = tf.keras.applications.resnet50.ResNet50() 
@@ -58,6 +60,3 @@ class TensorFlow_ResNet50_Keras:
     # https://github.com/keras-team/keras/issues/9621 
     probabilities = tf.compat.v1.nn.softmax(model_output, dim = 1) 
     return probabilities 
-    
-def init():
-  return TensorFlow_ResNet50_Keras()

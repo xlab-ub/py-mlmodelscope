@@ -3,6 +3,7 @@ import inspect
 import pathlib 
 from abc import ABC, abstractmethod 
 import requests 
+import tarfile 
 from tqdm import tqdm 
 from typing import List, Union
 
@@ -114,7 +115,7 @@ class TensorFlowAbstractClass(ABC):
         if total_bytes != 0 and progress_bar.n != total_bytes:
             raise Exception(f"File from {file_url} download incomplete. {progress_bar.n} out of {total_bytes} bytes")
 
-    def model_file_download(self, model_file_url: str) -> None:
+    def model_file_download(self, model_file_url: str) -> str:
         '''
         Download the model file from the given url and save it then return the path
 
@@ -139,7 +140,43 @@ class TensorFlowAbstractClass(ABC):
         
         return model_path
     
-    def features_download(self, features_file_url: str) -> None:
+    def model_file_in_tgz_download(self, model_file_name: str, tgz_file_url: str) -> str:
+        '''
+        Download the tgz file from the given url 
+        and unzip to get model file and save it then return the path 
+
+        Args:
+            model_file_name (str): The name of the model file
+            tgz_file_url (str): The url of the model file
+
+        Returns:
+            str: The path of the model file
+        '''
+        temp_path = os.path.join(pathlib.Path(__file__).resolve().parent.parent, 'tmp') 
+        if not os.path.isdir(temp_path): 
+            os.mkdir(temp_path) 
+
+        source_file_name = inspect.stack()[1].filename.replace('\\', '/').split('/')[-1][:-3] 
+        model_path_dir = os.path.join(temp_path, source_file_name)
+        model_path = os.path.join(model_path_dir, model_file_name) 
+        if not os.path.exists(model_path): 
+            os.mkdir('/'.join(model_path.replace('\\', '/').split('/')[:-1])) 
+            tgz_file_name = tgz_file_url.split('/')[-1] 
+            print("The model file does not exist")
+            print("Start download the tgz file") 
+            tgz_file_path = os.path.join(model_path_dir, tgz_file_name)
+            self.file_download(tgz_file_url, tgz_file_path)
+            
+            print("Start unzip the tgz file")
+            tgz_file = tarfile.open(tgz_file_path)
+            tgz_file.extract('./' + model_file_name, model_path_dir)
+            tgz_file.close()
+
+            print("Model file download complete")
+        
+        return model_path
+
+    def features_download(self, features_file_url: str) -> List[str]:
         '''
         Download the features file from the given url and save it then return the features list
 

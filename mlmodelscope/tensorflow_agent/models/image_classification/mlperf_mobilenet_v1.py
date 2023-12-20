@@ -1,73 +1,24 @@
-import os 
-import pathlib 
-import requests 
-import tarfile 
+from ..tensorflow_abc import TensorFlowAbstractClass 
 
 import tensorflow as tf 
 import numpy as np 
 import cv2 
 
-class TensorFlow_MLPerf_Mobilenet_v1:
+class TensorFlow_MLPerf_Mobilenet_v1(TensorFlowAbstractClass):
   def __init__(self):
-    temp_path = os.path.join(pathlib.Path(__file__).resolve().parent.parent.parent, 'tmp') 
-    if not os.path.isdir(temp_path): 
-      os.mkdir(temp_path) 
-
-    # https://github.com/c3sr/dlmodel/blob/master/models_demo/vision/image_classification/tensorflow/mlcommons_inference/MLCommons_Mobilenet_v1.yml 
-    self.inLayer = 'input' 
-    self.outLayer = 'MobilenetV1/Predictions/Reshape_1' 
-
-    self.inNode = None 
-    self.outNode = None 
-
     model_file_name = 'mobilenet_v1_1.0_224_frozen.pb' 
-    model_path = os.path.join(temp_path, model_file_name) 
+    tgz_file_url = "https://zenodo.org/record/2271498/files/mobilenet_v1_1.0_224.tgz" 
+    model_path = self.model_file_in_tgz_download(model_file_name, tgz_file_url) 
 
-    if not os.path.exists(model_path): 
-      model_file_url = "https://zenodo.org/record/2271498/files/mobilenet_v1_1.0_224.tgz" 
-      tgz_file_name = model_file_url.split('/')[-1] 
-      # https://www.tensorflow.org/api_docs/python/tf/keras/utils/get_file 
-      tf.keras.utils.get_file(fname=tgz_file_name, origin=model_file_url, cache_subdir='.', cache_dir=temp_path) 
+    input_node = 'input' 
+    output_node = 'MobilenetV1/Predictions/Reshape_1' 
 
-      tgz_file = tarfile.open(os.path.join(temp_path, tgz_file_name)) 
-      tgz_file.extract('./' + model_file_name, temp_path) 
-      tgz_file.close() 
-
-    self.load_pb(model_path) 
-
-    self.sess = tf.compat.v1.Session(graph=self.model) 
-
+    # Because this model is TensorFlow v1 model, we need to use load_v1_pb() 
+    # Also, we don't need to define predict() because it will be replaced in load_v1_pb()
+    self.load_v1_pb(model_path, input_node, output_node) 
+    
     features_file_url = "https://s3.amazonaws.com/store.carml.org/synsets/imagenet/synset1.txt" 
-
-    features_file_name = features_file_url.split('/')[-1] 
-    features_path = os.path.join(temp_path, features_file_name) 
-
-    if not os.path.exists(features_path): 
-      print("Start download the features file") 
-      # https://stackoverflow.com/questions/66195254/downloading-a-file-with-a-url-using-python 
-      data = requests.get(features_file_url) 
-      with open(features_path, 'wb') as f: 
-        f.write(data.content) 
-      print("Download complete") 
-
-    # https://stackoverflow.com/questions/3277503/how-to-read-a-file-line-by-line-into-a-list 
-    with open(features_path, 'r') as f_f: 
-      self.features = [line.rstrip() for line in f_f] 
-  
-  # https://stackoverflow.com/questions/51278213/what-is-the-use-of-a-pb-file-in-tensorflow-and-how-does-it-work 
-  def load_pb(self, path_to_pb):
-    # https://gist.github.com/apivovarov/4ff23d9d3ff44b722a8655edd507faa5 
-    with tf.compat.v1.gfile.GFile(path_to_pb, "rb") as f:
-      graph_def = tf.compat.v1.GraphDef()
-      graph_def.ParseFromString(f.read())
-
-    with tf.Graph().as_default() as graph:
-      tf.import_graph_def(graph_def, name='') 
-      self.model = graph 
-
-      # https://github.com/tensorflow/models/issues/4114 
-      self.inNode = graph.get_tensor_by_name(f"{self.inLayer}:0") 
-      self.outNode = graph.get_tensor_by_name(f"{self.outLayer}:0") 
+    self.features = self.features_download(features_file_url) 
 
   def center_crop(self, img, out_height, out_width):
     height, width, _ = img.shape
@@ -112,15 +63,8 @@ class TensorFlow_MLPerf_Mobilenet_v1:
     model_input = np.asarray(input_images) 
     return model_input
 
-  def predict(self, model_input): 
-    # sess.close() may be needed 
-    return self.sess.run(self.outNode, feed_dict={self.inNode: model_input}) 
-
   def postprocess(self, model_output): 
     # https://github.com/tensorflow/docs/blob/r1.14/site/en/api_docs/python/tf/nn/softmax.md 
     # https://github.com/keras-team/keras/issues/9621 
     probabilities = tf.compat.v1.nn.softmax(model_output, dim = 1) 
     return probabilities 
-    
-def init():
-  return TensorFlow_MLPerf_Mobilenet_v1() 
