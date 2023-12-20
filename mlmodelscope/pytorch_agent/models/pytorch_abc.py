@@ -4,6 +4,7 @@ import pathlib
 from abc import ABC, abstractmethod 
 import requests 
 from tqdm import tqdm 
+from typing import List 
 
 class PyTorchAbstractClass(ABC):
     @abstractmethod
@@ -67,7 +68,7 @@ class PyTorchAbstractClass(ABC):
         if total_bytes != 0 and progress_bar.n != total_bytes:
             raise Exception(f"File from {file_url} download incomplete. {progress_bar.n} out of {total_bytes} bytes")
 
-    def model_file_download(self, model_file_url: str) -> None: 
+    def model_file_download(self, model_file_url: str) -> str: 
         '''
         Download the model file from the given url and save it then return the path
 
@@ -92,7 +93,7 @@ class PyTorchAbstractClass(ABC):
         
         return model_path
     
-    def features_download(self, features_file_url: str) -> None: 
+    def features_download(self, features_file_url: str) -> List[str]: 
         '''
         Download the features file from the given url and save it then return the features list
 

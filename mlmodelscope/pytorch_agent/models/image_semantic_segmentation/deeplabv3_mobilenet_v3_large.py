@@ -1,15 +1,16 @@
+from ..pytorch_abc import PyTorchAbstractClass 
+
 import warnings 
 
 import torch 
 from torchvision.models.segmentation import deeplabv3_mobilenet_v3_large, DeepLabV3_MobileNet_V3_Large_Weights 
 from PIL import Image 
 
-class PyTorch_TorchVision_DeepLabV3_MobileNet_V3_Large: 
+class PyTorch_TorchVision_DeepLabV3_MobileNet_V3_Large(PyTorchAbstractClass): 
   def __init__(self): 
     warnings.warn("If the size of the images is not consistent, the batch size should be 1.") 
     # https://pytorch.org/vision/stable/models.html 
     self.model = deeplabv3_mobilenet_v3_large(pretrained=True) 
-    self.model.eval() 
   
   def preprocess(self, input_images): 
     '''Accepts PIL.Image, batched (B, C, H, W) and single (C, H, W) image torch.Tensor objects. 
@@ -28,6 +29,3 @@ class PyTorch_TorchVision_DeepLabV3_MobileNet_V3_Large:
 
   def postprocess(self, model_output): 
     return torch.argmax(model_output["out"], axis = 1).tolist() 
-
-def init(): 
-  return PyTorch_TorchVision_DeepLabV3_MobileNet_V3_Large() 

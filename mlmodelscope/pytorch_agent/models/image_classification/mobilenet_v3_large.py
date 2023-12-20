@@ -1,11 +1,12 @@
+from ..pytorch_abc import PyTorchAbstractClass 
+
 import torch
 from torchvision import transforms
 from PIL import Image 
 
-class TorchVision_MobileNet_V3_Large:
+class TorchVision_MobileNet_V3_Large(PyTorchAbstractClass):
   def __init__(self):
     self.model = torch.hub.load('pytorch/vision:v0.10.0', 'mobilenet_v3_large', pretrained=True)
-    self.model.eval()
   
   def preprocess(self, input_images):
     preprocessor = transforms.Compose([
@@ -25,7 +26,3 @@ class TorchVision_MobileNet_V3_Large:
   def postprocess(self, model_output):
     probabilities = torch.nn.functional.softmax(model_output, dim = 1)
     return probabilities.tolist()
-    
-def init():
-  return TorchVision_MobileNet_V3_Large()
-

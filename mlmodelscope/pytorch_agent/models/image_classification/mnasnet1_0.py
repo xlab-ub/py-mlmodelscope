@@ -1,11 +1,12 @@
+from ..pytorch_abc import PyTorchAbstractClass 
+
 import torch
 from torchvision import transforms
 from PIL import Image 
 
-class TorchVision_MNASNet1_0:
+class TorchVision_MNASNet1_0(PyTorchAbstractClass):
   def __init__(self):
     self.model = torch.hub.load('pytorch/vision:v0.10.0', 'mnasnet1_0', pretrained=True)
-    self.model.eval()
   
   def preprocess(self, input_images):
     preprocessor = transforms.Compose([
@@ -25,7 +26,3 @@ class TorchVision_MNASNet1_0:
   def postprocess(self, model_output):
     probabilities = torch.nn.functional.softmax(model_output, dim = 1)
     return probabilities.tolist()
-    
-def init():
-  return TorchVision_MNASNet1_0()
-

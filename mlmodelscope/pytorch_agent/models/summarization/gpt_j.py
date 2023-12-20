@@ -1,3 +1,5 @@
+from ..pytorch_abc import PyTorchAbstractClass 
+
 import warnings 
 import os 
 import pathlib 
@@ -7,7 +9,7 @@ import torch
 
 from transformers import AutoModelForCausalLM, AutoTokenizer 
 
-class PyTorch_GPT_J_6B: 
+class PyTorch_GPT_J_6B(PyTorchAbstractClass): 
   gen_kwargs = {
       "early_stopping": True,
       "max_new_tokens": 128,
@@ -33,7 +35,7 @@ class PyTorch_GPT_J_6B:
       os.system('unzip ' + temp_path + '/checkpoint.zip -d ' + temp_path)
 
     self.model = AutoModelForCausalLM.from_pretrained(model_path)
-    self.model.eval() 
+
     print('Model loaded.')
     self.tokenizer = AutoTokenizer.from_pretrained("EleutherAI/gpt-j-6B",
                                                    model_max_length=1919,
@@ -56,6 +58,3 @@ class PyTorch_GPT_J_6B:
     for data, source_len in zip(model_output, self.input_batch_lengths):
       output_batch_truncated.append(data[source_len:].tolist())
     return output_batch_truncated 
-    
-def init():
-  return PyTorch_GPT_J_6B() 

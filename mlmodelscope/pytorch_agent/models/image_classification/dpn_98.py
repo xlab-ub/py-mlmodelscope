@@ -1,8 +1,5 @@
-import os 
-import pathlib 
-import requests 
-# https://stackoverflow.com/questions/50236117/scraping-ssl-certificate-verify-failed-error-for-http-en-wikipedia-org 
-import ssl 
+from ..pytorch_abc import PyTorchAbstractClass
+
 from collections import OrderedDict 
 
 import torch
@@ -284,57 +281,18 @@ class DPN(nn.Module):
     x = self.logits(x)
     return x
 
-class DPN_98: 
+class DPN_98(PyTorchAbstractClass): 
   def __init__(self):
-    # if torch.__version__[:5] != "1.8.1": 
-    #   raise RuntimeError("This model needs pytorch v1.8.1") 
-
-    temp_path = os.path.join(pathlib.Path(__file__).resolve().parent.parent.parent, 'tmp') 
-    if not os.path.isdir(temp_path): 
-      os.mkdir(temp_path) 
-
-    settings = pretrained_settings['dpn98']['imagenet'] 
-
-    model_file_name = settings['url'].split('/')[-1] 
-    model_path = os.path.join(temp_path, model_file_name) 
-
-    if not os.path.exists(model_path): 
-      # https://stackoverflow.com/questions/50236117/scraping-ssl-certificate-verify-failed-error-for-http-en-wikipedia-org 
-      _create_default_https_context = ssl._create_default_https_context 
-      ssl._create_default_https_context = ssl._create_unverified_context 
-      torch.hub.download_url_to_file(settings['url'], model_path) 
-      ssl._create_default_https_context = _create_default_https_context 
+    model_file_url = pretrained_settings['dpn98']['imagenet']['url'] 
+    model_path = self.model_file_download(model_file_url) 
 
     self.model = DPN(num_init_features=96, k_r=160, groups=40,
                      k_sec=(3, 6, 20, 3), inc_sec=(16, 32, 32, 128),
                      num_classes=1000, test_time_pool=True) 
     self.model.load_state_dict(torch.load(model_path)) 
-    self.model.eval() 
-
-    self.model.input_space = settings['input_space']
-    self.model.input_size = settings['input_size']
-    self.model.input_range = settings['input_range']
-
-    self.model.mean = settings['mean']
-    self.model.std = settings['std']
-
-    # https://github.com/c3sr/dlmodel/blob/master/models_demo/vision/image_classification/pytorch/dpn/DPN_98.yml 
+    
     features_file_url = "http://s3.amazonaws.com/store.carml.org/synsets/imagenet/synset.txt" 
-
-    features_file_name = features_file_url.split('/')[-1] 
-    features_path = os.path.join(temp_path, features_file_name) 
-
-    if not os.path.exists(features_path): 
-      print("Start download the features file") 
-      # https://stackoverflow.com/questions/66195254/downloading-a-file-with-a-url-using-python 
-      data = requests.get(features_file_url) 
-      with open(features_path, 'wb') as f: 
-        f.write(data.content) 
-      print("Download complete") 
-
-    # https://stackoverflow.com/questions/3277503/how-to-read-a-file-line-by-line-into-a-list 
-    with open(features_path, 'r') as f_f: 
-      self.features = [line.rstrip() for line in f_f] 
+    self.features = self.features_download(features_file_url) 
 
   def preprocess(self, input_images):
     preprocessor = transforms.Compose([
@@ -354,6 +312,3 @@ class DPN_98:
   def postprocess(self, model_output):
     probabilities = torch.nn.functional.softmax(model_output, dim = 1)
     return probabilities.tolist()
-    
-def init():
-  return DPN_98() 
