@@ -88,6 +88,8 @@ class Tensorflow_Efficientdet_d0(TensorFlowAbstractClass):
         padded_boxes = tf.expand_dims(padded_boxes, axis = 0).numpy().tolist()
         padded_classes = tf.expand_dims(padded_classes, axis = 0).numpy().tolist()
 
+        print(padded_classes)
+
 
         return padded_scores, padded_classes, padded_boxes
 

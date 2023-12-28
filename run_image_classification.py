@@ -76,16 +76,7 @@ def main():
     outputs = mlms.predict(num_warmup, detailed) 
     print("prediction is done\n") 
 
-    # Function to read lines from a file given an array of indices
-    def get_lines_from_file(file_path, indices):
-        with open(file_path, 'r') as file:
-            lines = file.readlines()
-        # Adjust indices to account for zero-based indexing
-        adjusted_indices = [index - 1 for index in indices]
-        # Extract the required lines
-        selected_lines = [lines[index] for index in adjusted_indices if index < len(lines)]
-        return selected_lines
-
+  
     print("outputs are as follows:") 
     if task == "image_classification": 
       if detailed: 
@@ -93,16 +84,15 @@ def main():
       else: 
         print(np.argmax(outputs, axis=1))
         
-        #Opens text file to parse and identify the vectors given by the image classification model
-        file_path = './mlmodelscope/tensorflow_agent/tmp/synset.txt'  # Replace with the path to your text file
-        indices = np.argmax(outputs, axis=1)  # Example array of indices
-        output_lines = get_lines_from_file(file_path, indices)
+        #Retrieves feature attribute and prints predictions based on output indices
+        model_features = mlms.agent.model.features 
+        indices = np.argmax(outputs, axis=1)
+        output_lines =  [model_features[index] for index in indices if index < len(model_features)]
 
-        # Printing the output of the images identified
-        print("Your images are identified to be the following:")
+        print("\nYour images are identified to be the following:")
         for line in output_lines:
-          print(line.strip())  # strip() is used to remove the newline character at the end of each line
-        print("\n")
+          print(line)
+        
           
     elif task == "image_object_detection": 
       print("image_object_detection") 
