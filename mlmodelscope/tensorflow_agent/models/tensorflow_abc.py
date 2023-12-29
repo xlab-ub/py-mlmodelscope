@@ -131,6 +131,7 @@ class TensorFlowAbstractClass(ABC):
 
         source_file_name = inspect.stack()[1].filename.replace('\\', '/').split('/')[-1][:-3] 
         model_path = os.path.join(temp_path, source_file_name + '/' + model_file_url.split('/')[-1]) 
+        print(model_path)
         if not os.path.exists(model_path): 
             os.mkdir('/'.join(model_path.replace('\\', '/').split('/')[:-1])) 
             print("The model file does not exist")

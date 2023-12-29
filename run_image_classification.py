@@ -76,12 +76,24 @@ def main():
     outputs = mlms.predict(num_warmup, detailed) 
     print("prediction is done\n") 
 
+  
     print("outputs are as follows:") 
     if task == "image_classification": 
       if detailed: 
-        print(outputs) 
+        print(outputs)
       else: 
-          print(np.argmax(outputs, axis=1)) 
+        print(np.argmax(outputs, axis=1))
+        
+        #Retrieves feature attribute and prints predictions based on output indices
+        model_features = mlms.agent.model.features 
+        indices = np.argmax(outputs, axis=1)
+        output_lines =  [model_features[index] for index in indices if index < len(model_features)]
+
+        print("\nYour images are identified to be the following:")
+        for line in output_lines:
+          print(line)
+        
+          
     elif task == "image_object_detection": 
       print("image_object_detection") 
       print(len(outputs)) 
@@ -113,7 +125,7 @@ def main():
       print(len(outputs)) 
       print(len(outputs[0])) # probs, labels, boxes, masks 
     else: 
-      print(outputs) 
+      print(outputs)
 
     mlms.Close() 
   
