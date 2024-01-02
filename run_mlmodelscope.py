@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 def main(): 
   parser = argparse.ArgumentParser(description="mlmodelscope") 
   parser.add_argument("--standalone", type=str, nargs='?', default="true", choices=["false", "true"], help="Whether standalone(not connect with frontend)") 
-  parser.add_argument("--agent", type=str, nargs='?', default="pytorch", choices=["pytorch", "tensorflow", "onnxruntime", "mxnet"], help="Which framework to use") 
+  parser.add_argument("--agent", type=str, nargs='?', default="pytorch", choices=["pytorch", "tensorflow", "onnxruntime", "mxnet", "jax"], help="Which framework to use") 
 
   if parser.parse_known_args()[0].standalone == 'true': 
     parser.add_argument("--task", type=str, nargs='?', default="image_classification", help="The name of the task to predict.") 

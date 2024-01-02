@@ -6,6 +6,7 @@ mlmodelscope/pytorch_agent/tmp/
 mlmodelscope/tensorflow_agent/tmp/
 mlmodelscope/onnxruntime_agent/tmp/
 mlmodelscope/mxnet_agent/tmp/
+mlmodelscope/jax_agent/tmp/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

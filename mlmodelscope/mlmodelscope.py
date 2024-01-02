@@ -93,6 +93,9 @@ class MLModelScope:
     elif agent == 'mxnet': 
       from mlmodelscope.mxnet_agent import MXNet_Agent 
       self.agent = MXNet_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
+    elif agent == 'jax':
+      from mlmodelscope.jax_agent import JAX_Agent 
+      self.agent = JAX_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
     else: 
       raise NotImplementedError(f"{agent} agent is not supported") 
     
