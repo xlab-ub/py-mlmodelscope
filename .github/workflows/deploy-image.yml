@@ -22,8 +22,8 @@ jobs:
           include:
             - dockerfile: ./dockerfiles/pytorch/Dockerfile
               image: ghcr.io/xlab-ub/pytorch-agent
-            - dockerfile: ./dockerfiles/tensprflow/Dockerfile
-              image: ghcr.io/xlab-ub/image2
+            - dockerfile: ./dockerfiles/tensorflow/Dockerfile
+              image: ghcr.io/xlab-ub/tensorflow
     permissions:
       contents: read
       packages: write
@@ -49,7 +49,7 @@ jobs:
       # It uses the `tags` and `labels` parameters to tag and label the image with the output from the "meta" step.
       
      
-      - name : Build and push tensorflow Docker image
+      - name : Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
