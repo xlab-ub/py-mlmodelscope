@@ -47,7 +47,7 @@ jobs:
           file: ./dockerfiles/pytorch/Dockerfile
           push: true
           platforms: linux/amd64
-          tags: pytorch-agent@latest
+          tags: pytorch_agent_latest
           labels: ${{ steps.meta.outputs.labels }}
       - name : Build and push tensorflow Docker image
         uses: docker/build-push-action@v5
@@ -56,5 +56,5 @@ jobs:
           file: ./dockerfiles/tensorflow/Dockerfile
           push: true
           platforms: linux/amd64
-          tags: tensorflow-agent@latest
+          tags: tensorflow_agent_latest
           labels: ${{ steps.meta.outputs.labels }}
