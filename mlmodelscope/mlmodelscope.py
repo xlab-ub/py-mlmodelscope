@@ -30,7 +30,7 @@ class MLModelScope:
     # https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html 
     tracer_port =os.environ['tracer_PORT'] 
     tracer_host = os.environ['tracer_HOST']
-    span_processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=tracer_host+':'+tracer_port, insecure=True), max_queue_size=4096) 
+    span_processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=tracer_host+':'+tracer_port), max_queue_size=4096) 
     trace.get_tracer_provider().add_span_processor(span_processor) 
 
     self.tracer = trace.get_tracer(__name__) 

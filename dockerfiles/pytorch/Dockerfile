@@ -53,7 +53,7 @@ RUN pip install --upgrade pip
 RUN pip install torch==1.8.1+cu111 torchvision==0.9.1+cu111 torchaudio==0.8.1 -f https://download.pytorch.org/whl/torch_stable.html 
 
 ########## PY-MLMODELSCOPE INSTALLATION #################
-RUN pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc grpcio 
+RUN pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc grpcio  opentelemetry-exporter-otlp-proto-http httpio
 RUN pip install opencv-python-headless
 RUN pip install aenum requests
 RUN pip install psycopg "psycopg[binary]"
