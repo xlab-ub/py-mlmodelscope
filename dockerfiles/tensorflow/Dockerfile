@@ -66,4 +66,6 @@ RUN cd /
 RUN git clone https://github.com/xlab-ub/py-mlmodelscope.git 
 RUN cd ./py-mlmodelscope 
 WORKDIR /py-mlmodelscope 
+RUN git fetch --all
+RUN git checkout docker-testing
 ENTRYPOINT ["conda", "run", "--no-capture-output", "python", "run_mlmodelscope.py", "--standalone", "false", "--agent", "tensorflow", "--env_file", "true"] 

@@ -59,7 +59,9 @@ RUN pip install aenum requests
 RUN pip install psycopg "psycopg[binary]"
 RUN pip install Pika 
 RUN cd /
-RUN git clone https://github.com/xlab-ub/py-mlmodelscope.git 
+RUN git clone https://github.com/xlab-ub/py-mlmodelscope.git
 RUN cd ./py-mlmodelscope 
 WORKDIR /py-mlmodelscope 
+RUN git fetch --all
+RUN git checkout docker-testing
 ENTRYPOINT ["conda", "run", "--no-capture-output", "python", "run_mlmodelscope.py", "--standalone", "false", "--agent", "pytorch", "--env_file", "true"] 

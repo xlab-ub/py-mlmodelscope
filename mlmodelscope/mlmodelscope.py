@@ -9,7 +9,7 @@ from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapProp
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource 
 from opentelemetry.sdk.trace import TracerProvider 
 from opentelemetry.sdk.trace.export import BatchSpanProcessor 
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter 
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter 
 
 from .dataloader import DataLoader 
 
