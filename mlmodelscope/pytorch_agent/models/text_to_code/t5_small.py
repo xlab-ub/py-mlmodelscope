@@ -11,11 +11,14 @@ class PyTorch_Transformers_T5_Small(PyTorchAbstractClass):
     if not os.path.isdir(temp_path): 
       os.mkdir(temp_path) 
 
-    model_file_name = "TextToCode/t5-small/"
-    model_path = os.path.join(temp_path, model_file_name) 
+    # model_file_name = "TextToCode/t5-small/"
+    # model_path = os.path.join(temp_path, model_file_name) 
     
-    self.tokenizer = T5Tokenizer.from_pretrained(model_path + 'tokenizer/best-f1')
-    self.model = T5ForConditionalGeneration.from_pretrained(model_path + 'model/best-f1')  
+    # self.tokenizer = T5Tokenizer.from_pretrained(model_path + 'tokenizer/best-f1')
+    # self.model = T5ForConditionalGeneration.from_pretrained(model_path + 'model/best-f1')  
+    self.tokenizer = T5Tokenizer.from_pretrained("t5-small")
+    self.model = T5ForConditionalGeneration.from_pretrained("t5-small") 
+    self.model.eval()
   
   def preprocess(self, input_texts):
     task_prefix = "question: How to write code for it? context: " 
