@@ -1,18 +1,14 @@
 from ..pytorch_abc import PyTorchAbstractClass 
 
 import os 
-import pathlib 
 
 from transformers import T5Tokenizer, T5ForConditionalGeneration 
 
 class PyTorch_Transformers_T5_Small(PyTorchAbstractClass):
   def __init__(self):
-    temp_path = os.path.join(pathlib.Path(__file__).resolve().parent.parent.parent, 'tmp') 
-    if not os.path.isdir(temp_path): 
-      os.mkdir(temp_path) 
-
-    model_file_name = "TextToCode/t5-small/"
-    model_path = os.path.join(temp_path, model_file_name) 
+    zip_file_url = "https://s3.amazonaws.com/store.carml.org/models/pytorch/t5-small.zip" 
+    model_path_dir = self.zip_file_download(zip_file_url)
+    model_path = os.path.join(model_path_dir, 't5-small/')
     
     self.tokenizer = T5Tokenizer.from_pretrained(model_path + 'tokenizer/best-f1')
     self.model = T5ForConditionalGeneration.from_pretrained(model_path + 'model/best-f1')  
