@@ -1,7 +1,7 @@
 import os
 import pathlib 
 
-class Test_Translation_Text:
+class Test_Text:
   def __init__(self): 
     self.root = os.path.join(pathlib.Path(__file__).parent.resolve(), 'tmp/test_data') 
     filename = os.path.join(self.root, 'test_text.txt') 
@@ -17,4 +17,4 @@ class Test_Translation_Text:
     return self.data[idx] 
 
 def init():
-  return Test_Translation_Text()
+  return Test_Text()
