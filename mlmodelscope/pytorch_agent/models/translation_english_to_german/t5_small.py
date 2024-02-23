@@ -7,7 +7,6 @@ class PyTorch_Transformers_T5_Small(PyTorchAbstractClass):
     # https://huggingface.co/docs/transformers/model_doc/t5 
     self.tokenizer = T5Tokenizer.from_pretrained("t5-small") 
     self.model = T5ForConditionalGeneration.from_pretrained("t5-small") 
-    self.model.eval()
   
   def preprocess(self, input_texts):
     task_prefix = "translate English to German: " 
@@ -18,6 +17,3 @@ class PyTorch_Transformers_T5_Small(PyTorchAbstractClass):
 
   def postprocess(self, model_output):
     return self.tokenizer.batch_decode(model_output, skip_special_tokens=True)
-    
-def init():
-  return PyTorch_Transformers_T5_Small()
