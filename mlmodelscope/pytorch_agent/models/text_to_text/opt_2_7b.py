@@ -2,7 +2,7 @@ from ..pytorch_abc import PyTorchAbstractClass
 
 from transformers import AutoTokenizer, AutoModelForCausalLM 
 
-class PyTorch_Transformers_Gemma_2B(PyTorchAbstractClass):
+class PyTorch_Transformers_OPT_2_7B(PyTorchAbstractClass):
   def __init__(self):
     self.tokenizer = AutoTokenizer.from_pretrained("facebook/opt-2.7b") 
     self.model = AutoModelForCausalLM.from_pretrained("facebook/opt-2.7b") 

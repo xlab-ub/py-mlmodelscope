@@ -2,7 +2,7 @@ from ..pytorch_abc import PyTorchAbstractClass
 
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
-class PyTorch_Transformers_GPT_2(PyTorchAbstractClass):
+class PyTorch_Transformers_DistilGPT2(PyTorchAbstractClass):
   def __init__(self):
     self.tokenizer = GPT2Tokenizer.from_pretrained('distilgpt2')
     self.model = GPT2LMHeadModel.from_pretrained('distilgpt2')
