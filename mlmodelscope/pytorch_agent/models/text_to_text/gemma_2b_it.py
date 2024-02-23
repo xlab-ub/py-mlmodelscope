@@ -12,7 +12,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 class PyTorch_Transformers_Gemma_2B_IT(PyTorchAbstractClass):
   def __init__(self):
     self.tokenizer = AutoTokenizer.from_pretrained("google/gemma-2b-it") 
-    self.model = AutoModelForCausalLM.from_pretrained("google/gemma-2b-it", device_map="auto") 
+    self.model = AutoModelForCausalLM.from_pretrained("google/gemma-2b-it") 
   
   def preprocess(self, input_texts):
     return self.tokenizer(input_texts, return_tensors="pt", padding=True).input_ids 
