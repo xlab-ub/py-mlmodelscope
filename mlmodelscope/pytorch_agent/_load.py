@@ -49,7 +49,7 @@ def perform_syntax_and_security_check(file_name):
     except SyntaxError as e:
       raise Exception(f"Syntax Error in the file: {e}")
 
-def create_instance_from_model_manifest_file(task, model_name, security_check=True):
+def create_instance_from_model_manifest_file(task, model_name, security_check=True, config=None):
   '''
   Create an instance of a class from a file.
   '''
@@ -81,15 +81,18 @@ def create_instance_from_model_manifest_file(task, model_name, security_check=Tr
       break
 
   if target_class:
-    instance = target_class()  # Create an instance of the found class
+    if config:
+      instance = target_class(config)
+    else:
+      instance = target_class()  # Create an instance of the found class
     return instance
   else:
     raise ModuleNotFoundError("No subclass of PyTorchAbstractClass was found in the module.") 
 
-def _load(task, model_name, security_check=True):
+def _load(task, model_name, security_check=True, config=None):
   try: 
     exec(f'from .models.{task}.' + model_name + ' import init', globals())
     return init()
   except ImportError as e:
     if e.msg.split()[3] == "'init'": 
-      return create_instance_from_model_manifest_file(task, model_name, security_check) # Create an instance of the model class 
+      return create_instance_from_model_manifest_file(task, model_name, security_check, config) # Create an instance of the model class 

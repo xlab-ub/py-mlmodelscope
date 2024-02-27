@@ -2,6 +2,7 @@ import subprocess
 
 import logging 
 import argparse 
+import json 
 
 import numpy as np 
 
@@ -17,6 +18,8 @@ def main():
   if parser.parse_known_args()[0].standalone == 'true': 
     parser.add_argument("--task", type=str, nargs='?', default="image_classification", help="The name of the task to predict.") 
     parser.add_argument("--model_name", type=str, nargs='?', default="torchvision_alexnet", help="The name of the model") 
+    parser.add_argument("--config_file", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to use config file (.json)") 
+    parser.add_argument("--config_file_path", type=str, nargs='?', default="config.json", help="The path of the config file") 
     parser.add_argument("--architecture", type=str, nargs='?', default="gpu", choices=["cpu", "gpu"], help="Which Processing Unit to use") 
     parser.add_argument("--num_warmup", type=int, nargs='?', default=2, help="Total number of warmup steps for predict.") 
     parser.add_argument("--dataset_name", type=str, nargs='?', default="test_data", help="The name of the dataset for predict.") 
@@ -62,6 +65,15 @@ def main():
         print("GPU device will not be used because \"cpu\" is chosen for architecture.\nTherefore, gpu_trace option becomes off.") 
 
     model_name    = args.model_name 
+    config = None 
+    if args.config_file == "true":
+      config_file_path = args.config_file_path 
+      try: 
+        with open(config_file_path, 'r') as f:
+          config = json.load(f)
+          print(f"config file {config_file_path} is loaded")
+      except (json.JSONDecodeError, FileNotFoundError) as e:
+        print(f"config file {config_file_path} is not loaded: {e}") 
     num_warmup    = args.num_warmup 
     dataset_name  = args.dataset_name 
     batch_size    = args.batch_size 
@@ -70,7 +82,7 @@ def main():
 
     mlms = MLModelScope(architecture, gpu_trace) 
     
-    mlms.load_agent(task, agent, model_name, security_check) 
+    mlms.load_agent(task, agent, model_name, security_check, config) 
     print(f"{agent}-agent is loaded with {model_name} model\n") 
     mlms.load_dataset(dataset_name, batch_size) 
     print(f"{dataset_name} dataset is loaded\n") 
@@ -124,7 +136,7 @@ def main():
     import time 
     from datetime import datetime, timezone 
     from uuid import uuid4 
-    import json 
+    # import json 
     
     import psycopg 
     import pika 

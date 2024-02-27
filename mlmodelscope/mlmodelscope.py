@@ -75,15 +75,10 @@ class MLModelScope:
 
     return 
 
-  def load_agent(self, task, agent, model_name, security_check=True): 
-    # if task == "image_classification": 
-    #   pass 
-    # else: 
-    #   raise NotImplementedError(f"{task} task is not supported")  
-
+  def load_agent(self, task, agent, model_name, security_check=True, config=None): 
     if agent == 'pytorch': 
       from mlmodelscope.pytorch_agent import PyTorch_Agent 
-      self.agent = PyTorch_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
+      self.agent = PyTorch_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check, config) 
     elif agent == 'tensorflow': 
       from mlmodelscope.tensorflow_agent import TensorFlow_Agent 
       self.agent = TensorFlow_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 

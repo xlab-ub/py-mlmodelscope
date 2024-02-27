@@ -18,7 +18,7 @@ from ._load import _load
 logger = logging.getLogger(__name__) 
 
 class PyTorch_Agent: 
-  def __init__(self, task, model_name, architecture, tracer, prop, carrier, security_check=True): 
+  def __init__(self, task, model_name, architecture, tracer, prop, carrier, security_check=True, config=None): 
     self.tracer = tracer 
     self.prop = prop 
     self.carrier = carrier 
@@ -30,10 +30,10 @@ class PyTorch_Agent:
 
     self.device = 'cuda' if ((architecture == "gpu") and torch.cuda.is_available()) else 'cpu' 
 
-    self.load_model(task, model_name, security_check) 
+    self.load_model(task, model_name, security_check, config) 
     return 
   
-  def load_model(self, task, model_name, security_check=True): 
+  def load_model(self, task, model_name, security_check=True, config=None): 
     if task == "image_classification": 
       pass 
     elif task == "image_object_detection": 
@@ -68,7 +68,7 @@ class PyTorch_Agent:
 
     with self.tracer.start_as_current_span(self.model_name + ' model load', context=self.ctx) as model_load_span: 
       self.prop.inject(carrier=self.carrier, context=set_span_in_context(model_load_span)) 
-      self.model = _load(task=task, model_name=self.model_name, security_check=security_check) 
+      self.model = _load(task=task, model_name=self.model_name, security_check=security_check, config=config) 
       if hasattr(self.model, 'model'):
         self.model.model.eval()
         self.model.model = self.model.model.to(self.device) 
