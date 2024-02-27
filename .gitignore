@@ -1,7 +1,8 @@
-# VS Code 
+# VS Code
 .vscode/
 
-# Temp directory to download model 
+# Temp directory to download model
+/tmp
 mlmodelscope/pytorch_agent/tmp/
 mlmodelscope/tensorflow_agent/tmp/
 mlmodelscope/onnxruntime_agent/tmp/
@@ -15,7 +16,7 @@ __pycache__/
 
 # C extensions
 *.so
-*.dll 
+*.dll
 
 # Distribution / packaging
 .Python
@@ -170,5 +171,5 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# OS files 
-.DS_Store 
+# OS files
+.DS_Store
