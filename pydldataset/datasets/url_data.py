@@ -1,12 +1,11 @@
+from ..dataset_abc import DatasetAbstractClass 
+
 import os
-import pathlib 
 import requests 
 
-class Url_Data:
+class Url_Data(DatasetAbstractClass):
   def __init__(self, url_list): 
-    self.root = os.path.join(pathlib.Path(__file__).parent.resolve(), 'tmp/url_data') 
-    if not os.path.isdir(self.root): 
-      os.mkdir(self.root) 
+    self.root = self.get_directory('url_data') 
     self.url_list = url_list 
     self.idx = 0
   
@@ -34,6 +33,3 @@ class Url_Data:
       print("Error reading the image data:", e)
     
     return None 
-
-def init(url_list):
-  return Url_Data(url_list)

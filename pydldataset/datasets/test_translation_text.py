@@ -1,12 +1,12 @@
-import os
-import pathlib 
+from ..dataset_abc import DatasetAbstractClass 
 
-class Test_Translation_Text:
+import os 
+
+class Test_Translation_Text(DatasetAbstractClass):
   def __init__(self): 
-    self.root = os.path.join(pathlib.Path(__file__).parent.resolve(), 'tmp/test_data') 
+    self.root = self.get_directory('test_data') 
     filename = os.path.join(self.root, 'test_translation_text.txt') 
     with open(filename, 'r') as f: 
-      # https://stackoverflow.com/questions/39921087/a-openfile-r-a-readline-output-without-n
       self.data = f.read().splitlines() 
     self.idx = 0 
   
@@ -15,6 +15,3 @@ class Test_Translation_Text:
   
   def __getitem__(self, idx):
     return self.data[idx] 
-
-def init():
-  return Test_Translation_Text()
