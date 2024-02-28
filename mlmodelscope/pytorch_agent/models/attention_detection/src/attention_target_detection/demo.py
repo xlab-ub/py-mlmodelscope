@@ -7,6 +7,7 @@ from torchvision import datasets, transforms
 import pandas as pd
 import numpy as np
 import dlib
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from PIL import Image
@@ -121,8 +122,11 @@ def cleanUp():
 
 
 
-def run(df):
-    vis_mode = "heatmap"
+def run():
+    matplotlib.use("tkagg")
+    vis_mode = "arrow"
+
+    df = pd.read_csv("data/csv/head.csv")
 
 
     # set up data transformation
@@ -130,7 +134,7 @@ def run(df):
 
     model = ModelSpatial()
     model_dict = model.state_dict()
-    pretrained_dict = torch.load("mlmodelscope/pytorch_agent/models/attention_detection/src/attention_target_detection/model_demo.pt")
+    pretrained_dict = torch.load("model_demo.pt")
     pretrained_dict = pretrained_dict['model']
     model_dict.update(pretrained_dict)
     model.load_state_dict(model_dict)
@@ -138,9 +142,16 @@ def run(df):
     model.cuda()
     model.train(False)
 
+    #Video out
+    video_name = 'output_video.avi'
+    frame_width, frame_height = 1280, 720  # You might want to set this programmatically
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    fps = 20.0  # Or whatever FPS you want
+    out = cv2.VideoWriter(video_name, fourcc, fps, (frame_width, frame_height))
+
     with torch.no_grad():
         for i in df.index:
-            frame_raw = Image.open(os.path.join("data/frames", i))
+            frame_raw = Image.open(os.path.join("data/frames/frame" + str(i) + ".jpg"))
             frame_raw = frame_raw.convert('RGB')
             width, height = frame_raw.size
 
@@ -191,6 +202,27 @@ def run(df):
 
             plt.show(block=False)
             plt.pause(0.2)
+
+             # Convert the plot to an image
+            plt.gca().set_axis_off()
+            plt.subplots_adjust(top=1, bottom=0, right=1, left=0, 
+                                hspace=0, wspace=0)
+            plt.margins(0,0)
+            plt.gca().xaxis.set_major_locator(plt.NullLocator())
+            plt.gca().yaxis.set_major_locator(plt.NullLocator())
+            fig = plt.gcf()
+            fig.canvas.draw()  # Draw the figure
+            img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+            img = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+            
+            # Convert RGB to BGR
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+            # Ensure the image is resized to match the video's frame size
+            img = cv2.resize(img, (frame_width, frame_height))
+
+            # Write the frame
+            out.write(img)
 
         print('DONE!')
 

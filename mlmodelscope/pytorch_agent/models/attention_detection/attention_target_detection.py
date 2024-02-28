@@ -15,20 +15,19 @@ class Attention_Target_Detection(PyTorchAbstractClass):
         if config is not None:
            print("tbd")
 
-        return None
+        return 0
        
     def preprocess(self, input_data):
-        framepaths = makeFrames()
-        df = makeCSV(framepaths)
-        return df
+        framecount = makeFrames()
+        makeCSV()
+        return 0
         
 
     def predict(self, input_data):
-        run(input_data)
-        return None
+        run()
+        return 0
     
     def postprocess(self, model_output):
         cleanUp()
-
         return [0]
 
