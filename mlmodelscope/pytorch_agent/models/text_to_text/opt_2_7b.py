@@ -5,7 +5,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 class PyTorch_Transformers_OPT_2_7B(PyTorchAbstractClass):
   def __init__(self, config=None):
     self.config = config if config else {}
-    self.tokenizer = AutoTokenizer.from_pretrained("facebook/opt-2.7b") 
+    self.tokenizer = AutoTokenizer.from_pretrained("facebook/opt-2.7b", padding_side='left') 
     self.model = AutoModelForCausalLM.from_pretrained("facebook/opt-2.7b") 
 
     self.max_new_tokens = self.config['max_new_tokens'] if 'max_new_tokens' in self.config else 32 
