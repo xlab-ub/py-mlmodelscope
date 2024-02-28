@@ -87,7 +87,7 @@ def main():
     mlms.load_dataset(dataset_name, batch_size) 
     print(f"{dataset_name} dataset is loaded\n") 
     print(f"prediction starts") 
-    outputs = mlms.predict(num_warmup, detailed) 
+    outputs = mlms.predict(num_warmup) 
     print("prediction is done\n") 
 
     print("outputs are as follows:") 
@@ -140,8 +140,6 @@ def main():
     
     import psycopg 
     import pika 
-
-    detailed = True 
 
     if args.env_file == 'false': 
       db_name = args.db_dbname 
@@ -206,18 +204,21 @@ def main():
       dataset_name  = received_message['InputFiles'] 
       batch_size    = received_message['BatchSize'] 
 
+      config = received_message['Configuration'] if 'Configuration' in received_message else None 
+      security_check = received_message['SecurityCheck'] if 'SecurityCheck' in received_message else False 
+
       # measure duration 
       duration_start_time = time.time()
       mlms = MLModelScope(architecture, gpu_trace) 
     
-      mlms.load_agent(task, agent, model_name) 
+      mlms.load_agent(task, agent, model_name, security_check, config) 
       print(f"{agent}-agent is loaded with {model_name} model\n") 
       mlms.load_dataset(dataset_name, batch_size, task) 
       print(f"{dataset_name} dataset is loaded\n") 
       print(f"prediction starts") 
       # measure duration_for_inference 
       duration_for_inference_start_time = time.time()
-      outputs = mlms.predict(num_warmup, detailed) 
+      outputs = mlms.predict(num_warmup, True) 
       duration_for_inference_end_time = time.time()
       duration_for_inference = (duration_for_inference_end_time - duration_for_inference_start_time) 
       print(f"prediction done") 

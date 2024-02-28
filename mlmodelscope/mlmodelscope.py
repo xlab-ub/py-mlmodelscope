@@ -12,6 +12,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter 
 
 from .dataloader import DataLoader 
+from .outputprocessor import OutputProcessor 
 
 # https://stackoverflow.com/questions/714063/importing-modules-from-parent-folder 
 sys.path.insert(1, os.path.join(sys.path[0], '..')) 
@@ -48,6 +49,8 @@ class MLModelScope:
       sys.path.pop(1) 
       self.c = CUPTI(tracer=self.tracer, prop=self.prop, carrier=self.carrier) 
       print("CUPTI version", self.c.cuptiGetVersion()) 
+
+    self.output_processor = OutputProcessor() 
 
     return 
 
@@ -96,8 +99,8 @@ class MLModelScope:
     
     return 
   
-  def predict(self, num_warmup, detailed=False): 
-    outputs = self.agent.predict(num_warmup, self.dataloader, detailed) 
+  def predict(self, num_warmup, serialized=False): 
+    outputs = self.agent.predict(num_warmup, self.dataloader, self.output_processor, serialized) 
     self.agent.Close() 
 
     if self.architecture == "gpu" and self.gpu_trace: 
