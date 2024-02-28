@@ -54,7 +54,7 @@ class MLModelScope:
 
     return 
 
-  def load_dataset(self, dataset_name, batch_size, task=None): 
+  def load_dataset(self, dataset_name, batch_size, task=None, security_check=True): 
     url = False 
     if isinstance(dataset_name, list): 
       if dataset_name[0].startswith('http'): 
@@ -72,7 +72,7 @@ class MLModelScope:
     name = 'url' if url else (dataset_name if task is None else task)
     with self.tracer.start_as_current_span(name + ' dataset load', context=self.ctx) as dataset_load_span: 
       self.prop.inject(carrier=self.carrier, context=set_span_in_context(dataset_load_span)) 
-      self.dataset = pydldataset.load(dataset_name, url, task=task) 
+      self.dataset = pydldataset.load(dataset_name, url, task=task, security_check=security_check) 
       self.batch_size = batch_size 
       self.dataloader = DataLoader(self.dataset, self.batch_size) 
 

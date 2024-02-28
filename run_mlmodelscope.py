@@ -84,7 +84,7 @@ def main():
     
     mlms.load_agent(task, agent, model_name, security_check, config) 
     print(f"{agent}-agent is loaded with {model_name} model\n") 
-    mlms.load_dataset(dataset_name, batch_size) 
+    mlms.load_dataset(dataset_name, batch_size, None, security_check) 
     print(f"{dataset_name} dataset is loaded\n") 
     print(f"prediction starts") 
     outputs = mlms.predict(num_warmup) 
@@ -213,7 +213,7 @@ def main():
     
       mlms.load_agent(task, agent, model_name, security_check, config) 
       print(f"{agent}-agent is loaded with {model_name} model\n") 
-      mlms.load_dataset(dataset_name, batch_size, task) 
+      mlms.load_dataset(dataset_name, batch_size, task, security_check) 
       print(f"{dataset_name} dataset is loaded\n") 
       print(f"prediction starts") 
       # measure duration_for_inference 
