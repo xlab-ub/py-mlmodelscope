@@ -63,9 +63,8 @@ class PyTorch_Agent:
     with self.tracer.start_as_current_span(self.model_name + ' model load', context=self.ctx) as model_load_span: 
       self.prop.inject(carrier=self.carrier, context=set_span_in_context(model_load_span)) 
       self.model = _load(task=task, model_name=self.model_name, security_check=security_check, config=config) 
-      if hasattr(self.model, 'model'):
-        self.model.model.eval()
-        self.model.model = self.model.model.to(self.device) 
+      self.model.to(self.device)
+      self.model.eval()
 
     if hasattr(self.model, 'model') and (not hasattr(self.model.model, "isScriptModule")): 
       all_spans = {} 

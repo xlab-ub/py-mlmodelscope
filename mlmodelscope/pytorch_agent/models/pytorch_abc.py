@@ -44,6 +44,21 @@ class PyTorchAbstractClass(ABC):
         '''
         pass
 
+    def to(self, device): 
+        '''
+        Move the model to the given device
+
+        Args:
+            device (str): The device
+        '''
+        self.model = self.model.to(device)
+
+    def eval(self):
+        '''
+        Set the model to evaluation mode
+        '''
+        self.model.eval()
+
     def file_download(self, file_url: str, file_path: str) -> None: 
         '''
         Download the file from the given url and save it
