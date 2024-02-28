@@ -3,7 +3,7 @@ from ..pytorch_abc import PyTorchAbstractClass
 from transformers import VisionEncoderDecoderModel, ViTImageProcessor, AutoTokenizer
 from PIL import Image 
 
-class PyTorch_Transformers_CodeGen_350M_Mono(PyTorchAbstractClass):
+class PyTorch_Transformers_ViT_GPT2_Image_Captioning(PyTorchAbstractClass):
   def __init__(self, config=None):
     self.config = config if config else {} 
     self.model = VisionEncoderDecoderModel.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
