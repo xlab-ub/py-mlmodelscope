@@ -52,6 +52,8 @@ class PyTorch_Agent:
       pass
     elif task == "talking_head_generation":
       pass
+    elif task == "eye_contact_detection":
+      pass
     elif task == "text_to_text":
       pass 
     else: 
