@@ -6,11 +6,11 @@ import torch
 from time import  strftime
 import os, sys, time
 sys.path.append(os.path.dirname(__file__))
-from src.demo import run
+from src.eye_contact_cnn.demo import run
 sys.path.pop()
 
 class Eye_Contact_CNN(PyTorchAbstractClass):
-    model_weight = 'data/model_weights.pkl'
+    model_weight = 'eye_contact_cnn/data/model_weights.pkl'
     face = None
     video = None
     jitter = 0
