@@ -52,6 +52,8 @@ class PyTorch_Agent:
       pass 
     elif task == "audio_to_text":
       pass 
+    elif task == "visual_question_answering":
+      pass 
     else: 
       raise NotImplementedError(f"{task} task is not supported")  
 
