@@ -108,7 +108,7 @@ def main():
       for output in outputs: 
         # print(f"{len(output[0])} {len(output[1])} {len(output[2])}")
         print(f"{len(output[0][0])} {len(output[1][0])} {len(output[2][0])}") 
-    elif task == "image_semantic_segmentation": 
+    elif task in ["image_semantic_segmentation", "depth_estimation"]: 
       for index, output in enumerate(outputs): 
         print(f"outputs[{index}] width: {len(output)}, height: {len(output[0])}") 
     elif task == "image_enhancement": 
