@@ -126,8 +126,12 @@ def main():
     elif task == "image_instance_segmentation_raw": 
       print(len(outputs)) 
       print(len(outputs[0])) # probs, labels, boxes, masks 
+    elif task in ["text_to_speech", "text_to_audio"]: 
+      for index, output in enumerate(outputs): 
+        print(f"outputs[{index}] length: {len(output)}") 
     else: 
-      print(outputs) 
+      for index, output in enumerate(outputs): 
+        print(f"outputs[{index}]: {output}") 
 
     mlms.Close() 
   
