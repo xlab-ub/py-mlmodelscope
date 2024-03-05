@@ -12,6 +12,7 @@ except Exception as e:
 
 class Attention_Target_Detection(PyTorchAbstractClass): 
 
+    # Default 
     maxFrames = 10
     outThreshold = 100
     visMode = "arrow"

@@ -1,15 +1,14 @@
-import argparse, os, sys
+import argparse, os, sys, dlib
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torchvision
-from torchvision import datasets, transforms
+from torchvision import transforms
 import pandas as pd
 import numpy as np
-import dlib
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+
 from PIL import Image
 import cv2
 from glob import glob
@@ -30,8 +29,8 @@ from config import *
 
 
 CURRENT_DIR = os.path.dirname(__file__)
-cnn_model_path = os.path.join(CURRENT_DIR, 'mmod_human_face_detector.dat')
-CNN_MODEL_PATH = cnn_model_path
+CNN_MODEL_PATH = os.path.join(CURRENT_DIR, 'mmod_human_face_detector.dat')
+
 
 
 def _get_transform():
@@ -40,7 +39,6 @@ def _get_transform():
     transform_list.append(transforms.ToTensor())
     transform_list.append(transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]))
     return transforms.Compose(transform_list)
-
 
 def move_figure(f, x, y): #https://matplotlib.org/stable/users/explain/figure/backends.html
     """Move figure's upper left corner to pixel (x, y)"""
