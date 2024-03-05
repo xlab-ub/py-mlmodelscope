@@ -1,4 +1,4 @@
-import argparse, os
+import argparse, os, sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -13,6 +13,8 @@ import matplotlib.patches as patches
 from PIL import Image
 import cv2
 from glob import glob
+
+sys.path.append(os.path.dirname(__file__))
 from model import ModelSpatial
 from utils import imutils, evaluation
 from config import *
@@ -27,13 +29,17 @@ from config import *
 #args = parser.parse_args()
 
 
+CURRENT_DIR = os.path.dirname(__file__)
+cnn_model_path = os.path.join(CURRENT_DIR, 'mmod_human_face_detector.dat')
+CNN_MODEL_PATH = cnn_model_path
+
+
 def _get_transform():
     transform_list = []
     transform_list.append(transforms.Resize((input_resolution, input_resolution)))
     transform_list.append(transforms.ToTensor())
     transform_list.append(transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]))
     return transforms.Compose(transform_list)
-
 
 
 def move_figure(f, x, y): #https://matplotlib.org/stable/users/explain/figure/backends.html
@@ -46,20 +52,16 @@ def move_figure(f, x, y): #https://matplotlib.org/stable/users/explain/figure/ba
     else:
         f.canvas.manager.window.move(x, y)
 
-
-
-def makeFrames(maxFrames = 10, video_path="gordon_ramsay.avi", frames_dir="data/frames"):
+def makeFrames(maxFrames = 10, video_path="gordon_ramsay.avi"):
     cap = cv2.VideoCapture(video_path)
-    
-    # Ensure the frames directory exists
-    os.makedirs(frames_dir, exist_ok=True)
+   
 
     frame_count = 0
     success, image = cap.read()
 
     while success and frame_count < maxFrames:
         # Define frame path
-        frame_path = os.path.join(frames_dir, "frame%d.jpg" % frame_count)
+        frame_path = os.path.join(CURRENT_DIR, "data/frames", "frame%d.jpg" % frame_count)
         
         # Saves the frames with frame-count
         cv2.imwrite(frame_path, image)
@@ -71,9 +73,15 @@ def makeFrames(maxFrames = 10, video_path="gordon_ramsay.avi", frames_dir="data/
     return frame_count
 
 def makeCSV():
-    cnn_face_detector = dlib.cnn_face_detection_model_v1("mmod_human_face_detector.dat")
+    
+    cnn_face_detector = dlib.cnn_face_detection_model_v1(CNN_MODEL_PATH)
 
-    frames = glob("data/frames/*.jpg")
+    # Define CSV path
+    csv_path = os.path.join(CURRENT_DIR, "data/csv", "head.csv")
+
+    # Define where frames are stored
+    frames_path = os.path.join(CURRENT_DIR, "data/frames/*.jpg")
+    frames = glob(frames_path)
     frames.sort()
 
     # Prepare a list to hold all the bounding box data
@@ -104,29 +112,35 @@ def makeCSV():
             data.append([frame_id, l, t, r, b])
         count += 1
     df = pd.DataFrame(data, columns=['frame', 'left', 'top', 'right', 'bottom'])
-    df.to_csv("data/csv/head.csv", index=False)
+    df.to_csv(csv_path, index=False)
 
     return df
 
 def cleanUp():
+
+    # Define CSV path
+    csv_path = os.path.join(CURRENT_DIR, "data/csv", "head.csv")
+    # Define where frames are stored
+    frames_path = os.path.join(CURRENT_DIR, "data/frames/*.jpg")
+
     # Remove intermediate files
-    files = glob('data/frames/*.jpg')
+    files = glob(frames_path)
     for f in files:
         os.remove(f)
 
-    os.remove("data/csv/head.csv")
+    os.remove(csv_path)
 
     return None
 
-    
 
 
-
-def run():
+def run(out_threshold, vis_mode, video_path):
     matplotlib.use("tkagg")
-    vis_mode = "arrow"
 
-    df = pd.read_csv("data/csv/head.csv")
+
+    # Define CSV path
+    csv_path = os.path.join(CURRENT_DIR, "data/csv", "head.csv")
+    df = pd.read_csv(csv_path)
 
 
     # set up data transformation
@@ -134,7 +148,7 @@ def run():
 
     model = ModelSpatial()
     model_dict = model.state_dict()
-    pretrained_dict = torch.load("model_demo.pt")
+    pretrained_dict = torch.load(os.path.join(CURRENT_DIR, "model_demo.pt"))
     pretrained_dict = pretrained_dict['model']
     model_dict.update(pretrained_dict)
     model.load_state_dict(model_dict)
@@ -143,7 +157,14 @@ def run():
     model.train(False)
 
     #Video out
-    video_name = 'output_video.avi'
+    video_dir = os.path.dirname(video_path)
+    output_dir_name = "outputs"
+    outputs_path = os.path.join(video_dir, output_dir_name)
+    if not os.path.exists(outputs_path):
+        os.makedirs(outputs_path)
+    video_name = os.path.join(outputs_path, os.path.basename(video_path).replace('.avi', '_output.avi'))
+
+
     frame_width, frame_height = 1280, 720  # You might want to set this programmatically
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     fps = 20.0  # Or whatever FPS you want
@@ -151,7 +172,7 @@ def run():
 
     with torch.no_grad():
         for i in df.index:
-            frame_raw = Image.open(os.path.join("data/frames/frame" + str(i) + ".jpg"))
+            frame_raw = Image.open(os.path.join(CURRENT_DIR, "data/frames/frame" + str(i) + ".jpg"))
             frame_raw = frame_raw.convert('RGB')
             width, height = frame_raw.size
 
@@ -191,7 +212,7 @@ def run():
             ax.add_patch(rect)
 
             if vis_mode == 'arrow':
-                if inout < 100: # in-frame gaze
+                if inout < out_threshold: # in-frame gaze
                     pred_x, pred_y = evaluation.argmax_pts(raw_hm)
                     norm_p = [pred_x/output_resolution, pred_y/output_resolution]
                     circ = patches.Circle((norm_p[0]*width, norm_p[1]*height), height/50.0, facecolor=(0,1,0), edgecolor='none')
@@ -227,8 +248,6 @@ def run():
         print('DONE!')
 
 
-if __name__ == "__main__":
-    run()
 
 
 
