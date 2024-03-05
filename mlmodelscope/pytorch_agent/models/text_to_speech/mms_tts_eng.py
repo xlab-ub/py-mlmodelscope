@@ -17,7 +17,7 @@ class PyTorch_Transformers_MMS_TTS_ENG(PyTorchAbstractClass):
     return self.model(**model_input).waveform 
 
   def postprocess(self, model_output):
-    return model_output.float().cpu().numpy() 
+    return model_output.float().cpu().numpy().tolist() 
     # TODO: Add support for saving the output as a wav file 
     # Maybe it should be done in the OutputProcessor class 
     # for output in model_output: 

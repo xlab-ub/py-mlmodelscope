@@ -17,7 +17,7 @@ class PyTorch_Transformers_Bark(PyTorchAbstractClass):
     return self.model.generate(**model_input, do_sample=True) 
 
   def postprocess(self, model_output):
-    return model_output.cpu().numpy() 
+    return model_output.cpu().numpy().tolist() 
     # TODO: Add support for saving the output as a wav file 
     # Maybe it should be done in the OutputProcessor class 
     # for output in model_output: 
