@@ -1,4 +1,4 @@
-from ... import pytorch_abc 
+from ....pytorch_abc import PyTorchAbstractClass 
 
 from transformers import BlipProcessor, BlipForQuestionAnswering 
 from PIL import Image 

@@ -12,11 +12,10 @@ from ._load import _load
 logger = logging.getLogger(__name__) 
 
 class PyTorch_Agent: 
-  def __init__(self, task, model_name, architecture, tracer, prop, carrier, security_check=True, config=None): 
+  def __init__(self, task, model_name, architecture, tracer, prop, carrier, security_check=True, config=None, user='default'): 
     self.tracer = tracer 
     self.prop = prop 
     self.carrier = carrier 
-    self.user="default"
 
     self.span = self.tracer.start_span(name="pytorch-agent", context=self.prop.extract(carrier=self.carrier)) 
     self.ctx = set_span_in_context(self.span) 
@@ -25,56 +24,21 @@ class PyTorch_Agent:
 
     self.device = 'cuda' if ((architecture == "gpu") and torch.cuda.is_available()) else 'cpu' 
 
-    self.load_model(task, model_name, security_check, config) 
+    self.load_model(task, model_name, security_check, config, user) 
     return 
   
-  def load_model(self, task, model_name, security_check=True, config=None): 
-    if task == "image_classification": 
-      pass 
-    elif task == "image_object_detection": 
-      pass 
-    elif task == "image_semantic_segmentation": 
-      pass 
-    elif task == "image_enhancement": 
-      pass 
-    elif task == "translation_english_to_german": 
-      pass 
-    elif task == "question_answering": 
-      pass 
-    elif task == "summarization": 
-      pass 
-    elif task == "text_to_code":
-      pass
-    elif task == "talking_head_generation":
-      pass
-    elif task == "text_to_text":
-      pass 
-    elif task == "image_to_text": 
-      pass 
-    elif task == "audio_to_text":
-      pass 
-    elif task == "visual_question_answering":
-      pass 
-    elif task == "text_to_speech":
-      pass 
-    elif task == "text_to_audio": 
-      pass 
-    elif task == "depth_estimation":
-      pass
-    else: 
-      raise NotImplementedError(f"{task} task is not supported")  
-
+  def load_model(self, task, model_name, security_check=True, config=None, user='default'): 
     self.task = task 
 
-    if os.path.exists(f'{pathlib.Path(__file__).parent.resolve()}/models/{self.user}/{task}/{model_name}/model.py'):
+    if os.path.exists(f'{pathlib.Path(__file__).parent.resolve()}/models/{user}/{task}/{model_name}/model.py'):
       print(f"{model_name} model exists") 
     else: 
-      raise NotImplementedError(f"{model_name} model is not supported, the available models are as follows:\n{', '.join(model_list)}") 
+      raise NotImplementedError(f"'{model_name}' model is not implemented and cannot be found for the '{task}' task assigned to user '{user}'. Please ensure that the model exists or use a supported model.")
     self.model_name = model_name 
 
     with self.tracer.start_as_current_span(self.model_name + ' model load', context=self.ctx) as model_load_span: 
       self.prop.inject(carrier=self.carrier, context=set_span_in_context(model_load_span)) 
-      self.model = _load(task=task, model_name=self.model_name, security_check=security_check, config=config) 
+      self.model = _load(task=task, model_name=self.model_name, security_check=security_check, config=config, user=user) 
       self.model.to(self.device)
       self.model.eval()
 

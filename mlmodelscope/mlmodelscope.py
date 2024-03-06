@@ -78,22 +78,22 @@ class MLModelScope:
 
     return 
 
-  def load_agent(self, task, agent, model_name, security_check=True, config=None): 
+  def load_agent(self, task, agent, model_name, security_check=True, config=None, user='default'): 
     if agent == 'pytorch': 
       from mlmodelscope.pytorch_agent import PyTorch_Agent 
-      self.agent = PyTorch_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check, config) 
+      self.agent = PyTorch_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check, config, user) 
     elif agent == 'tensorflow': 
       from mlmodelscope.tensorflow_agent import TensorFlow_Agent 
-      self.agent = TensorFlow_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
+      self.agent = TensorFlow_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check, config, user) 
     elif agent == 'onnxruntime': 
       from mlmodelscope.onnxruntime_agent import ONNXRuntime_Agent 
-      self.agent = ONNXRuntime_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
+      self.agent = ONNXRuntime_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check, config, user) 
     elif agent == 'mxnet': 
       from mlmodelscope.mxnet_agent import MXNet_Agent 
-      self.agent = MXNet_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
+      self.agent = MXNet_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check, config, user) 
     elif agent == 'jax':
       from mlmodelscope.jax_agent import JAX_Agent 
-      self.agent = JAX_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
+      self.agent = JAX_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check, config, user) 
     else: 
       raise NotImplementedError(f"{agent} agent is not supported") 
     

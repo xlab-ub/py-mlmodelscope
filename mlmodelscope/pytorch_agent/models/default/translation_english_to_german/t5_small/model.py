@@ -1,4 +1,4 @@
-from ... import PyTorchAbstractClass 
+from ....pytorch_abc import PyTorchAbstractClass 
 
 from transformers import T5Tokenizer, T5ForConditionalGeneration 
 

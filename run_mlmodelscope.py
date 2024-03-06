@@ -7,7 +7,7 @@ import json
 import numpy as np 
 
 from mlmodelscope import MLModelScope 
-# from pydldataset import pydldataset
+
 logger = logging.getLogger(__name__) 
 
 def main(): 
@@ -16,6 +16,7 @@ def main():
   parser.add_argument("--agent", type=str, nargs='?', default="pytorch", choices=["pytorch", "tensorflow", "onnxruntime", "mxnet", "jax"], help="Which framework to use") 
 
   if parser.parse_known_args()[0].standalone == 'true': 
+    parser.add_argument("--user", type=str, nargs='?', default="default", help="The name of the user") 
     parser.add_argument("--task", type=str, nargs='?', default="image_classification", help="The name of the task to predict.") 
     parser.add_argument("--model_name", type=str, nargs='?', default="torchvision_alexnet", help="The name of the model") 
     parser.add_argument("--config_file", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to use config file (.json)") 
@@ -49,6 +50,7 @@ def main():
   agent = args.agent 
   
   if args.standalone == 'true': 
+    user          = args.user 
     task          = args.task 
     architecture  = args.architecture 
     gpu_trace     = True if args.gpu_trace == "true" else False 
@@ -82,7 +84,7 @@ def main():
 
     mlms = MLModelScope(architecture, gpu_trace) 
     
-    mlms.load_agent(task, agent, model_name, security_check, config) 
+    mlms.load_agent(task, agent, model_name, security_check, config, user) 
     print(f"{agent}-agent is loaded with {model_name} model\n") 
     mlms.load_dataset(dataset_name, batch_size, None, security_check) 
     print(f"{dataset_name} dataset is loaded\n") 
@@ -188,6 +190,7 @@ def main():
       
       received_message = json.loads(body.decode()) 
       
+      user          = received_message['User'] if 'User' in received_message else 'default' 
       task          = received_message['DesiredResultModality'] 
       architecture  = 'gpu' if received_message['UseGpu'] else 'cpu' 
       gpu_trace     = True if received_message['UseGpu'] != "NO_TRACE" else False 
@@ -215,7 +218,7 @@ def main():
       duration_start_time = time.time()
       mlms = MLModelScope(architecture, gpu_trace) 
     
-      mlms.load_agent(task, agent, model_name, security_check, config) 
+      mlms.load_agent(task, agent, model_name, security_check, config, user) 
       print(f"{agent}-agent is loaded with {model_name} model\n") 
       mlms.load_dataset(dataset_name, batch_size, task, security_check) 
       print(f"{dataset_name} dataset is loaded\n") 
