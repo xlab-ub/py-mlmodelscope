@@ -32,7 +32,6 @@ CURRENT_DIR = os.path.dirname(__file__)
 CNN_MODEL_PATH = os.path.join(CURRENT_DIR, 'mmod_human_face_detector.dat')
 
 
-
 def _get_transform():
     transform_list = []
     transform_list.append(transforms.Resize((input_resolution, input_resolution)))
@@ -87,7 +86,7 @@ def makeCSV():
 
     count = 0
     for frame_path in frames:
-        print("\nWorking on frame: " + str(count))
+        #print("\nWorking on frame: " + str(count))
         frame = cv2.imread(frame_path)
         frame_raw = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         
@@ -129,8 +128,6 @@ def cleanUp():
     os.remove(csv_path)
 
     return None
-
-
 
 def run(out_threshold, vis_mode, video_path):
     matplotlib.use("tkagg")
