@@ -16,6 +16,7 @@ class PyTorch_Agent:
     self.tracer = tracer 
     self.prop = prop 
     self.carrier = carrier 
+    self.user="default"
 
     self.span = self.tracer.start_span(name="pytorch-agent", context=self.prop.extract(carrier=self.carrier)) 
     self.ctx = set_span_in_context(self.span) 
@@ -65,8 +66,7 @@ class PyTorch_Agent:
 
     self.task = task 
 
-    model_list = [model[:-3] for model in os.listdir(f'{pathlib.Path(__file__).parent.resolve()}/models/{task}') if model[0] != '_'] 
-    if model_name in model_list: 
+    if os.path.exists(f'{pathlib.Path(__file__).parent.resolve()}/models/{self.user}/{task}/{model_name}/model.py'):
       print(f"{model_name} model exists") 
     else: 
       raise NotImplementedError(f"{model_name} model is not supported, the available models are as follows:\n{', '.join(model_list)}") 

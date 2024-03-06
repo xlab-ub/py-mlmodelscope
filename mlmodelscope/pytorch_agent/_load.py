@@ -54,7 +54,8 @@ def create_instance_from_model_manifest_file(task, model_name, security_check=Tr
   Create an instance of a class from a file.
   '''
   # parent_dir = pathlib.Path(__file__).resolve().parent.__str__()
-  file_name = os.path.join(pathlib.Path(__file__).resolve().parent, f'models/{task}/{model_name}.py') # Get the path of the model file
+  user="default"
+  file_name = os.path.join(pathlib.Path(__file__).resolve().parent, f'models/{user}/{task}/{model_name}/model.py') # Get the path of the model file
   if security_check and (not perform_syntax_and_security_check(file_name)):
     raise Exception("Security issue detected. Aborting.")
 
@@ -62,7 +63,7 @@ def create_instance_from_model_manifest_file(task, model_name, security_check=Tr
     code = compile(file.read(), file_name, 'exec')
     
     globals_dict = {
-      '__name__': '.'.join(__name__.split('.')[:-1]) + '.models' + '.' + task + '.', 
+      '__name__': '.'.join(__name__.split('.')[:-1]) + '.models.default.' + '.' + task + '.' + model_name, 
       '__file__': file_name, 
     }
 
@@ -91,7 +92,7 @@ def create_instance_from_model_manifest_file(task, model_name, security_check=Tr
 
 def _load(task, model_name, security_check=True, config=None):
   try: 
-    exec(f'from .models.{task}.' + model_name + ' import init', globals())
+    exec(f'from .models.default.{task}.{model_name}.model' + ' import init', globals())
     return init()
   except ImportError as e:
     if e.msg.split()[3] == "'init'": 
