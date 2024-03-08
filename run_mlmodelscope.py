@@ -128,7 +128,7 @@ def main():
     elif task == "image_instance_segmentation_raw": 
       print(len(outputs)) 
       print(len(outputs[0])) # probs, labels, boxes, masks 
-    elif task in ["text_to_speech", "text_to_audio"]: 
+    elif task in ["speech_synthesis", "audio_generation"]: 
       for index, output in enumerate(outputs): 
         print(f"outputs[{index}] length: {len(output)}") 
     else: 
