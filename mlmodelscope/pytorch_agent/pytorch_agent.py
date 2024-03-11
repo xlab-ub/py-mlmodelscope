@@ -42,7 +42,7 @@ class PyTorch_Agent:
       self.model.to(self.device)
       self.model.eval()
 
-    if hasattr(self.model, 'model') and (not hasattr(self.model.model, "isScriptModule")): 
+    if hasattr(self.model, 'model') and (not hasattr(self.model.model, "isScriptModule")) and hasattr(self.model.model, "named_modules"): 
       all_spans = {} 
       def pre_hook(layer_name): 
         def pre_hook(module, input): 

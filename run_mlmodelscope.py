@@ -113,7 +113,7 @@ def main():
     elif task in ["image_semantic_segmentation", "depth_estimation"]: 
       for index, output in enumerate(outputs): 
         print(f"outputs[{index}] width: {len(output)}, height: {len(output[0])}") 
-    elif task == "image_enhancement": 
+    elif task in ["image_enhancement", "image_synthesis"]: 
       for index, output in enumerate(outputs): 
         print(f"outputs[{index}] width: {len(output)}, height: {len(output[0])}, channel: {len(output[0][0])}") 
     elif task == "image_instance_segmentation": 
