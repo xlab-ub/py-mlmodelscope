@@ -93,7 +93,7 @@ def main():
     print("prediction is done\n") 
 
     print("outputs are as follows:") 
-    if task == "image_classification": 
+    if task in ["image_classification", "sentiment_analysis"]: 
       if detailed: 
         print(outputs) 
       else: 
