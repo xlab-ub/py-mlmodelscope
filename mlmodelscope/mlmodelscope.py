@@ -12,6 +12,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter 
 
 from .dataloader import DataLoader 
+from .outputprocessor import OutputProcessor 
 
 # https://stackoverflow.com/questions/714063/importing-modules-from-parent-folder 
 sys.path.insert(1, os.path.join(sys.path[0], '..')) 
@@ -49,9 +50,11 @@ class MLModelScope:
       self.c = CUPTI(tracer=self.tracer, prop=self.prop, carrier=self.carrier) 
       print("CUPTI version", self.c.cuptiGetVersion()) 
 
+    self.output_processor = OutputProcessor() 
+
     return 
 
-  def load_dataset(self, dataset_name, batch_size, task=None): 
+  def load_dataset(self, dataset_name, batch_size, task=None, security_check=True): 
     url = False 
     if isinstance(dataset_name, list): 
       if dataset_name[0].startswith('http'): 
@@ -69,40 +72,35 @@ class MLModelScope:
     name = 'url' if url else (dataset_name if task is None else task)
     with self.tracer.start_as_current_span(name + ' dataset load', context=self.ctx) as dataset_load_span: 
       self.prop.inject(carrier=self.carrier, context=set_span_in_context(dataset_load_span)) 
-      self.dataset = pydldataset.load(dataset_name, url, task=task) 
+      self.dataset = pydldataset.load(dataset_name, url, task=task, security_check=security_check) 
       self.batch_size = batch_size 
       self.dataloader = DataLoader(self.dataset, self.batch_size) 
 
     return 
 
-  def load_agent(self, task, agent, model_name, security_check=True): 
-    # if task == "image_classification": 
-    #   pass 
-    # else: 
-    #   raise NotImplementedError(f"{task} task is not supported")  
-
+  def load_agent(self, task, agent, model_name, security_check=True, config=None, user='default'): 
     if agent == 'pytorch': 
       from mlmodelscope.pytorch_agent import PyTorch_Agent 
-      self.agent = PyTorch_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
+      self.agent = PyTorch_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check, config, user) 
     elif agent == 'tensorflow': 
       from mlmodelscope.tensorflow_agent import TensorFlow_Agent 
-      self.agent = TensorFlow_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
+      self.agent = TensorFlow_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check, config, user) 
     elif agent == 'onnxruntime': 
       from mlmodelscope.onnxruntime_agent import ONNXRuntime_Agent 
-      self.agent = ONNXRuntime_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
+      self.agent = ONNXRuntime_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check, config, user) 
     elif agent == 'mxnet': 
       from mlmodelscope.mxnet_agent import MXNet_Agent 
-      self.agent = MXNet_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
+      self.agent = MXNet_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check, config, user) 
     elif agent == 'jax':
       from mlmodelscope.jax_agent import JAX_Agent 
-      self.agent = JAX_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
+      self.agent = JAX_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check, config, user) 
     else: 
       raise NotImplementedError(f"{agent} agent is not supported") 
     
     return 
   
-  def predict(self, num_warmup, detailed=False): 
-    outputs = self.agent.predict(num_warmup, self.dataloader, detailed) 
+  def predict(self, num_warmup, serialized=False): 
+    outputs = self.agent.predict(num_warmup, self.dataloader, self.output_processor, serialized) 
     self.agent.Close() 
 
     if self.architecture == "gpu" and self.gpu_trace: 

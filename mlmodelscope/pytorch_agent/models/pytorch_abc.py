@@ -3,6 +3,7 @@ import inspect
 import pathlib 
 from abc import ABC, abstractmethod 
 import requests 
+from zipfile import ZipFile 
 from tqdm import tqdm 
 from typing import List 
 
@@ -42,6 +43,21 @@ class PyTorchAbstractClass(ABC):
             list: The postprocessed model output
         '''
         pass
+
+    def to(self, device): 
+        '''
+        Move the model to the given device
+
+        Args:
+            device (str): The device
+        '''
+        self.model = self.model.to(device)
+
+    def eval(self):
+        '''
+        Set the model to evaluation mode
+        '''
+        self.model.eval()
 
     def file_download(self, file_url: str, file_path: str) -> None: 
         '''
@@ -92,6 +108,41 @@ class PyTorchAbstractClass(ABC):
             print("Model file download complete")
         
         return model_path
+    
+    def zip_file_download(self, zip_file_url: str) -> str:
+        '''
+        Download the zip file from the given url 
+        and unzip it then return the path of the directory of the zip file 
+
+        Args:
+            zip_file_url (str): The url of the zip file
+
+        Returns:
+            str: The path of the directory of the zip file 
+        '''
+        temp_path = os.path.join(pathlib.Path(__file__).resolve().parent.parent, 'tmp') 
+        if not os.path.isdir(temp_path): 
+            os.mkdir(temp_path) 
+
+        source_file_name = inspect.stack()[1].filename.replace('\\', '/').split('/')[-1][:-3] 
+        model_path_dir = os.path.join(temp_path, source_file_name)
+        zip_file_name = zip_file_url.split('/')[-1] 
+        model_path = os.path.join(model_path_dir, zip_file_name) 
+        if not os.path.exists(model_path): 
+            os.mkdir('/'.join(model_path.replace('\\', '/').split('/')[:-1])) 
+            print("The zip file does not exist")
+            print("Start download the zip file") 
+            zip_file_path = os.path.join(model_path_dir, zip_file_name)
+            self.file_download(zip_file_url, zip_file_path)
+            print("Zip file download complete")
+            
+            print("Start unzip the zip file")
+            with ZipFile(zip_file_path, 'r') as zip_file: 
+                zip_file.extractall(model_path_dir) 
+
+            print("Unzip the zip file complete")
+        
+        return model_path_dir
     
     def features_download(self, features_file_url: str) -> List[str]: 
         '''

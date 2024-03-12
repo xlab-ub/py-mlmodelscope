@@ -1,11 +1,10 @@
-import os
-import pathlib 
+from ..dataset_abc import DatasetAbstractClass 
 
-class Test_Data:
+import os 
+
+class Test_Data(DatasetAbstractClass):
   def __init__(self): 
-    self.root = os.path.join(pathlib.Path(__file__).parent.resolve(), 'tmp/test_data') 
-    if not os.path.isdir(self.root): 
-      os.mkdir(self.root) 
+    self.root = self.get_directory('test_data') 
     self.idx = 0
   
   def __len__(self):
@@ -13,6 +12,3 @@ class Test_Data:
   
   def __getitem__(self, idx):
     return os.path.join(self.root, 'test_' + str(idx) + '.png') 
-
-def init():
-  return Test_Data()

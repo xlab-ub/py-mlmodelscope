@@ -1,4 +1,6 @@
-class Text_Data:
+from ..dataset_abc import DatasetAbstractClass 
+
+class Text_Data(DatasetAbstractClass):
   def __init__(self, text): 
     self.text_list = [text] 
     self.idx = 0
@@ -8,6 +10,3 @@ class Text_Data:
   
   def __getitem__(self, idx):
     return self.text_list[idx]
-
-def init(text):
-  return Text_Data(text)
