@@ -33,12 +33,12 @@ class OutputProcessor:
     
     @staticmethod
     def process_final_outputs_for_serialization(modality, final_outputs, model_features=None): 
-        if (model_features is None) and (modality not in ['image_enhancement', 'text_to_code', 'text_to_text']): 
+        if (model_features is None) and (modality not in ['image_enhancement', 'image_synthesis', 'text_to_code', 'text_to_text']): 
             raise ValueError(f"model_features is required for {modality} modality") 
         
         serialized_outputs = []
 
-        if modality == 'image_classification': 
+        if modality in ['image_classification', 'sentiment_analysis']: 
             for output in final_outputs: 
                 features = [] 
                 output = {k: v for k, v in enumerate(output)} 
@@ -59,7 +59,7 @@ class OutputProcessor:
                 features = [{"semantic_segment":{"height":len(output),"int_mask":[o_sub for o in output for o_sub in o],"labels":model_features,"width":len(output[0])},"probability":1,"type":"SEMANTICSEGMENT"}] 
             
                 serialized_outputs.append({"duration":None,"duration_for_inference":None,"responses":[{"features":features,"id":None}]})
-        elif modality == 'image_enhancement': 
+        elif modality in ['image_enhancement', 'image_synthesis']: 
             for idx, output in enumerate(final_outputs): 
                 img = Image.fromarray(np.array(output, dtype='uint8'), 'RGB') 
                 buffer = BytesIO() 
@@ -68,6 +68,15 @@ class OutputProcessor:
                 features = [{"raw_image":{"channels":len(output[0][0]),"char_list":None,"data_type":str(type(output[0][0][0])),"float_list":None,"height":len(output),"jpeg_data":jpeg_data,"width":len(output[0])},"probability":1,"type":"RAW_IMAGE"}] 
 
             serialized_outputs.append({"duration":None,"duration_for_inference":None,"responses":[{"features":features,"id":None}]})
+        elif modality in ['speech_synthesis', 'audio_generation']:
+            for idx, output in enumerate(final_outputs): 
+                audio_array = np.array(output) 
+                channels = 1 if len(audio_array.shape) == 1 else audio_array.shape[0] 
+                encoded_aduio_data = base64.b64encode(audio_array.tobytes()).decode('utf-8')
+                features = [{"audio":{"channels":channels,"data_type":str(audio_array.dtype),"raw_audio":encoded_aduio_data,"sampling_rate":model_features["sampling_rate"]},"probability":1,"type":"RAW_AUDIO"}]
+
+            serialized_outputs.append({"duration":None,"duration_for_inference":None,"responses":[{"features":features,"id":None}]})
+        
         elif modality in ['text_to_code', 'text_to_text']: 
             for idx, output in enumerate(final_outputs): 
                 features = [{"text":output,"type":"TEXT"}] 
