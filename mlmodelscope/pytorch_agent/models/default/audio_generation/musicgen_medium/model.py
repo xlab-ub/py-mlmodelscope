@@ -10,7 +10,7 @@ class PyTorch_Transformers_MusicGen_Medium(PyTorchAbstractClass):
 
     self.max_new_tokens = self.config['max_new_tokens'] if 'max_new_tokens' in self.config else 256 
 
-    # self.sampling_rate = self.config['sampling_rate'] if 'sampling_rate' in self.config else self.model.config.audio_encoder.sampling_rate 
+    self.features = {"sampling_rate": self.model.config.audio_encoder.sampling_rate}
   
   def preprocess(self, input_texts):
     return self.processor(text=input_texts, return_tensors="pt", padding=True) 
