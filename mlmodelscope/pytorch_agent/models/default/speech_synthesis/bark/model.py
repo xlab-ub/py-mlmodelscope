@@ -8,7 +8,8 @@ class PyTorch_Transformers_Bark(PyTorchAbstractClass):
     self.processor = AutoProcessor.from_pretrained("suno/bark") 
     self.model = AutoModel.from_pretrained("suno/bark") 
 
-    # self.sampling_rate = self.config['sampling_rate'] if 'sampling_rate' in self.config else self.model.generation_config.sample_rate 
+    # https://github.com/suno-ai/bark/blob/main/bark/generation.py#L52 
+    self.features = {"sampling_rate": 24_000} 
   
   def preprocess(self, input_texts):
     return self.processor(input_texts, return_tensors="pt") 

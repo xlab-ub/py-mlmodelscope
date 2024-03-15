@@ -8,7 +8,7 @@ class PyTorch_Transformers_MMS_TTS_ENG(PyTorchAbstractClass):
     self.model = VitsModel.from_pretrained("facebook/mms-tts-eng") 
     self.tokenizer = AutoTokenizer.from_pretrained("facebook/mms-tts-eng") 
 
-    # self.sampling_rate = self.config['sampling_rate'] if 'sampling_rate' in self.config else self.model.config.sampling_rate 
+    self.features = {"sampling_rate": self.model.config.sampling_rate} 
   
   def preprocess(self, input_texts):
     return self.tokenizer(input_texts, return_tensors="pt", padding=True) 
