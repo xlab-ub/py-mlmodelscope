@@ -10,7 +10,7 @@ from ._load import _load
 logger = logging.getLogger(__name__) 
 
 class MXNet_Agent: 
-  def __init__(self, task, model_name, architecture, tracer, prop, carrier, security_check=True): 
+  def __init__(self, task, model_name, architecture, tracer, prop, carrier, security_check=True, config=None, user='default'): 
     self.tracer = tracer 
     self.prop = prop 
     self.carrier = carrier 
@@ -22,29 +22,21 @@ class MXNet_Agent:
 
     self.architecture = architecture 
 
-    self.load_model(task, model_name, security_check) 
+    self.load_model(task, model_name, security_check, config, user) 
     return 
   
-  def load_model(self, task, model_name, security_check=True): 
-    if task == "image_classification": 
-      pass 
-    elif task == "image_object_detection": 
-      pass 
-    else: 
-      raise NotImplementedError(f"{task} task is not supported")  
-
+  def load_model(self, task, model_name, security_check=True, config=None, user='default'): 
     self.task = task 
 
-    model_list = [model[:-3] for model in os.listdir(f'{pathlib.Path(__file__).parent.resolve()}/models/{task}') if model[0] != '_'] 
-    if model_name in model_list: 
+    if os.path.exists(f'{pathlib.Path(__file__).parent.resolve()}/models/{user}/{task}/{model_name}/model.py'):
       print(f"{model_name} model exists") 
     else: 
-      raise NotImplementedError(f"{model_name} model is not supported, the available models are as follows:\n{', '.join(model_list)}") 
+      raise NotImplementedError(f"'{model_name}' model is not implemented and cannot be found for the '{task}' task assigned to user '{user}'. Please ensure that the model exists or use a supported model.")
     self.model_name = model_name 
 
     with self.tracer.start_as_current_span(self.model_name + ' model load', context=self.ctx) as model_load_span: 
       self.prop.inject(carrier=self.carrier, context=set_span_in_context(model_load_span)) 
-      self.model = _load(task=task, model_name=self.model_name, architecture=self.architecture, security_check=security_check) 
+      self.model = _load(task=task, model_name=self.model_name, architecture=self.architecture, security_check=security_check, config=config, user=user) 
 
   def predict(self, num_warmup, dataloader, output_processor, serialized=False, mlharness=False): 
     tracer = self.tracer 
@@ -90,7 +82,7 @@ class MXNet_Agent:
             with tracer.start_as_current_span("postprocess") as postprocess_span: 
               prop.inject(carrier=carrier, context=set_span_in_context(postprocess_span)) 
               post_processed_model_output = self.model.postprocess(model_output) 
-              output_processor.process_batch_outputs_postprocessed(self.task, post_processed_model_output) 
+            output_processor.process_batch_outputs_postprocessed(self.task, post_processed_model_output) 
     final_outputs = output_processor.get_final_outputs() 
   
     if serialized: 

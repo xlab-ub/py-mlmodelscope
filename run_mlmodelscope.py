@@ -16,6 +16,7 @@ def main():
   parser.add_argument("--agent", type=str, nargs='?', default="pytorch", choices=["pytorch", "tensorflow", "onnxruntime", "mxnet", "jax"], help="Which framework to use") 
 
   if parser.parse_known_args()[0].standalone == 'true': 
+    parser.add_argument("--user", type=str, nargs='?', default="default", help="The name of the user") 
     parser.add_argument("--task", type=str, nargs='?', default="image_classification", help="The name of the task to predict.") 
     parser.add_argument("--model_name", type=str, nargs='?', default="torchvision_alexnet", help="The name of the model") 
     parser.add_argument("--config_file", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to use config file (.json)") 
@@ -49,6 +50,7 @@ def main():
   agent = args.agent 
   
   if args.standalone == 'true': 
+    user          = args.user 
     task          = args.task 
     architecture  = args.architecture 
     gpu_trace     = True if args.gpu_trace == "true" else False 
@@ -82,7 +84,7 @@ def main():
 
     mlms = MLModelScope(architecture, gpu_trace) 
     
-    mlms.load_agent(task, agent, model_name, security_check, config) 
+    mlms.load_agent(task, agent, model_name, security_check, config, user) 
     print(f"{agent}-agent is loaded with {model_name} model\n") 
     mlms.load_dataset(dataset_name, batch_size, None, security_check) 
     print(f"{dataset_name} dataset is loaded\n") 
@@ -91,7 +93,7 @@ def main():
     print("prediction is done\n") 
 
     print("outputs are as follows:") 
-    if task == "image_classification": 
+    if task in ["image_classification", "sentiment_analysis"]: 
       if detailed: 
         print(outputs) 
       else: 
@@ -111,7 +113,7 @@ def main():
     elif task in ["image_semantic_segmentation", "depth_estimation"]: 
       for index, output in enumerate(outputs): 
         print(f"outputs[{index}] width: {len(output)}, height: {len(output[0])}") 
-    elif task == "image_enhancement": 
+    elif task in ["image_enhancement", "image_synthesis"]: 
       for index, output in enumerate(outputs): 
         print(f"outputs[{index}] width: {len(output)}, height: {len(output[0])}, channel: {len(output[0][0])}") 
     elif task == "image_instance_segmentation": 
@@ -126,7 +128,7 @@ def main():
     elif task == "image_instance_segmentation_raw": 
       print(len(outputs)) 
       print(len(outputs[0])) # probs, labels, boxes, masks 
-    elif task in ["text_to_speech", "text_to_audio"]: 
+    elif task in ["speech_synthesis", "audio_generation"]: 
       for index, output in enumerate(outputs): 
         print(f"outputs[{index}] length: {len(output)}") 
     else: 
@@ -188,6 +190,7 @@ def main():
       
       received_message = json.loads(body.decode()) 
       
+      user          = received_message['User'] if 'User' in received_message else 'default' 
       task          = received_message['DesiredResultModality'] 
       architecture  = 'gpu' if received_message['UseGpu'] else 'cpu' 
       gpu_trace     = True if received_message['UseGpu'] != "NO_TRACE" else False 
@@ -215,7 +218,7 @@ def main():
       duration_start_time = time.time()
       mlms = MLModelScope(architecture, gpu_trace) 
     
-      mlms.load_agent(task, agent, model_name, security_check, config) 
+      mlms.load_agent(task, agent, model_name, security_check, config, user) 
       print(f"{agent}-agent is loaded with {model_name} model\n") 
       mlms.load_dataset(dataset_name, batch_size, task, security_check) 
       print(f"{dataset_name} dataset is loaded\n") 

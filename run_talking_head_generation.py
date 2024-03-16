@@ -2,6 +2,7 @@ import subprocess
 
 import logging 
 import argparse 
+import json 
 
 import numpy as np 
 
@@ -12,11 +13,14 @@ logger = logging.getLogger(__name__)
 def main(): 
   parser = argparse.ArgumentParser(description="mlmodelscope") 
   parser.add_argument("--standalone", type=str, nargs='?', default="true", choices=["false", "true"], help="Whether standalone(not connect with frontend)") 
-  parser.add_argument("--agent", type=str, nargs='?', default="pytorch", choices=["pytorch", "tensorflow", "onnxruntime", "mxnet"], help="Which framework to use") 
+  parser.add_argument("--agent", type=str, nargs='?', default="pytorch", choices=["pytorch", "tensorflow", "onnxruntime", "mxnet", "jax"], help="Which framework to use") 
 
   if parser.parse_known_args()[0].standalone == 'true': 
+    parser.add_argument("--user", type=str, nargs='?', default="default", help="The name of the user") 
     parser.add_argument("--task", type=str, nargs='?', default="talking_head_generation", help="The name of the task to predict.") 
     parser.add_argument("--model_name", type=str, nargs='?', default="sadtalker", help="The name of the model") 
+    parser.add_argument("--config_file", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to use config file (.json)") 
+    parser.add_argument("--config_file_path", type=str, nargs='?', default="config.json", help="The path of the config file") 
     parser.add_argument("--architecture", type=str, nargs='?', default="gpu", choices=["cpu", "gpu"], help="Which Processing Unit to use") 
     parser.add_argument("--num_warmup", type=int, nargs='?', default=0, help="Total number of warmup steps for predict.") 
     parser.add_argument("--dataset_name", type=str, nargs='?', default="sadtalker_data", help="The name of the dataset for predict.") 
@@ -46,6 +50,7 @@ def main():
   agent = args.agent 
   
   if args.standalone == 'true': 
+    user          = args.user 
     task          = args.task 
     architecture  = args.architecture 
     gpu_trace     = True if args.gpu_trace == "true" else False 
@@ -62,6 +67,15 @@ def main():
         print("GPU device will not be used because \"cpu\" is chosen for architecture.\nTherefore, gpu_trace option becomes off.") 
 
     model_name    = args.model_name 
+    config = None 
+    if args.config_file == "true":
+      config_file_path = args.config_file_path 
+      try: 
+        with open(config_file_path, 'r') as f:
+          config = json.load(f)
+          print(f"config file {config_file_path} is loaded")
+      except (json.JSONDecodeError, FileNotFoundError) as e:
+        print(f"config file {config_file_path} is not loaded: {e}") 
     num_warmup    = args.num_warmup 
     dataset_name  = args.dataset_name 
     batch_size    = args.batch_size 
@@ -70,12 +84,12 @@ def main():
 
     mlms = MLModelScope(architecture, gpu_trace) 
     
-    mlms.load_agent(task, agent, model_name, security_check) 
+    mlms.load_agent(task, agent, model_name, security_check, config, user) 
     print(f"{agent}-agent is loaded with {model_name} model\n") 
-    mlms.load_dataset(dataset_name, batch_size) 
+    mlms.load_dataset(dataset_name, batch_size, None, security_check) 
     print(f"{dataset_name} dataset is loaded\n") 
     print(f"prediction starts") 
-    outputs = mlms.predict(num_warmup, detailed) 
+    outputs = mlms.predict(num_warmup) 
     print("prediction is done\n") 
 
     print("outputs are as follows:") 
@@ -96,7 +110,7 @@ def main():
       for output in outputs: 
         # print(f"{len(output[0])} {len(output[1])} {len(output[2])}")
         print(f"{len(output[0][0])} {len(output[1][0])} {len(output[2][0])}") 
-    elif task == "image_semantic_segmentation": 
+    elif task in ["image_semantic_segmentation", "depth_estimation"]: 
       for index, output in enumerate(outputs): 
         print(f"outputs[{index}] width: {len(output)}, height: {len(output[0])}") 
     elif task == "image_enhancement": 
@@ -114,8 +128,12 @@ def main():
     elif task == "image_instance_segmentation_raw": 
       print(len(outputs)) 
       print(len(outputs[0])) # probs, labels, boxes, masks 
+    elif task in ["text_to_speech", "text_to_audio"]: 
+      for index, output in enumerate(outputs): 
+        print(f"outputs[{index}] length: {len(output)}") 
     else: 
-      print(outputs) 
+      for index, output in enumerate(outputs): 
+        print(f"outputs[{index}]: {output}") 
 
     mlms.Close() 
   
@@ -124,12 +142,10 @@ def main():
     import time 
     from datetime import datetime, timezone 
     from uuid import uuid4 
-    import json 
+    # import json 
     
     import psycopg 
     import pika 
-
-    detailed = True 
 
     if args.env_file == 'false': 
       db_name = args.db_dbname 
@@ -174,6 +190,7 @@ def main():
       
       received_message = json.loads(body.decode()) 
       
+      user          = received_message['User'] if 'User' in received_message else 'default' 
       task          = received_message['DesiredResultModality'] 
       architecture  = 'gpu' if received_message['UseGpu'] else 'cpu' 
       gpu_trace     = True if received_message['UseGpu'] != "NO_TRACE" else False 
@@ -194,18 +211,21 @@ def main():
       dataset_name  = received_message['InputFiles'] 
       batch_size    = received_message['BatchSize'] 
 
+      config = received_message['Configuration'] if 'Configuration' in received_message else None 
+      security_check = received_message['SecurityCheck'] if 'SecurityCheck' in received_message else False 
+
       # measure duration 
       duration_start_time = time.time()
       mlms = MLModelScope(architecture, gpu_trace) 
     
-      mlms.load_agent(task, agent, model_name) 
+      mlms.load_agent(task, agent, model_name, security_check, config, user) 
       print(f"{agent}-agent is loaded with {model_name} model\n") 
-      mlms.load_dataset(dataset_name, batch_size, task) 
+      mlms.load_dataset(dataset_name, batch_size, task, security_check) 
       print(f"{dataset_name} dataset is loaded\n") 
       print(f"prediction starts") 
       # measure duration_for_inference 
       duration_for_inference_start_time = time.time()
-      outputs = mlms.predict(num_warmup, detailed) 
+      outputs = mlms.predict(num_warmup, True) 
       duration_for_inference_end_time = time.time()
       duration_for_inference = (duration_for_inference_end_time - duration_for_inference_start_time) 
       print(f"prediction done") 
