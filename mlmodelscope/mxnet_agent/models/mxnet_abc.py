@@ -123,9 +123,9 @@ class MXNetAbstractClass(ABC):
         if not os.path.isdir(temp_path): 
             os.mkdir(temp_path) 
 
-        source_file_name = inspect.stack()[1].filename.replace('\\', '/').split('/')[-1][:-3] 
-        model_symbol_path = os.path.join(temp_path, source_file_name + '/' + model_symbol_url.split('/')[-1]) 
-        model_params_path = os.path.join(temp_path, source_file_name + '/' + model_params_url.split('/')[-1])
+        model_name = inspect.stack()[1].filename.replace('\\', '/').split('/')[-2] 
+        model_symbol_path = os.path.join(temp_path, model_name + '/' + model_symbol_url.split('/')[-1]) 
+        model_params_path = os.path.join(temp_path, model_name + '/' + model_params_url.split('/')[-1])
         if not os.path.exists(model_symbol_path): 
             os.mkdir('/'.join(model_symbol_path.replace('\\', '/').split('/')[:-1])) 
             print("The model symbol file does not exist")
