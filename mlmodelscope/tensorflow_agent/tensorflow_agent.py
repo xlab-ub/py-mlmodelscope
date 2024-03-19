@@ -2,13 +2,13 @@ import os
 import pathlib 
 import logging 
 # https://github.com/tensorflow/tensorflow/issues/33478 
-import functools 
-from typing import List, Callable, Optional 
+# import functools 
+# from typing import List, Callable, Optional 
 
 import tensorflow as tf 
 
-from opentelemetry import trace, context 
-from opentelemetry.trace import set_span_in_context 
+# from opentelemetry import trace, context 
+# from opentelemetry.trace import set_span_in_context 
 
 from ._load import _load 
 
@@ -18,17 +18,14 @@ if tf.__version__[0] == '1':
 logger = logging.getLogger(__name__) 
 
 class TensorFlow_Agent: 
-  def __init__(self, task, model_name, architecture, tracer, prop, carrier, security_check=True, config=None, user='default'): 
+  def __init__(self, task, model_name, architecture, tracer, context, security_check=True, config=None, user='default'): 
     self.tracer = tracer 
-    self.prop = prop 
-    self.carrier = carrier 
+    # self.prop = prop 
+    # self.carrier = carrier 
 
     self.all_spans = {} 
 
-    self.span = self.tracer.start_span(name="tensorflow-agent", context=self.prop.extract(carrier=self.carrier)) 
-    self.ctx = set_span_in_context(self.span) 
-    self.token = context.attach(self.ctx)
-    self.prop.inject(carrier=self.carrier, context=self.ctx) 
+    self.span, self.ctx = self.tracer.start_span_from_context(name="tensorflow-agent", context=context, trace_level="APPLICATION_TRACE")
 
     # self.device = 'cuda' if ((architecture == "gpu") and torch.cuda.is_available()) else 'cpu' 
     if architecture == "cpu": 
@@ -51,55 +48,53 @@ class TensorFlow_Agent:
       raise NotImplementedError(f"'{model_name}' model is not implemented and cannot be found for the '{task}' task assigned to user '{user}'. Please ensure that the model exists or use a supported model.")
     self.model_name = model_name 
 
-    with self.tracer.start_as_current_span(self.model_name + ' model load', context=self.ctx) as model_load_span: 
-      self.prop.inject(carrier=self.carrier, context=set_span_in_context(model_load_span)) 
+    with self.tracer.start_as_current_span_from_context(self.model_name + ' model load', context=self.ctx, trace_level="APPLICATION_TRACE"): 
       self.model = _load(task=task, model_name=self.model_name, security_check=security_check, config=config, user=user) 
 
     # https://github.com/tensorflow/tensorflow/issues/33478 
-    def proxy_call(input: tf.Tensor, layer: tf.keras.layers.Layer, training=False) -> tf.Tensor:
-      if layer._forward_pre_hook is not None:
-        layer._forward_pre_hook(layer, input)
-      output = layer._forward(input) 
-      if layer._forward_hook is not None:
-        hook_result = layer._forward_hook(layer, input, output)
-        if hook_result is not None:
-          output = hook_result
-      return output
+    # def proxy_call(input: tf.Tensor, layer: tf.keras.layers.Layer, training=False) -> tf.Tensor:
+    #   if layer._forward_pre_hook is not None:
+    #     layer._forward_pre_hook(layer, input)
+    #   output = layer._forward(input) 
+    #   if layer._forward_hook is not None:
+    #     hook_result = layer._forward_hook(layer, input, output)
+    #     if hook_result is not None:
+    #       output = hook_result
+    #   return output
 
-    def register_pre_hook_and_hook(layers: List[tf.keras.layers.Layer], 
-                        forward_pre_hook: Callable[[tf.keras.layers.Layer, tf.Tensor], None]=None, 
-                        forward_hook: Callable[[tf.keras.layers.Layer, tf.Tensor, tf.Tensor], Optional[tf.Tensor]]=None): 
-      for layer in layers:
-        layer._forward_pre_hook = forward_pre_hook
-        layer._forward_hook = forward_hook
-        layer._forward = layer.call
-        layer.call = functools.partial(proxy_call, layer=layer) 
+    # def register_pre_hook_and_hook(layers: List[tf.keras.layers.Layer], 
+    #                     forward_pre_hook: Callable[[tf.keras.layers.Layer, tf.Tensor], None]=None, 
+    #                     forward_hook: Callable[[tf.keras.layers.Layer, tf.Tensor, tf.Tensor], Optional[tf.Tensor]]=None): 
+    #   for layer in layers:
+    #     layer._forward_pre_hook = forward_pre_hook
+    #     layer._forward_hook = forward_hook
+    #     layer._forward = layer.call
+    #     layer.call = functools.partial(proxy_call, layer=layer) 
 
-    def pre_hook(layer: tf.keras.layers.Layer, input: tf.Tensor): 
-      prev_ctx = self.prop.extract(carrier=self.carrier) 
-      token = context.attach(prev_ctx) 
-      span = self.tracer.start_span(layer.name, context=prev_ctx) 
-      self.prop.inject(carrier=self.carrier, context=set_span_in_context(span)) 
-      self.all_spans[layer.name] = (span, token, prev_ctx) 
-      trace.use_span(span) 
+    # def pre_hook(layer: tf.keras.layers.Layer, input: tf.Tensor): 
+    #   prev_ctx = self.prop.extract(carrier=self.carrier) 
+    #   token = context.attach(prev_ctx) 
+    #   span = self.tracer.start_span(layer.name, context=prev_ctx) 
+    #   self.prop.inject(carrier=self.carrier, context=set_span_in_context(span)) 
+    #   self.all_spans[layer.name] = (span, token, prev_ctx) 
+    #   trace.use_span(span) 
 
-    def hook(layer: tf.keras.layers.Layer, input: tf.Tensor, output: tf.Tensor):
-      span, token, prev_ctx = self.all_spans[layer.name] 
-      span.end() 
-      context.detach(token) 
-      self.prop.inject(carrier=self.carrier, context=prev_ctx) 
-      del self.all_spans[layer.name] 
+    # def hook(layer: tf.keras.layers.Layer, input: tf.Tensor, output: tf.Tensor):
+    #   span, token, prev_ctx = self.all_spans[layer.name] 
+    #   span.end() 
+    #   context.detach(token) 
+    #   self.prop.inject(carrier=self.carrier, context=prev_ctx) 
+    #   del self.all_spans[layer.name] 
 
-    if hasattr(self.model.model, "layers"): 
-      register_pre_hook_and_hook(self.model.model.layers, forward_pre_hook=pre_hook, forward_hook=hook) 
+    # if hasattr(self.model.model, "layers"): 
+    #   register_pre_hook_and_hook(self.model.model.layers, forward_pre_hook=pre_hook, forward_hook=hook) 
 
   def predict(self, num_warmup, dataloader, output_processor, serialized=False, mlharness=False): 
     tracer = self.tracer 
-    prop = self.prop 
-    carrier = self.carrier 
+    # prop = self.prop 
+    # carrier = self.carrier 
 
-    with tracer.start_as_current_span(self.model_name + ' start', context=self.ctx) as model_start_span: 
-      prop.inject(carrier=carrier, context=set_span_in_context(model_start_span)) 
+    with tracer.start_as_current_span_from_context(self.model_name + ' start', context=self.ctx, trace_level="APPLICATION_TRACE") as model_start_span: 
       if num_warmup > 0: 
         print('Warmup') 
         num_round = len(dataloader)
@@ -107,35 +102,28 @@ class TensorFlow_Agent:
           print('Warmup Size is too big, so it is reduced to the number of batches') 
           num_warmup = num_round 
 
-        with tracer.start_as_current_span(f"Warmup") as warmup_span: 
-          prop.inject(carrier=carrier, context=set_span_in_context(warmup_span)) 
+        with tracer.start_as_current_span_from_context(f"Warmup", trace_level="APPLICATION_TRACE") as warmup_span:
           for index, data in enumerate(dataloader): 
             if index >= num_warmup: 
               print('Warmup done') 
               dataloader.reset() 
               break 
-            with tracer.start_as_current_span(f"Warmup Batch {index}"):  
-              with tracer.start_as_current_span("preprocess") as preprocess_span: 
-                prop.inject(carrier=carrier, context=set_span_in_context(preprocess_span)) 
+            with tracer.start_as_current_span_from_context(f"Warmup Batch {index}", trace_level="APPLICATION_TRACE") as warmup_batch_span:
+              with tracer.start_as_current_span_from_context("preprocess", trace_level="APPLICATION_TRACE") as preprocess_span:
                 model_input = self.model.preprocess(data) 
-              with tracer.start_as_current_span("predict") as predict_span: 
-                prop.inject(carrier=carrier, context=set_span_in_context(predict_span)) 
+              with tracer.start_as_current_span_from_context("predict", trace_level="MODEL_TRACE") as predict_span:  
                 model_output = self.model.predict(model_input) 
-              with tracer.start_as_current_span("postprocess") as postprocess_span: 
-                prop.inject(carrier=carrier, context=set_span_in_context(postprocess_span)) 
+              with tracer.start_as_current_span_from_context("postprocess", trace_level="APPLICATION_TRACE") as postprocess_span:
                 self.model.postprocess(model_output)
 
-      with tracer.start_as_current_span(f"Evaluate"):  
+      with tracer.start_as_current_span_from_context(f"Evaluate", trace_level="APPLICATION_TRACE") as evaluate_span:
         for index, data in enumerate(dataloader):
-          with tracer.start_as_current_span(f"Evaluate Batch {index}"):  
-            with tracer.start_as_current_span("preprocess") as preprocess_span: 
-              prop.inject(carrier=carrier, context=set_span_in_context(preprocess_span)) 
+          with tracer.start_as_current_span_from_context(f"Evaluate Batch {index}", trace_level="APPLICATION_TRACE") as evaluate_batch_span:
+            with tracer.start_as_current_span_from_context("preprocess", trace_level="APPLICATION_TRACE") as preprocess_span:
               model_input = self.model.preprocess(data)
-            with tracer.start_as_current_span("predict") as predict_span:  
-              prop.inject(carrier=carrier, context=set_span_in_context(predict_span)) 
+            with tracer.start_as_current_span_from_context("predict", trace_level="MODEL_TRACE") as predict_span:  
               model_output = self.model.predict(model_input) 
-            with tracer.start_as_current_span("postprocess") as postprocess_span: 
-              prop.inject(carrier=carrier, context=set_span_in_context(postprocess_span)) 
+            with tracer.start_as_current_span_from_context("postprocess", trace_level="APPLICATION_TRACE") as postprocess_span:
               post_processed_model_output = self.model.postprocess(model_output) 
             output_processor.process_batch_outputs_postprocessed(self.task, post_processed_model_output) 
     final_outputs = output_processor.get_final_outputs() 
@@ -151,6 +139,5 @@ class TensorFlow_Agent:
       return final_outputs 
 
   def Close(self): 
-    context.detach(self.token)
     self.span.end() 
     return None 
