@@ -1,4 +1,4 @@
-from ..pytorch_abc import PyTorchAbstractClass
+from ....pytorch_abc import PyTorchAbstractClass
 
 import torch
 from torchvision import transforms
