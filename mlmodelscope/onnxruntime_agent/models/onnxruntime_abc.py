@@ -12,6 +12,8 @@ import numpy as np
 
 class ONNXRuntimeAbstractClass(ABC):
     sess_options = ort.SessionOptions() 
+    # TODO: Add the option to enable profiling 
+    sess_options.enable_profiling = True 
 
     @abstractmethod
     def __init__(self, providers):
@@ -61,6 +63,8 @@ class ONNXRuntimeAbstractClass(ABC):
             model_path (str): The path of the model file
             providers (list): The list of providers
         '''
+        self.model_path = model_path 
+        self.providers = providers 
         self.session = ort.InferenceSession(model_path, self.sess_options, providers=providers) 
         self.model = onnx.load(model_path) 
         self.input_name = [input.name for input in self.session.get_inputs()]
@@ -84,6 +88,35 @@ class ONNXRuntimeAbstractClass(ABC):
             list: model output
         '''
         return self.session.run(self.output_name, {self.input_name: model_input})
+
+    def get_profile_filename(self) -> str:
+        '''
+        Get the profile file name
+
+        Returns:
+            str: The profile file name
+        '''
+        return self.session.end_profiling()
+
+    def get_profiling_start_time_ns(self) -> int:
+        '''
+        Get the profiling start time in nanoseconds 
+        , which is comparable to time.monotonic_ns() after Python 3.3. 
+        On some platforms, this timer may not be as precise as nanoseconds.
+        For instance, on Windows and MacOS, the precision will be ~100ns
+        Refers to https://onnxruntime.ai/docs/api/python/api_summary.html for more details
+
+        Returns:
+            int: The profiling start time in nanoseconds
+        '''
+        return self.session.get_profiling_start_time_ns()
+    
+    def reset_session(self) -> None:
+        '''
+        Reset the session
+        '''
+        self.session = ort.InferenceSession(self.model_path, self.sess_options, providers=self.providers) 
+        return 
 
     def file_download(self, file_url: str, file_path: str) -> None:
         '''
@@ -124,8 +157,8 @@ class ONNXRuntimeAbstractClass(ABC):
         if not os.path.isdir(temp_path): 
             os.mkdir(temp_path) 
 
-        source_file_name = inspect.stack()[1].filename.replace('\\', '/').split('/')[-1][:-3] 
-        model_path = os.path.join(temp_path, source_file_name + '/' + model_file_url.split('/')[-1]) 
+        model_name = inspect.stack()[1].filename.replace('\\', '/').split('/')[-2] 
+        model_path = os.path.join(temp_path, model_name + '/' + model_file_url.split('/')[-1]) 
         if not os.path.exists(model_path): 
             os.mkdir('/'.join(model_path.replace('\\', '/').split('/')[:-1])) 
             print("The model file does not exist")
