@@ -69,6 +69,9 @@ class TensorFlowAbstractClass(ABC):
             tf.import_graph_def(graph_def, name='') 
             self.sess = tf.compat.v1.Session(graph=graph)
             self.model = graph 
+            # print the input and output node names
+            # for node in graph.as_graph_def().node:
+            #     print(node.name) 
 
             self.inNode = [graph.get_tensor_by_name(f"{node}:0") for node in input_node] if isinstance(input_node, list) else graph.get_tensor_by_name(f"{input_node}:0")
             self.outNode = [graph.get_tensor_by_name(f"{node}:0") for node in output_node] if isinstance(output_node, list) else graph.get_tensor_by_name(f"{output_node}:0")
@@ -140,7 +143,7 @@ class TensorFlowAbstractClass(ABC):
         
         return model_path
     
-    def model_file_in_tgz_download(self, model_file_name: str, tgz_file_url: str) -> str:
+    def model_file_in_tgz_download(self, model_file_name: str, tgz_file_url: str, model_file_path_prefix: str='./') -> str:
         '''
         Download the tgz file from the given url 
         and unzip to get model file and save it then return the path 
@@ -148,6 +151,7 @@ class TensorFlowAbstractClass(ABC):
         Args:
             model_file_name (str): The name of the model file
             tgz_file_url (str): The url of the model file
+            model_file_path_prefix (str): The prefix of the model file path
 
         Returns:
             str: The path of the model file
@@ -156,11 +160,14 @@ class TensorFlowAbstractClass(ABC):
         if not os.path.isdir(temp_path): 
             os.mkdir(temp_path) 
 
+        if model_file_path_prefix[-1] != '/':
+            model_file_path_prefix += '/'
+
         model_name = inspect.stack()[1].filename.replace('\\', '/').split('/')[-2] 
         model_path_dir = os.path.join(temp_path, model_name)
-        model_path = os.path.join(model_path_dir, model_file_name) 
+        model_path = os.path.join(model_path_dir, model_file_path_prefix + model_file_name) 
         if not os.path.exists(model_path): 
-            os.mkdir('/'.join(model_path.replace('\\', '/').split('/')[:-1])) 
+            os.mkdir('/'.join(model_path_dir.replace('\\', '/').split('/'))) 
             tgz_file_name = tgz_file_url.split('/')[-1] 
             print("The model file does not exist")
             print("Start download the tgz file") 
@@ -169,7 +176,7 @@ class TensorFlowAbstractClass(ABC):
             
             print("Start unzip the tgz file")
             tgz_file = tarfile.open(tgz_file_path)
-            tgz_file.extract('./' + model_file_name, model_path_dir)
+            tgz_file.extract(model_file_path_prefix + model_file_name, model_path_dir)
             tgz_file.close()
 
             print("Model file download complete")
