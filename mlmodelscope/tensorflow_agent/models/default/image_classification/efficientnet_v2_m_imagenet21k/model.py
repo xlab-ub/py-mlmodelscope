@@ -3,17 +3,16 @@ from ....tensorflow_abc import TensorFlowAbstractClass
 import tensorflow as tf
 import tensorflow_hub as hub
 
-class TensorFlow_EfficientNet_V2_ImageNet1K_B0(TensorFlowAbstractClass):
+class TensorFlow_EfficientNet_V2_M_ImageNet21K(TensorFlowAbstractClass):
   def __init__(self):
-    self.img_size = (224, 224, 3) 
+    self.img_size = (480, 480, 3) 
     self.model = tf.keras.Sequential([
-      hub.KerasLayer("https://www.kaggle.com/models/google/efficientnet-v2/frameworks/TensorFlow2/variations/imagenet1k-b0-classification/versions/2")
+      hub.KerasLayer("https://www.kaggle.com/models/google/efficientnet-v2/frameworks/TensorFlow2/variations/imagenet21k-m-classification/versions/2")
       ])
     self.model.build([None, self.img_size[0], self.img_size[1], self.img_size[2]]) 
     
-    features_file_url = "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt" 
+    features_file_url = "https://storage.googleapis.com/bit_models/imagenet21k_wordnet_lemmas.txt" 
     self.features = self.features_download(features_file_url) 
-    self.features.pop(0) # remove the first element which is 'background' 
 
   # https://github.com/google/automl/blob/master/efficientnetv2/preprocessing.py#L58 
   def preprocess_for_eval(self, image, image_size, transformations=None):
