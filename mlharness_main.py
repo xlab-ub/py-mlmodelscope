@@ -28,6 +28,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter 
 
 from mlmodelscope.dataloader import DataLoader 
+from mlmodelscope.outputprocessor import OutputProcessor 
 import pydldataset 
 
 logging.basicConfig(level=logging.INFO)
@@ -94,6 +95,10 @@ def get_args():
     parser.add_argument("--use_gpu", type=int, default=0, help="enable gpu for inference")
     parser.add_argument("--gpu_id", type=int, default=0, help="which GPU")
     parser.add_argument("--trace_level", choices=TRACE_LEVEL, default="NO_TRACE", help="MLModelScope Trace Level")
+    # py-mlmdoelscope Parameters
+    parser.add_argument("--security_check", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to perform security check on the model file")
+    parser.add_argument("--config", type=str, nargs='?', default=None, help="The path to the configuration file") 
+    parser.add_argument("--config_file_path", type=str, nargs='?', default="config.json", help="The path of the config file") 
     # Modality Specific
     # inv_map for object detection
     parser.add_argument("--use_inv_map", action="store_true", help="use inv_map for object detection")
@@ -141,20 +146,32 @@ def main():
     backend = args.backend 
     task = args.task 
     model_name = args.model_name 
+    config = None 
+    if args.config_file == "true":
+      config_file_path = args.config_file_path 
+      try: 
+        with open(config_file_path, 'r') as f:
+          config = json.load(f)
+          print(f"config file {config_file_path} is loaded")
+      except (json.JSONDecodeError, FileNotFoundError) as e:
+        print(f"config file {config_file_path} is not loaded: {e}") 
     architecture = 'cpu' if args.use_gpu == 0 else 'gpu' 
+    security_check = True if args.security_check == "true" else False 
+
+    output_processor = OutputProcessor() 
 
     if backend == 'pytorch': 
       from mlmodelscope.pytorch_agent import PyTorch_Agent 
-      agent = PyTorch_Agent(task, model_name, architecture, tracer, prop, carrier) 
+      agent = PyTorch_Agent(task, model_name, architecture, tracer, prop, carrier, security_check, config) 
     elif backend == 'tensorflow': 
       from mlmodelscope.tensorflow_agent import TensorFlow_Agent 
-      agent = TensorFlow_Agent(task, model_name, architecture, tracer, prop, carrier) 
+      agent = TensorFlow_Agent(task, model_name, architecture, tracer, prop, carrier, security_check) 
     elif backend == 'onnxruntime': 
       from mlmodelscope.onnxruntime_agent import ONNXRuntime_Agent 
-      agent = ONNXRuntime_Agent(task, model_name, architecture, tracer, prop, carrier) 
+      agent = ONNXRuntime_Agent(task, model_name, architecture, tracer, prop, carrier, security_check) 
     elif backend == 'mxnet': 
       from mlmodelscope.mxnet_agent import MXNet_Agent 
-      agent = MXNet_Agent(task, model_name, architecture, tracer, prop, carrier) 
+      agent = MXNet_Agent(task, model_name, architecture, tracer, prop, carrier, security_check) 
     else: 
       raise NotImplementedError(f"{backend} agent is not supported") 
 
@@ -184,7 +201,7 @@ def main():
     for _ in range(5):
         img = dataset.get_samples([0])
         # _ = backend.predict({backend.inputs[0]: img})
-        agent.predict(0, DataLoader(img, args.max_batchsize))
+        agent.predict(0, DataLoader(img, args.max_batchsize), output_processor) 
     dataset.unload(None)
 
     scenario = SCENARIO_MAP[args.scenario]
@@ -202,7 +219,7 @@ def main():
             response = []
             for i, qid in enumerate(query_id):
                 # processed_results = so.IssueQuery(1, idx[i][np.newaxis])
-                processed_results = agent.predict(0, DataLoader(dataset.get_samples(idx[i][np.newaxis]), args.max_batchsize), mlharness=True) 
+                processed_results = agent.predict(0, DataLoader(dataset.get_samples(idx[i][np.newaxis]), args.max_batchsize), output_processor, mlharness=True) 
                 # processed_results = json.loads(processed_results.decode('utf-8'))
                 for j in range(len(processed_results[index])): 
                     processed_results[index][j] = [idx[index]] + processed_results[index][j] 
@@ -215,7 +232,7 @@ def main():
         else:
             start = time.time()
             # processed_results = so.IssueQuery(len(idx), idx)
-            processed_results = agent.predict(0, DataLoader(dataset.get_samples(idx), args.max_batchsize), mlharness=True)
+            processed_results = agent.predict(0, DataLoader(dataset.get_samples(idx), args.max_batchsize), output_processor, mlharness=True) 
             result_timeing.append(time.time() - start)
             # processed_results = json.loads(processed_results.decode('utf-8'))
             response_array_refs = []

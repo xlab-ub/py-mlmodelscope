@@ -3,15 +3,8 @@ import os
 
 import logging 
 
-from opentelemetry import trace, context 
-from opentelemetry.trace import set_span_in_context 
-from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator 
-from opentelemetry.sdk.resources import SERVICE_NAME, Resource 
-from opentelemetry.sdk.trace import TracerProvider 
-from opentelemetry.sdk.trace.export import BatchSpanProcessor 
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter 
-
 from .dataloader import DataLoader 
+from .outputprocessor import OutputProcessor 
 
 # https://stackoverflow.com/questions/714063/importing-modules-from-parent-folder 
 sys.path.insert(1, os.path.join(sys.path[0], '..')) 
@@ -21,37 +14,28 @@ sys.path.pop(1)
 logger = logging.getLogger(__name__) 
 
 class MLModelScope: 
-  def __init__(self, architecture, gpu_trace=False): 
-    resource = Resource(attributes={
-        # SERVICE_NAME: "mlmodelscope-service"
-        SERVICE_NAME: "mlms"
-    }) 
-    trace.set_tracer_provider(TracerProvider(resource=resource)) 
-    # https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html 
-    span_processor = BatchSpanProcessor(OTLPSpanExporter(endpoint='http://localhost:4317', insecure=True), max_queue_size=4096) 
-    trace.get_tracer_provider().add_span_processor(span_processor) 
+  def __init__(self, architecture, trace_level="NO_TRACE", gpu_trace=False): 
+    sys.path.insert(1, os.path.join(sys.path[0], '..')) 
+    from tracer import Tracer
+    sys.path.pop(1) 
 
-    self.tracer = trace.get_tracer(__name__) 
-    self.prop = TraceContextTextMapPropagator() 
-    self.carrier = {} 
-
-    self.span = self.tracer.start_span(name="mlmodelscope") 
-    self.ctx = set_span_in_context(self.span) 
-    self.token = context.attach(self.ctx) 
-    self.prop.inject(carrier=self.carrier, context=self.ctx) 
+    self.tracer, self.root_span, self.ctx = Tracer.create(trace_level=trace_level)
 
     self.architecture = architecture 
     self.gpu_trace = gpu_trace 
-    if self.architecture == "gpu" and self.gpu_trace: 
+    self.c = None 
+    if self.architecture == "gpu" and self.gpu_trace and self.tracer.is_trace_enabled("SYSTEM_LIBRARY_TRACE"): 
       sys.path.insert(1, os.path.join(sys.path[0], '..')) 
       from pycupti import CUPTI 
       sys.path.pop(1) 
-      self.c = CUPTI(tracer=self.tracer, prop=self.prop, carrier=self.carrier) 
+      self.c = CUPTI(tracer=self.tracer) 
       print("CUPTI version", self.c.cuptiGetVersion()) 
+
+    self.output_processor = OutputProcessor() 
 
     return 
 
-  def load_dataset(self, dataset_name, batch_size, task=None): 
+  def load_dataset(self, dataset_name, batch_size, task=None, security_check=True): 
     url = False 
     if isinstance(dataset_name, list): 
       if dataset_name[0].startswith('http'): 
@@ -67,45 +51,43 @@ class MLModelScope:
         raise NotImplementedError(f"{dataset_name} dataset is not supported, the available datasets are as follows:\n{', '.join(dataset_list)}") 
     
     name = 'url' if url else (dataset_name if task is None else task)
-    with self.tracer.start_as_current_span(name + ' dataset load', context=self.ctx) as dataset_load_span: 
-      self.prop.inject(carrier=self.carrier, context=set_span_in_context(dataset_load_span)) 
-      self.dataset = pydldataset.load(dataset_name, url, task=task) 
+    with self.tracer.start_as_current_span_from_context(name + ' dataset load', context=self.ctx, trace_level="APPLICATION_TRACE"): 
+      self.dataset = pydldataset.load(dataset_name, url, task=task, security_check=security_check) 
       self.batch_size = batch_size 
       self.dataloader = DataLoader(self.dataset, self.batch_size) 
 
     return 
 
-  def load_agent(self, task, agent, model_name, security_check=True, config=None): 
+  def load_agent(self, task, agent, model_name, security_check=True, config=None, user='default'): 
     if agent == 'pytorch': 
       from mlmodelscope.pytorch_agent import PyTorch_Agent 
-      self.agent = PyTorch_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check, config) 
+      self.agent = PyTorch_Agent(task, model_name, self.architecture, self.tracer, self.ctx, security_check, config, user) 
     elif agent == 'tensorflow': 
       from mlmodelscope.tensorflow_agent import TensorFlow_Agent 
-      self.agent = TensorFlow_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
+      self.agent = TensorFlow_Agent(task, model_name, self.architecture, self.tracer, self.ctx, security_check, config, user) 
     elif agent == 'onnxruntime': 
       from mlmodelscope.onnxruntime_agent import ONNXRuntime_Agent 
-      self.agent = ONNXRuntime_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
+      self.agent = ONNXRuntime_Agent(task, model_name, self.architecture, self.tracer, self.ctx, security_check, config, user) 
     elif agent == 'mxnet': 
       from mlmodelscope.mxnet_agent import MXNet_Agent 
-      self.agent = MXNet_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
+      self.agent = MXNet_Agent(task, model_name, self.architecture, self.tracer, self.ctx, security_check, config, user) 
     elif agent == 'jax':
       from mlmodelscope.jax_agent import JAX_Agent 
-      self.agent = JAX_Agent(task, model_name, self.architecture, self.tracer, self.prop, self.carrier, security_check) 
+      self.agent = JAX_Agent(task, model_name, self.architecture, self.tracer, self.ctx, security_check, config, user) 
     else: 
       raise NotImplementedError(f"{agent} agent is not supported") 
     
     return 
   
-  def predict(self, num_warmup, detailed=False): 
-    outputs = self.agent.predict(num_warmup, self.dataloader, detailed) 
+  def predict(self, num_warmup, serialized=False): 
+    outputs = self.agent.predict(num_warmup, self.dataloader, self.output_processor, serialized) 
     self.agent.Close() 
 
-    if self.architecture == "gpu" and self.gpu_trace: 
-      self.c.Close() 
+    # if self.architecture == "gpu" and self.gpu_trace: 
+    #   self.c.Close() 
 
     return outputs 
 
   def Close(self): 
-    context.detach(self.token)
-    self.span.end() 
+    self.root_span.end()
     return None 

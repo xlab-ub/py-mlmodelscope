@@ -8,7 +8,7 @@ mlmodelscope/tensorflow_agent/tmp/
 mlmodelscope/onnxruntime_agent/tmp/
 mlmodelscope/mxnet_agent/tmp/
 mlmodelscope/jax_agent/tmp/
-
+*.ipynb
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

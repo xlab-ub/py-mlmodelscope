@@ -55,7 +55,7 @@ RUN conda install -c conda-forge cudatoolkit=$CUDA_VERSION cudnn
 RUN pip install onnxruntime-gpu==$ONNXRUNTIME_VERSION 
 
 ########## PY-MLMODELSCOPE INSTALLATION #################
-RUN pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc grpcio 
+RUN pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc grpcio opentelemetry-exporter-otlp-proto-http httpio 
 RUN pip install opencv-python-headless
 RUN pip install aenum requests
 RUN conda install -c pytorch torchvision==0.9.1 

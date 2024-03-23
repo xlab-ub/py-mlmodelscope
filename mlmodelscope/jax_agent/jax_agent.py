@@ -2,62 +2,37 @@ import os
 import pathlib 
 import logging 
 
-import base64 
-from io import BytesIO 
-import numpy as np 
-from PIL import Image 
-
-from opentelemetry import context 
-from opentelemetry.trace import set_span_in_context 
-
 from ._load import _load 
 
 logger = logging.getLogger(__name__) 
 
 class JAX_Agent: 
-  def __init__(self, task, model_name, architecture, tracer, prop, carrier, security_check=True): 
+  def __init__(self, task, model_name, architecture, tracer, context, security_check=True, config=None, user='default'): 
     self.tracer = tracer 
-    self.prop = prop 
-    self.carrier = carrier 
 
-    self.span = self.tracer.start_span(name="jax-agent", context=self.prop.extract(carrier=self.carrier)) 
-    self.ctx = set_span_in_context(self.span) 
-    self.token = context.attach(self.ctx)
-    self.prop.inject(carrier=self.carrier, context=self.ctx) 
+    self.span, self.ctx = self.tracer.start_span_from_context("jax-agent", context=context, trace_level="APPLICATION_TRACE") 
 
     self.architecture = architecture 
 
-    self.load_model(task, model_name, security_check) 
+    self.load_model(task, model_name, security_check, config, user) 
     return 
   
-  def load_model(self, task, model_name, security_check=True): 
-    if task == "image_classification": 
-      pass 
-    else: 
-      raise NotImplementedError(f"{task} task is not supported")  
-
+  def load_model(self, task, model_name, security_check=True, config=None, user='default'): 
     self.task = task 
 
-    model_list = [model[:-3] for model in os.listdir(f'{pathlib.Path(__file__).parent.resolve()}/models/{task}') if model[0] != '_'] 
-    if model_name in model_list: 
+    if os.path.exists(f'{pathlib.Path(__file__).parent.resolve()}/models/{user}/{task}/{model_name}/model.py'):
       print(f"{model_name} model exists") 
     else: 
-      raise NotImplementedError(f"{model_name} model is not supported, the available models are as follows:\n{', '.join(model_list)}") 
+      raise NotImplementedError(f"'{model_name}' model is not implemented and cannot be found for the '{task}' task assigned to user '{user}'. Please ensure that the model exists or use a supported model.")
     self.model_name = model_name 
 
-    with self.tracer.start_as_current_span(self.model_name + ' model load', context=self.ctx) as model_load_span: 
-      self.prop.inject(carrier=self.carrier, context=set_span_in_context(model_load_span)) 
-      self.model = _load(task=task, model_name=self.model_name, security_check=security_check) 
+    with self.tracer.start_as_current_span_from_context(self.model_name + ' model load', context=self.ctx, trace_level="APPLICATION_TRACE"): 
+      self.model = _load(task=task, model_name=self.model_name, security_check=security_check, config=config, user=user) 
 
-  def predict(self, num_warmup, dataloader, detailed=False, mlharness=False): 
+  def predict(self, num_warmup, dataloader, output_processor, serialized=False, mlharness=False): 
     tracer = self.tracer 
-    prop = self.prop 
-    carrier = self.carrier 
 
-    outputs = [] 
-
-    with tracer.start_as_current_span(self.model_name + ' start', context=self.ctx) as model_start_span: 
-      prop.inject(carrier=carrier, context=set_span_in_context(model_start_span)) 
+    with tracer.start_as_current_span_from_context(self.model_name + ' start', context=self.ctx, trace_level="APPLICATION_TRACE") as model_start_span: 
       if num_warmup > 0: 
         print('Warmup') 
         num_round = len(dataloader)
@@ -65,96 +40,42 @@ class JAX_Agent:
           print('Warmup Size is too big, so it is reduced to the number of batches') 
           num_warmup = num_round 
 
-        with tracer.start_as_current_span(f"Warmup") as warmup_span: 
-          prop.inject(carrier=carrier, context=set_span_in_context(warmup_span)) 
+        with tracer.start_as_current_span_from_context(f"Warmup", trace_level="APPLICATION_TRACE") as warmup_span: 
           for index, data in enumerate(dataloader): 
             if index >= num_warmup: 
               print('Warmup done') 
               dataloader.reset() 
               break 
-            with tracer.start_as_current_span(f"Warmup Batch {index}"):  
-              with tracer.start_as_current_span("preprocess") as preprocess_span: 
-                prop.inject(carrier=carrier, context=set_span_in_context(preprocess_span)) 
+            with tracer.start_as_current_span_from_context(f"Warmup Batch {index}", trace_level="APPLICATION_TRACE"):  
+              with tracer.start_as_current_span_from_context("preprocess", trace_level="APPLICATION_TRACE") as preprocess_span: 
                 model_input = self.model.preprocess(data) 
-                # model_input = model_input.to(self.device) 
-              with tracer.start_as_current_span("predict") as predict_span: 
-                prop.inject(carrier=carrier, context=set_span_in_context(predict_span)) 
+              with tracer.start_as_current_span_from_context("predict", trace_level="MODEL_TRACE") as predict_span: 
                 model_output = self.model.predict(model_input) 
-              with tracer.start_as_current_span("postprocess") as postprocess_span: 
-                prop.inject(carrier=carrier, context=set_span_in_context(postprocess_span)) 
+              with tracer.start_as_current_span_from_context("postprocess", trace_level="APPLICATION_TRACE") as postprocess_span: 
                 self.model.postprocess(model_output)
 
-      with tracer.start_as_current_span(f"Evaluate"):  
+      with tracer.start_as_current_span_from_context(f"Evaluate", trace_level="APPLICATION_TRACE"):  
         for index, data in enumerate(dataloader):
-          with tracer.start_as_current_span(f"Evaluate Batch {index}"):  
-            with tracer.start_as_current_span("preprocess") as preprocess_span: 
-              prop.inject(carrier=carrier, context=set_span_in_context(preprocess_span)) 
+          with tracer.start_as_current_span_from_context(f"Evaluate Batch {index}", trace_level="APPLICATION_TRACE"):  
+            with tracer.start_as_current_span_from_context("preprocess", trace_level="APPLICATION_TRACE") as preprocess_span: 
               model_input = self.model.preprocess(data)
-              # model_input = model_input.to(self.device) 
-            with tracer.start_as_current_span("predict") as predict_span:  
-              prop.inject(carrier=carrier, context=set_span_in_context(predict_span)) 
+            with tracer.start_as_current_span_from_context("predict", trace_level="MODEL_TRACE") as predict_span:  
               model_output = self.model.predict(model_input) 
-            with tracer.start_as_current_span("postprocess") as postprocess_span: 
-              prop.inject(carrier=carrier, context=set_span_in_context(postprocess_span)) 
-              if self.task != "image_object_detection": 
-                outputs.extend(self.model.postprocess(model_output)) 
-              else: 
-                outputs.append(self.model.postprocess(model_output)) 
+            with tracer.start_as_current_span_from_context("postprocess", trace_level="APPLICATION_TRACE") as postprocess_span: 
+              post_processed_model_output = self.model.postprocess(model_output) 
+            output_processor.process_batch_outputs_postprocessed(self.task, post_processed_model_output) 
+    final_outputs = output_processor.get_final_outputs() 
   
-    if detailed and (hasattr(self.model, 'features') or self.task == 'image_enhancement'): 
-      detailed_outputs = [] 
-      if self.task == 'image_classification': 
-        for output in outputs: 
-          features = [] 
-          output = {k: v for k, v in enumerate(output)} 
-          output = dict(sorted(output.items(), key=lambda item: item[1], reverse=True)) 
-          for idx, o in output.items(): 
-            features.append({"classification":{"index":idx,"label":self.model.features[idx]},"probability":round(o, 11),"type":"CLASSIFICATION"})
-            
-          detailed_outputs.append({"duration":None,"duration_for_inference":None,"responses":[{"features":features,"id":None}]}) 
-      elif self.task == 'image_object_detection': 
-        for probabilities, classes, boxes in outputs: 
-          features = [] 
-          for p, c, b in zip(probabilities[0], classes[0], boxes[0]): 
-            features.append({"bounding_box":{"index":int(c),"label":self.model.features[c],"xmax":float(b[3]),"xmin":float(b[1]),"ymax":float(b[2]),"ymin":float(b[0])},"probability":round(float(p), 8),"type":"BOUNDINGBOX"}) 
-
-          detailed_outputs.append({"duration":None,"duration_for_inference":None,"responses":[{"features":features,"id":None}]}) 
-      elif self.task == 'image_semantic_segmentation': 
-        for idx, output in enumerate(outputs): 
-          features = [{"semantic_segment":{"height":len(output),"int_mask":[o_sub for o in output for o_sub in o],"labels":self.model.features,"width":len(output[0])},"probability":1,"type":"SEMANTICSEGMENT"}] 
-      
-          detailed_outputs.append({"duration":None,"duration_for_inference":None,"responses":[{"features":features,"id":None}]})
-      elif self.task == 'image_enhancement': 
-        for idx, output in enumerate(outputs): 
-          img = Image.fromarray(np.array(output, dtype='uint8'), 'RGB') 
-          buffer = BytesIO() 
-          img.save(buffer, format="JPEG") 
-          jpeg_data = base64.b64encode(buffer.getvalue()).decode('utf-8')  
-          features = [{"raw_image":{"channels":len(output[0][0]),"char_list":None,"data_type":str(type(output[0][0][0])),"float_list":None,"height":len(output),"jpeg_data":jpeg_data,"width":len(output[0])},"probability":1,"type":"RAW_IMAGE"}] 
-
-        detailed_outputs.append({"duration":None,"duration_for_inference":None,"responses":[{"features":features,"id":None}]})
-      else: 
-        raise NotImplementedError 
-      return detailed_outputs 
+    if serialized: 
+      model_features = getattr(self.model, 'features', None) 
+      serialized_outputs = output_processor.process_final_outputs_for_serialization(self.task, final_outputs, model_features)
+      return serialized_outputs 
     elif mlharness: 
-      mlharness_outputs = [] 
-      if self.task == 'image_object_detection': 
-        for probabilities, classes, boxes in outputs: 
-          features = [] 
-          for p, c, b in zip(probabilities[0], classes[0], boxes[0]): 
-            features.append([float(b[0]), float(b[1]), float(b[2]), float(b[3]), float(p), float(c)]) 
-          mlharness_outputs.append(features) 
-      elif self.task == 'question_answering': 
-        return outputs 
-      elif self.task == 'image_classification': 
-        return np.argmax(outputs, axis=1) 
-      else: 
-        raise NotImplementedError 
+      mlharness_outputs = output_processor.process_final_outputs_for_mlharness(self.task, final_outputs)
       return mlharness_outputs 
     else: 
-      return outputs 
+      return final_outputs 
 
   def Close(self): 
-    context.detach(self.token) 
     self.span.end() 
     return None 
