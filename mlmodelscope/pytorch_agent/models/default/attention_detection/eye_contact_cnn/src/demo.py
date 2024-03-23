@@ -1,34 +1,18 @@
-import dlib
-import cv2
-import argparse, os, random
-import torch
+
+import os, random, dlib, cv2, torch, os, sys
 import torch.nn as nn
 import torch.nn.functional as F
-import torchvision
-from torchvision import datasets, transforms
+from torchvision import transforms
 import pandas as pd
 import numpy as np
-import os, sys, time
+from PIL import Image, ImageDraw, ImageFont
+from colour import Color
+
 sys.path.append(os.path.dirname(__file__))
 from model import model_static
-from PIL import Image
-from PIL import ImageDraw
-from PIL import ImageFont
-from colour import Color
+
 sys.path.pop()
 
-
-#parser = argparse.ArgumentParser()
-
-#parser.add_argument('--video', type=str, help='input video path. live cam is used when not specified')
-#parser.add_argument('--face', type=str, help='face detection file path. dlib face detector is used when not specified')
-#parser.add_argument('--model_weight', type=str, help='path to model weights file', default='data/model_weights.pkl')
-#parser.add_argument('--jitter', type=int, help='jitter bbox n times, and average results', default=0)
-#parser.add_argument('-save_vis', help='saves output as video', action='store_true')
-#parser.add_argument('-save_text', help='saves output as text', action='store_true')
-#parser.add_argument('-display_off', help='do not display frames', action='store_true')
-
-#args = parser.parse_args()
 
 CURRENT_DIR = os.path.dirname(__file__)
 FONT_PATH = os.path.join(CURRENT_DIR,'data', 'arial.ttf')
@@ -63,11 +47,7 @@ def run(video_path, face_path, jitter, vis, display_off, save_text):
         #font = ImageFont.load_default()
 
     # set up video source
-    if video_path is None:
-        cap = cv2.VideoCapture(0)
-        video_path = 'live.avi'
-    else:
-        cap = cv2.VideoCapture(video_path)
+    cap = cv2.VideoCapture(video_path)
 
     # set up output file
     video_dir = os.path.dirname(video_path)
@@ -197,6 +177,3 @@ def run(video_path, face_path, jitter, vis, display_off, save_text):
     cap.release()
     print ('DONE!')
 
-
-#if __name__ == "__main__":
-    #run(video, face, model_weight, jitter, save_vis, display_off, save_text)

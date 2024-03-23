@@ -2,7 +2,12 @@ from ....pytorch_abc import PyTorchAbstractClass
 
 import os, sys
 sys.path.append(os.path.dirname(__file__))
-from src.demo import run
+
+try:
+    from src.demo import run
+except Exception as e:
+    print(f"Exception: {e}") 
+
 
 
 class Eye_Contact_CNN(PyTorchAbstractClass):
