@@ -1,16 +1,11 @@
-from ..pytorch_abc import PyTorchAbstractClass
+from ....pytorch_abc import PyTorchAbstractClass
 
-from glob import glob
-import shutil
-import torch
-from time import  strftime
-import os, sys, time
+import os, sys
 sys.path.append(os.path.dirname(__file__))
-from src.eye_contact_cnn.demo import run
+from src.demo import run
 
 
 class Eye_Contact_CNN(PyTorchAbstractClass):
-    model_weight = 'eye_contact_cnn/data/model_weights.pkl'
     face = None
     video = None
     jitter = 0
@@ -21,7 +16,6 @@ class Eye_Contact_CNN(PyTorchAbstractClass):
     def __init__(self, config=None):
 
         if config is not None:
-            self.model_weight = config["model_weight"]
             self.face = config["face"]
             self.video = config["video"]
             self.jitter = config["jitter"]
@@ -37,7 +31,7 @@ class Eye_Contact_CNN(PyTorchAbstractClass):
 
     def predict(self, input_data):
         
-        run(input_data, self.face, self.model_weight, self.jitter, self.save_text, self.display_off, self.save_text)
+        run(input_data, self.face, self.jitter, self.save_text, self.display_off, self.save_text)
         return 0
     
     def postprocess(self, model_output):

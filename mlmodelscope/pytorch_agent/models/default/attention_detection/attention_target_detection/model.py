@@ -1,11 +1,11 @@
-from ..pytorch_abc import PyTorchAbstractClass
+from ....pytorch_abc import PyTorchAbstractClass
 
 import os, sys
 
 sys.path.append(os.path.dirname(__file__))
 
 try:
-    from src.attention_target_detection.demo import *
+    from src.demo import *
 except Exception as e:
     print(f"Exception: {e}") 
 

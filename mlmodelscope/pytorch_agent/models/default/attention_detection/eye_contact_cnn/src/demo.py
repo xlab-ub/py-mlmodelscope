@@ -34,6 +34,7 @@ current_dir = os.path.dirname(__file__)
 font_path = os.path.join(current_dir,'data', 'arial.ttf')
 cnn_model_path = os.path.join(current_dir, 'data', 'mmod_human_face_detector.dat')
 
+
 CNN_FACE_MODEL = cnn_model_path # from http://dlib.net/files/mmod_human_face_detector.dat.bz2
 
 
@@ -54,7 +55,7 @@ def drawrect(drawcontext, xy, outline=None, width=0):
     drawcontext.line(points, fill=outline, width=width)
 
 
-def run(video_path, face_path, model_weight, jitter, vis, display_off, save_text):
+def run(video_path, face_path, jitter, vis, display_off, save_text):
     print("\nStarted Model")
     # set up vis settings
     red = Color("red")
