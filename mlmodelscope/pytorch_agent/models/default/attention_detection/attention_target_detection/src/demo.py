@@ -14,9 +14,9 @@ import cv2
 from glob import glob
 
 sys.path.append(os.path.dirname(__file__))
-from model import ModelSpatial
-from utils import imutils, evaluation
-from config import *
+from src.model import ModelSpatial
+from src.utils import imutils, evaluation
+from src.config import *
 
 
 #parser = argparse.ArgumentParser()

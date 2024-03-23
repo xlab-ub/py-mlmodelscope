@@ -5,12 +5,12 @@ import torch.nn.functional as F
 from torchvision import transforms
 import pandas as pd
 import numpy as np
+
 from PIL import Image, ImageDraw, ImageFont
 from colour import Color
 
 sys.path.append(os.path.dirname(__file__))
-from model import model_static
-
+from src.model import model_static
 sys.path.pop()
 
 
