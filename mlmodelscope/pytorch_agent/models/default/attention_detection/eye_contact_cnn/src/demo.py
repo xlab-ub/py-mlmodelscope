@@ -30,12 +30,11 @@ sys.path.pop()
 
 #args = parser.parse_args()
 
-current_dir = os.path.dirname(__file__)
-font_path = os.path.join(current_dir,'data', 'arial.ttf')
-cnn_model_path = os.path.join(current_dir, 'data', 'mmod_human_face_detector.dat')
-
-
-CNN_FACE_MODEL = cnn_model_path # from http://dlib.net/files/mmod_human_face_detector.dat.bz2
+CURRENT_DIR = os.path.dirname(__file__)
+FONT_PATH = os.path.join(CURRENT_DIR,'data', 'arial.ttf')
+MODEL_WEIGHTS = os.path.join(CURRENT_DIR, 'data', 'model_weights.pkl')
+CNN_FACE_MODEL = os.path.join(CURRENT_DIR, 'data', 'mmod_human_face_detector.dat')
+# from http://dlib.net/files/mmod_human_face_detector.dat.bz2
 
 
 def bbox_jitter(bbox_left, bbox_top, bbox_right, bbox_bottom):
@@ -60,7 +59,7 @@ def run(video_path, face_path, jitter, vis, display_off, save_text):
     # set up vis settings
     red = Color("red")
     colors = list(red.range_to(Color("green"),10))
-    font = ImageFont.truetype(font_path, 40)
+    font = ImageFont.truetype(FONT_PATH, 40)
         #font = ImageFont.load_default()
 
     # set up video source
@@ -115,11 +114,11 @@ def run(video_path, face_path, jitter, vis, display_off, save_text):
                                          transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
     # load model weights
-    proper_model_weight_path = os.path.join(current_dir, 'data', 'model_weights.pkl')
+    
 
-    model = model_static(proper_model_weight_path)
+    model = model_static(MODEL_WEIGHTS)
     model_dict = model.state_dict()
-    snapshot = torch.load(proper_model_weight_path)
+    snapshot = torch.load(MODEL_WEIGHTS)
     model_dict.update(snapshot)
     model.load_state_dict(model_dict)
 
