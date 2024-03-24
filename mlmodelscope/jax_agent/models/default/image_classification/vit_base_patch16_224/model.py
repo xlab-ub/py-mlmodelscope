@@ -1,17 +1,15 @@
 from ....jax_abc import JAXAbstractClass 
 
-from transformers import AutoImageProcessor, FlaxViTForImageClassification  
-import jax
-from PIL import Image
+import jax 
+from transformers import AutoImageProcessor, FlaxViTForImageClassification 
+from PIL import Image 
 
-class vit_b16(JAXAbstractClass):
+class JAX_Transformers_ViT_Base_Patch16_224(JAXAbstractClass):
   def __init__(self):
     self.model = FlaxViTForImageClassification.from_pretrained("google/vit-base-patch16-224")
     self.image_processor = AutoImageProcessor.from_pretrained("google/vit-base-patch16-224")
     
-
-    features_file_url = "http://s3.amazonaws.com/store.carml.org/synsets/imagenet/synset.txt" 
-    self.features = self.features_download(features_file_url)
+    self.features = [v for k, v in sorted(self.model.config.id2label.items())]
   
   def preprocess(self, input_images):
     for i in range(len(input_images)):
@@ -23,6 +21,4 @@ class vit_b16(JAXAbstractClass):
     return self.model(**model_input) 
 
   def postprocess(self, model_output):
-
-    probabilities = jax.nn.softmax(model_output.logits, axis = 1)
-    return probabilities.tolist()
+    return jax.nn.softmax(model_output.logits, axis=1).tolist()
