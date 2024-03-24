@@ -4,10 +4,10 @@ import jax
 from transformers import ViTImageProcessor, FlaxViTForImageClassification 
 from PIL import Image 
 
-class JAX_Transformers_ViT_Base_Patch16_224(JAXAbstractClass):
+class JAX_Transformers_ViT_Base_Patch16_384(JAXAbstractClass):
   def __init__(self):
-    self.model = FlaxViTForImageClassification.from_pretrained("google/vit-base-patch16-224")
-    self.image_processor = ViTImageProcessor.from_pretrained("google/vit-base-patch16-224")
+    self.model = FlaxViTForImageClassification.from_pretrained("google/vit-base-patch16-384")
+    self.image_processor = ViTImageProcessor.from_pretrained("google/vit-base-patch16-384")
     
     self.features = [v for k, v in sorted(self.model.config.id2label.items())]
   
