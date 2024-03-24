@@ -91,6 +91,12 @@ class ONNXRuntimeAbstractClass(ABC):
         '''
         return self.session.run(self.output_name, {self.input_name: model_input})
 
+    def disable_profiling(self) -> None:
+        '''
+        Disable profiling
+        '''
+        os.remove(self.get_profile_filename()) 
+
     def get_profile_filename(self) -> str:
         '''
         Get the profile file name

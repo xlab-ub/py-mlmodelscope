@@ -24,6 +24,9 @@ class ONNXRuntime_Agent:
     self.providers = ['CUDAExecutionProvider'] if architecture == "gpu" else ['CPUExecutionProvider'] 
 
     self.load_model(task, model_name, security_check, config, user) 
+
+    if not self.tracer.is_trace_enabled("ML_LIBRARY_TRACE"): 
+      self.model.disable_profiling()
     return 
   
   def load_model(self, task, model_name, security_check=True, config=None, user='default'): 
