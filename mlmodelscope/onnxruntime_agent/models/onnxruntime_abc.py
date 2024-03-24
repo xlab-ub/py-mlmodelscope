@@ -54,14 +54,16 @@ class ONNXRuntimeAbstractClass(ABC):
         '''
         pass
 
-    def load_onnx(self, model_path: str, providers: List[str]) -> None:
+    def load_onnx(self, model_path: str, providers: List[str], predict_method_replacement: bool = True) -> None:
         '''
         Load the onnx model file, create the session and replace the predict method
-        If the model has only one input, predict method will be replaced with predict_onnx method 
+        If the model has only one input and predict_method_replacement is True, 
+        the predict method will be replaced with predict_onnx method
 
         Args:
             model_path (str): The path of the model file
             providers (list): The list of providers
+            predict_method_replacement (bool): The flag to replace the predict method
         '''
         self.model_path = model_path 
         self.providers = providers 
@@ -69,10 +71,10 @@ class ONNXRuntimeAbstractClass(ABC):
         self.model = onnx.load(model_path) 
         self.input_name = [input.name for input in self.session.get_inputs()]
         self.output_name = [output.name for output in self.session.get_outputs()] 
-        
         if len(self.input_name) == 1:
             self.input_name = self.input_name[0]
-            self.predict = self.predict_onnx
+            if predict_method_replacement:
+                self.predict = self.predict_onnx
     
     def predict_onnx(
         self,
