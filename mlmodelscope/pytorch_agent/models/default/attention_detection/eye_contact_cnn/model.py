@@ -44,5 +44,11 @@ class Eye_Contact_CNN(PyTorchAbstractClass):
         return [0]
 
 
-    
+        
+    def to(self, device):
+        pass
+
+    def eval(self):
+        pass
+
   

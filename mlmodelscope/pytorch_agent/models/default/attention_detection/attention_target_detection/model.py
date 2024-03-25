@@ -42,4 +42,9 @@ class Attention_Target_Detection(PyTorchAbstractClass):
         cleanUp()
         print("Your output video has been saved at: `pydldataset/datasets/tmp/attention_detection_data/outputs` !")
         return [0]
+    
+    def to(self, device):
+        pass
 
+    def eval(self):
+        pass
