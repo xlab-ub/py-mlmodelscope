@@ -3,9 +3,9 @@ from ....onnxruntime_abc import ONNXRuntimeAbstractClass
 import numpy as np
 from PIL import Image
 
-class ONNXRuntime_Mosaic(ONNXRuntimeAbstractClass):
+class ONNXRuntime_Mosaic_8(ONNXRuntimeAbstractClass):
   def __init__(self, providers):
-    model_file_url = "https://github.com/onnx/models/raw/main/validated/vision/style_transfer/fast_neural_style/model/mosaic-9.onnx" 
+    model_file_url = "https://github.com/onnx/models/raw/main/validated/vision/style_transfer/fast_neural_style/model/mosaic-8.onnx" 
     model_path = self.model_file_download(model_file_url) 
 
     self.load_onnx(model_path, providers, predict_method_replacement=False)
