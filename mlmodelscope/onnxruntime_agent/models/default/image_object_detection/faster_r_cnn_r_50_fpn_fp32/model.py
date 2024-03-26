@@ -11,7 +11,7 @@ class ONNXRuntime_Faster_R_CNN_R_50_FPN_fp32(ONNXRuntimeAbstractClass):
 
     self.load_onnx(model_path, providers, predict_method_replacement=False)
     
-    features_file_url = "https://github.com/onnx/models/blob/main/validated/vision/object_detection_segmentation/faster-rcnn/dependencies/coco_classes.txt" 
+    features_file_url = "https://github.com/onnx/models/raw/main/validated/vision/object_detection_segmentation/faster-rcnn/dependencies/coco_classes.txt" 
     self.features = self.features_download(features_file_url) 
 
     self.input_image_sizes = [] 
