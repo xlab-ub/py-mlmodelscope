@@ -1,6 +1,5 @@
 import subprocess 
 
-import logging 
 import argparse 
 import json 
 
@@ -8,7 +7,14 @@ import numpy as np
 
 from mlmodelscope import MLModelScope 
 
-logger = logging.getLogger(__name__) 
+TRACE_LEVEL = ( "NO_TRACE",
+                "APPLICATION_TRACE",
+                "MODEL_TRACE",          # pipelines within model
+                "FRAMEWORK_TRACE",      # layers within framework
+                "ML_LIBRARY_TRACE",     # cudnn, ...
+                "SYSTEM_LIBRARY_TRACE", # cupti
+                "HARDWARE_TRACE",       # perf, papi, ...
+                "FULL_TRACE")           # includes all of the above)
 
 def main(): 
   parser = argparse.ArgumentParser(description="mlmodelscope") 
@@ -25,6 +31,7 @@ def main():
     parser.add_argument("--num_warmup", type=int, nargs='?', default=2, help="Total number of warmup steps for predict.") 
     parser.add_argument("--dataset_name", type=str, nargs='?', default="test_data", help="The name of the dataset for predict.") 
     parser.add_argument("--batch_size", type=int, nargs='?', default=2, help="Total batch size for predict.") 
+    parser.add_argument("--trace_level", type=str, nargs='?', default="NO_TRACE", choices=TRACE_LEVEL, help="MLModelScope Trace Level") 
     parser.add_argument("--gpu_trace", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to trace GPU activities") 
     parser.add_argument("--detailed_result", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to get detailed result") 
     parser.add_argument("--security_check", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to perform security check on the model file")
@@ -53,7 +60,8 @@ def main():
     user          = args.user 
     task          = args.task 
     architecture  = args.architecture 
-    gpu_trace     = True if args.gpu_trace == "true" else False 
+    trace_level   = args.trace_level
+    gpu_trace     = True if (TRACE_LEVEL.index(trace_level) >= TRACE_LEVEL.index("SYSTEM_LIBRARY_TRACE")) and (args.gpu_trace == "true") else False 
     if architecture == "gpu": 
       # https://stackoverflow.com/questions/67504079/how-to-check-if-an-nvidia-gpu-is-available-on-my-system 
       try:
@@ -82,7 +90,7 @@ def main():
     detailed = True if args.detailed_result == "true" else False 
     security_check = True if args.security_check == "true" else False
 
-    mlms = MLModelScope(architecture, gpu_trace) 
+    mlms = MLModelScope(architecture, trace_level, gpu_trace) 
     
     mlms.load_agent(task, agent, model_name, security_check, config, user) 
     print(f"{agent}-agent is loaded with {model_name} model\n") 

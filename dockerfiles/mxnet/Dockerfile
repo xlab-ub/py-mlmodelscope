@@ -58,7 +58,7 @@ RUN pip uninstall numpy -y
 RUN pip install numpy==1.23.1 
 
 ########## PY-MLMODELSCOPE INSTALLATION #################
-RUN pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc grpcio 
+RUN pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc grpcio opentelemetry-exporter-otlp-proto-http httpio 
 RUN pip install opencv-python-headless
 RUN pip install aenum requests
 RUN pip install torchvision==0.9.0 

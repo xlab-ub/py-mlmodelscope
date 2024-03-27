@@ -12,6 +12,8 @@ import numpy as np
 
 class ONNXRuntimeAbstractClass(ABC):
     sess_options = ort.SessionOptions() 
+    # TODO: Add the option to enable profiling 
+    sess_options.enable_profiling = True 
 
     @abstractmethod
     def __init__(self, providers):
@@ -52,23 +54,27 @@ class ONNXRuntimeAbstractClass(ABC):
         '''
         pass
 
-    def load_onnx(self, model_path: str, providers: List[str]) -> None:
+    def load_onnx(self, model_path: str, providers: List[str], predict_method_replacement: bool = True) -> None:
         '''
         Load the onnx model file, create the session and replace the predict method
-        If the model has only one input, predict method will be replaced with predict_onnx method 
+        If the model has only one input and predict_method_replacement is True, 
+        the predict method will be replaced with predict_onnx method
 
         Args:
             model_path (str): The path of the model file
             providers (list): The list of providers
+            predict_method_replacement (bool): The flag to replace the predict method
         '''
+        self.model_path = model_path 
+        self.providers = providers 
         self.session = ort.InferenceSession(model_path, self.sess_options, providers=providers) 
         self.model = onnx.load(model_path) 
         self.input_name = [input.name for input in self.session.get_inputs()]
         self.output_name = [output.name for output in self.session.get_outputs()] 
-        
         if len(self.input_name) == 1:
             self.input_name = self.input_name[0]
-            self.predict = self.predict_onnx
+            if predict_method_replacement:
+                self.predict = self.predict_onnx
     
     def predict_onnx(
         self,
@@ -84,6 +90,41 @@ class ONNXRuntimeAbstractClass(ABC):
             list: model output
         '''
         return self.session.run(self.output_name, {self.input_name: model_input})
+
+    def disable_profiling(self) -> None:
+        '''
+        Disable profiling
+        '''
+        os.remove(self.get_profile_filename()) 
+
+    def get_profile_filename(self) -> str:
+        '''
+        Get the profile file name
+
+        Returns:
+            str: The profile file name
+        '''
+        return self.session.end_profiling()
+
+    def get_profiling_start_time_ns(self) -> int:
+        '''
+        Get the profiling start time in nanoseconds 
+        , which is comparable to time.monotonic_ns() after Python 3.3. 
+        On some platforms, this timer may not be as precise as nanoseconds.
+        For instance, on Windows and MacOS, the precision will be ~100ns
+        Refers to https://onnxruntime.ai/docs/api/python/api_summary.html for more details
+
+        Returns:
+            int: The profiling start time in nanoseconds
+        '''
+        return self.session.get_profiling_start_time_ns()
+    
+    def reset_session(self) -> None:
+        '''
+        Reset the session
+        '''
+        self.session = ort.InferenceSession(self.model_path, self.sess_options, providers=self.providers) 
+        return 
 
     def file_download(self, file_url: str, file_path: str) -> None:
         '''
@@ -124,8 +165,8 @@ class ONNXRuntimeAbstractClass(ABC):
         if not os.path.isdir(temp_path): 
             os.mkdir(temp_path) 
 
-        source_file_name = inspect.stack()[1].filename.replace('\\', '/').split('/')[-1][:-3] 
-        model_path = os.path.join(temp_path, source_file_name + '/' + model_file_url.split('/')[-1]) 
+        model_name = inspect.stack()[1].filename.replace('\\', '/').split('/')[-2] 
+        model_path = os.path.join(temp_path, model_name + '/' + model_file_url.split('/')[-1]) 
         if not os.path.exists(model_path): 
             os.mkdir('/'.join(model_path.replace('\\', '/').split('/')[:-1])) 
             print("The model file does not exist")

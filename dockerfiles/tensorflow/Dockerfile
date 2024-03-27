@@ -53,10 +53,10 @@ RUN pip install --upgrade pip
 RUN conda install -c anaconda tensorflow-gpu=$TENSORFLOW_VERSION 
 
 ########## PY-MLMODELSCOPE INSTALLATION #################
-RUN pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc grpcio==1.27.2 
+RUN pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc grpcio==1.27.2 opentelemetry-exporter-otlp-proto-http httpio 
 RUN pip install google-pasta 
 RUN pip install opencv-python-headless 
-RUN pip install Pillow 
+RUN pip install tqdm Pillow 
 RUN pip install aenum requests
 RUN conda install -c pytorch torchvision==0.9.1 
 RUN conda install -c conda-forge onnx==1.7.0 
