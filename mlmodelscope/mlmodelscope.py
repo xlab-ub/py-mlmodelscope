@@ -42,6 +42,9 @@ class MLModelScope:
         url = True 
       else: 
         dataset_name = dataset_name[0] 
+    else:
+      if dataset_name.startswith('http'): 
+        url = True
     if not url and task is None: 
       dataset_list = [dataset[:-3] for dataset in os.listdir(f'./pydldataset/datasets/') if dataset.endswith('.py')]
       dataset_list.remove('url_data') 
