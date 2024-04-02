@@ -37,6 +37,7 @@ class MLModelScope:
 
   def load_dataset(self, dataset_name, batch_size, task=None, security_check=True): 
     url = False 
+    print(dataset_name)
     if isinstance(dataset_name, list): 
       if dataset_name[0].startswith('http'): 
         url = True 
