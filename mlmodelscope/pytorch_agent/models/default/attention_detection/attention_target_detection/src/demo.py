@@ -46,8 +46,11 @@ def move_figure(f, x, y): #https://matplotlib.org/stable/users/explain/figure/ba
         f.canvas.manager.window.wm_geometry("+%d+%d" % (x, y))
     elif backend == 'WXAgg':
         f.canvas.manager.window.SetPosition((x, y))
-    else:
+    elif backend == 'Qt4Agg' or backend == 'Qt5Agg':
+        # This is specific to Qt4Agg and Qt5Agg backends
         f.canvas.manager.window.move(x, y)
+    else:
+        print("This backend does not support moving the window or is not implemented.")
 
 def makeFrames(maxFrames = 10, video_path="gordon_ramsay.avi"):
     cap = cv2.VideoCapture(video_path)
@@ -72,6 +75,12 @@ def makeFrames(maxFrames = 10, video_path="gordon_ramsay.avi"):
 def makeCSV():
     
     cnn_face_detector = dlib.cnn_face_detection_model_v1(CNN_MODEL_PATH)
+
+    # If the directories don't exist, create them
+    if not os.path.exists(os.path.join(CURRENT_DIR, "data/csv")):
+        os.makedirs(os.path.join(CURRENT_DIR, "data/csv"))
+    if not os.path.exists(os.path.join(CURRENT_DIR, "data/frames")):
+        os.makedirs(os.path.join(CURRENT_DIR, "data/frames"))
 
     # Define CSV path
     csv_path = os.path.join(CURRENT_DIR, "data/csv", "head.csv")
@@ -130,7 +139,8 @@ def cleanUp():
     return None
 
 def run(out_threshold, vis_mode, video_path):
-    matplotlib.use("tkagg")
+    # matplotlib.use("tkagg")
+    matplotlib.use("agg")
 
 
     # Define CSV path
