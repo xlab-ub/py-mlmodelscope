@@ -158,12 +158,16 @@ def run(video_path, face_path, jitter, vis, display_off, save_text):
                 if save_text:
                     f.write("%d,%f\n"%(frame_cnt,score))
 
+            frame = np.asarray(frame) # convert PIL image back to opencv format for faster display
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            if vis:
+                outvid.write(frame)
             if not display_off:
-                frame = np.asarray(frame) # convert PIL image back to opencv format for faster display
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                # frame = np.asarray(frame) # convert PIL image back to opencv format for faster display
+                # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 cv2.imshow('',frame)
-                if vis:
-                    outvid.write(frame)
+                # if vis:
+                #     outvid.write(frame)
                 key = cv2.waitKey(1) & 0xFF
                 if key == ord('q'):
                     break

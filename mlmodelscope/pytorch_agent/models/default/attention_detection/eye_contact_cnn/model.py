@@ -16,7 +16,7 @@ class Eye_Contact_CNN(PyTorchAbstractClass):
     jitter = 0
     save_vis = True
     save_text = True
-    display_off = False
+    display_off = True 
 
     def __init__(self, config=None):
 
@@ -36,11 +36,11 @@ class Eye_Contact_CNN(PyTorchAbstractClass):
 
     def predict(self, input_data):
         
-        run(input_data, self.face, self.jitter, self.save_text, self.display_off, self.save_text)
+        run(input_data, self.face, self.jitter, self.save_vis, self.display_off, self.save_text)
         return 0
     
     def postprocess(self, model_output):
-        print("\nYour outputs are saved at: pydldataset/datasets/tmp/eye_contact_detection_data/outputs!\n")
+        print("\nYour outputs are saved at: pydldataset/datasets/tmp/attention_dectection_data/outputs!\n")
         return [0]
 
 
