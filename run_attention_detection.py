@@ -1,13 +1,20 @@
 import subprocess 
 
-import logging 
 import argparse 
+import json 
 
 import numpy as np 
 
 from mlmodelscope import MLModelScope 
 
-logger = logging.getLogger(__name__) 
+TRACE_LEVEL = ( "NO_TRACE",
+                "APPLICATION_TRACE",
+                "MODEL_TRACE",          # pipelines within model
+                "FRAMEWORK_TRACE",      # layers within framework
+                "ML_LIBRARY_TRACE",     # cudnn, ...
+                "SYSTEM_LIBRARY_TRACE", # cupti
+                "HARDWARE_TRACE",       # perf, papi, ...
+                "FULL_TRACE")           # includes all of the above)
 
 def main(): 
   parser = argparse.ArgumentParser(description="mlmodelscope") 
@@ -15,11 +22,15 @@ def main():
   parser.add_argument("--agent", type=str, nargs='?', default="pytorch", choices=["pytorch", "tensorflow", "onnxruntime", "mxnet"], help="Which framework to use") 
 
   if parser.parse_known_args()[0].standalone == 'true': 
+    parser.add_argument("--user", type=str, nargs='?', default="default", help="The name of the user") 
     parser.add_argument("--task", type=str, nargs='?', default="attention_detection", help="The name of the task to predict.") 
     parser.add_argument("--model_name", type=str, nargs='?', default="eye_contact_cnn", help="The name of the model") 
+    parser.add_argument("--config_file", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to use config file (.json)") 
+    parser.add_argument("--config_file_path", type=str, nargs='?', default="config.json", help="The path of the config file") 
     parser.add_argument("--architecture", type=str, nargs='?', default="gpu", choices=["cpu", "gpu"], help="Which Processing Unit to use") 
     parser.add_argument("--num_warmup", type=int, nargs='?', default=0, help="Total number of warmup steps for predict.") 
-    parser.add_argument("--dataset_name", type=str, nargs='?', default="attention_detection data", help="The name of the dataset for predict.") 
+    parser.add_argument("--dataset_name", type=str, nargs='?', default="attention_detection_data", help="The name of the dataset for predict.") 
+    parser.add_argument("--trace_level", type=str, nargs='?', default="NO_TRACE", choices=TRACE_LEVEL, help="MLModelScope Trace Level") 
     parser.add_argument("--batch_size", type=int, nargs='?', default=1, help="Total batch size for predict.") 
     parser.add_argument("--gpu_trace", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to trace GPU activities") 
     parser.add_argument("--detailed_result", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to get detailed result") 
@@ -46,9 +57,11 @@ def main():
   agent = args.agent 
   
   if args.standalone == 'true': 
+    user          = args.user 
     task          = args.task 
     architecture  = args.architecture 
-    gpu_trace     = True if args.gpu_trace == "true" else False 
+    trace_level   = args.trace_level
+    gpu_trace     = True if (TRACE_LEVEL.index(trace_level) >= TRACE_LEVEL.index("SYSTEM_LIBRARY_TRACE")) and (args.gpu_trace == "true") else False 
     if architecture == "gpu": 
       # https://stackoverflow.com/questions/67504079/how-to-check-if-an-nvidia-gpu-is-available-on-my-system 
       try:
@@ -62,20 +75,29 @@ def main():
         print("GPU device will not be used because \"cpu\" is chosen for architecture.\nTherefore, gpu_trace option becomes off.") 
 
     model_name    = args.model_name 
+    config = None 
+    if args.config_file == "true":
+      config_file_path = args.config_file_path 
+      try: 
+        with open(config_file_path, 'r') as f:
+          config = json.load(f)
+          print(f"config file {config_file_path} is loaded")
+      except (json.JSONDecodeError, FileNotFoundError) as e:
+        print(f"config file {config_file_path} is not loaded: {e}") 
     num_warmup    = args.num_warmup 
     dataset_name  = args.dataset_name 
     batch_size    = args.batch_size 
     detailed = True if args.detailed_result == "true" else False 
     security_check = True if args.security_check == "true" else False
 
-    mlms = MLModelScope(architecture, gpu_trace) 
+    mlms = MLModelScope(architecture, trace_level, gpu_trace) 
     
-    mlms.load_agent(task, agent, model_name, security_check) 
+    mlms.load_agent(task, agent, model_name, security_check, config, user) 
     print(f"{agent}-agent is loaded with {model_name} model\n") 
-    mlms.load_dataset(dataset_name, batch_size) 
+    mlms.load_dataset(dataset_name, batch_size, None, security_check) 
     print(f"{dataset_name} dataset is loaded\n") 
     print(f"prediction starts") 
-    outputs = mlms.predict(num_warmup, detailed) 
+    outputs = mlms.predict(num_warmup) 
     print("prediction is done\n") 
 
     print("outputs are as follows:") 
@@ -124,12 +146,10 @@ def main():
     import time 
     from datetime import datetime, timezone 
     from uuid import uuid4 
-    import json 
+    # import json 
     
     import psycopg 
     import pika 
-
-    detailed = True 
 
     if args.env_file == 'false': 
       db_name = args.db_dbname 
@@ -174,6 +194,7 @@ def main():
       
       received_message = json.loads(body.decode()) 
       
+      user          = received_message['User'] if 'User' in received_message else 'default' 
       task          = received_message['DesiredResultModality'] 
       architecture  = 'gpu' if received_message['UseGpu'] else 'cpu' 
       gpu_trace     = True if received_message['UseGpu'] != "NO_TRACE" else False 
@@ -194,18 +215,21 @@ def main():
       dataset_name  = received_message['InputFiles'] 
       batch_size    = received_message['BatchSize'] 
 
+      config = received_message['Configuration'] if 'Configuration' in received_message else None 
+      security_check = received_message['SecurityCheck'] if 'SecurityCheck' in received_message else False 
+
       # measure duration 
       duration_start_time = time.time()
       mlms = MLModelScope(architecture, gpu_trace) 
     
-      mlms.load_agent(task, agent, model_name) 
+      mlms.load_agent(task, agent, model_name, security_check, config, user) 
       print(f"{agent}-agent is loaded with {model_name} model\n") 
-      mlms.load_dataset(dataset_name, batch_size, task) 
+      mlms.load_dataset(dataset_name, batch_size, task, security_check) 
       print(f"{dataset_name} dataset is loaded\n") 
       print(f"prediction starts") 
       # measure duration_for_inference 
       duration_for_inference_start_time = time.time()
-      outputs = mlms.predict(num_warmup, detailed) 
+      outputs = mlms.predict(num_warmup, True) 
       duration_for_inference_end_time = time.time()
       duration_for_inference = (duration_for_inference_end_time - duration_for_inference_start_time) 
       print(f"prediction done") 
