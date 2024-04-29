@@ -19,5 +19,5 @@ librosa
 aenum 
 requests
 psycopg 
-"psycopg[binary]"
+psycopg[binary]
 Pika 
