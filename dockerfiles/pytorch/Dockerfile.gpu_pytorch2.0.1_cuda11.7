@@ -18,8 +18,8 @@ ENV PATH /opt/anaconda3/bin:$PATH
 
 ######################################################################
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update
-RUN apt-get install -y --no-install-recommends \
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
   git \
   build-essential \
   software-properties-common \
@@ -49,21 +49,24 @@ RUN cd /opt && \
   conda config --set always_yes yes --set changeps1 no
 RUN pip install --upgrade pip
 
-########## PYTORCH INSTALLATION #########################
-RUN pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2
+# ########## PYTORCH INSTALLATION #########################
+# RUN pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2
 
-########## TRANSFORMERS INSTALLATION ####################
-RUN pip install transformers diffusers sentencepiece
+# ########## TRANSFORMERS INSTALLATION ####################
+# RUN pip install transformers diffusers sentencepiece
 
 ########## PY-MLMODELSCOPE INSTALLATION #################
-RUN pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc grpcio opentelemetry-exporter-otlp-proto-http httpio 
-RUN pip install opencv-python-headless
-RUN pip install tqdm Pillow librosa 
-RUN pip install aenum requests
-RUN pip install psycopg "psycopg[binary]"
-RUN pip install Pika 
+# RUN pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc grpcio opentelemetry-exporter-otlp-proto-http httpio 
+# RUN pip install opencv-python-headless
+# RUN pip install tqdm Pillow librosa 
+# RUN pip install aenum requests
+# RUN pip install psycopg "psycopg[binary]"
+# RUN pip install Pika 
+
 RUN cd /
 RUN git clone https://github.com/xlab-ub/py-mlmodelscope.git 
 RUN cd ./py-mlmodelscope 
 WORKDIR /py-mlmodelscope 
+
+RUN pip install -r ./dockerfiles/pytorch/requirements.txt
 ENTRYPOINT ["conda", "run", "--no-capture-output", "python", "run_mlmodelscope.py", "--standalone", "false", "--agent", "pytorch", "--env_file", "true"] 
