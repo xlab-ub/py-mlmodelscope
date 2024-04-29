@@ -68,5 +68,5 @@ RUN git clone https://github.com/xlab-ub/py-mlmodelscope.git
 RUN cd ./py-mlmodelscope 
 WORKDIR /py-mlmodelscope 
 
-RUN pip install -r ./dockerfiles/pytorch/requirements.txt
+RUN pip install -r ./dockerfiles/pytorch/requirements_gpu_pytorch2.0.1_cuda11.7.txt
 ENTRYPOINT ["conda", "run", "--no-capture-output", "python", "run_mlmodelscope.py", "--standalone", "false", "--agent", "pytorch", "--env_file", "true"] 
