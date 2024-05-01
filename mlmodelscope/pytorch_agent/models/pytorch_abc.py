@@ -170,3 +170,17 @@ class PyTorchAbstractClass(ABC):
             features = [line.rstrip() for line in f_f] 
         
         return features
+
+    def huggingface_authenticate(self) -> None: 
+        '''
+        Authenticate the Huggingface account
+
+        Args:
+            model_id (str): The model id
+        '''
+        from huggingface_hub import login 
+        huggingface_token = os.environ.get("HUGGINGFACE_TOKEN") or self.config.get('huggingface_token') 
+        if huggingface_token is None: 
+            raise ValueError("Huggingface token not found. Please set the environment variable HUGGINGFACE_TOKEN or pass it in the config")
+        login(token=huggingface_token)
+    
