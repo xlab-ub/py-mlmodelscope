@@ -89,8 +89,8 @@ def create_instance_from_dataset_manifest_file(dataset_name, security_check=True
 def load(dataset_name, url=False, count=None, task=None, security_check=True):
   try:
     if url: 
-      exec('from .datasets.url_data' + ' import init', globals())
-      return init(dataset_name) 
+      exec('from .datasets.url_data' + ' import Url_Data', globals())
+      return Url_Data(dataset_name) 
     else: 
       if task is None:
         exec('from .datasets.' + dataset_name + ' import init', globals())
@@ -99,10 +99,12 @@ def load(dataset_name, url=False, count=None, task=None, security_check=True):
         else: 
           return init() 
       elif task[:4] == "text": 
-        exec('from .datasets.text_data import init', globals())
-        return init(dataset_name) 
+        exec('from .datasets.text_data import Text_Data', globals())
+        return Text_Data(dataset_name) 
       else:
         raise NotImplementedError(f"{task} dataset is not supported")
+    print(f"{dataset_name} dataset exists")
+    print(url)
   except ImportError as e:
     if e.msg.split()[3] == "'init'": 
       return create_instance_from_dataset_manifest_file(dataset_name, security_check) 

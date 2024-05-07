@@ -37,11 +37,15 @@ class MLModelScope:
 
   def load_dataset(self, dataset_name, batch_size, task=None, security_check=True): 
     url = False 
+    print(dataset_name)
     if isinstance(dataset_name, list): 
       if dataset_name[0].startswith('http'): 
         url = True 
       else: 
         dataset_name = dataset_name[0] 
+    else:
+      if dataset_name.startswith('http'): 
+        url = True
     if not url and task is None: 
       dataset_list = [dataset[:-3] for dataset in os.listdir(f'./pydldataset/datasets/') if dataset.endswith('.py')]
       dataset_list.remove('url_data') 

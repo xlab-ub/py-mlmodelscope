@@ -1,0 +1,23 @@
+--extra-index-url https://download.pytorch.org/whl/cu117
+
+torch==2.0.1+cu117 
+torchvision==0.15.2+cu117
+torchaudio==2.0.2+cu117 
+transformers 
+diffusers 
+sentencepiece
+opentelemetry-api 
+opentelemetry-sdk
+opentelemetry-exporter-otlp-proto-grpc
+grpcio 
+opentelemetry-exporter-otlp-proto-http
+httpio 
+opencv-python-headless
+tqdm 
+Pillow 
+librosa 
+aenum 
+requests
+psycopg 
+psycopg[binary]
+Pika 
