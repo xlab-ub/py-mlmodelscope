@@ -2,7 +2,7 @@ from ....pytorch_abc import PyTorchAbstractClass
 
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 
-class PyTorch_Transformers_FLAN_T5_Base(PyTorchAbstractClass):
+class PyTorch_Transformers_FLAN_T5_Large(PyTorchAbstractClass):
   def __init__(self, config=None):
     self.config = config if config else {}
     self.tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-large")
