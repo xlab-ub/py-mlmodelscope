@@ -110,8 +110,6 @@ class PyTorch_Agent:
                 with record_function("warmup"):
                   for index, data in enumerate(dataloader): 
                     if index >= num_warmup: 
-                      print('Warmup done') 
-                      dataloader.reset() 
                       break 
                     with tracer.start_as_current_span_from_context(f"Warmup Batch {index}", trace_level="APPLICATION_TRACE") as warmup_batch_span:
                       self.spans_for_traced_result[f'warmup_batch_{index}'] = warmup_batch_span
@@ -131,30 +129,31 @@ class PyTorch_Agent:
                           self.spans_for_traced_result[f'warmup_batch_{index}_postprocess'] = postprocess_span
                           with record_function(f"warmup_batch_{index}_postprocess"):
                             self.model.postprocess(model_output)
-
-        with tracer.start_as_current_span_from_context(f"Evaluate", trace_level="APPLICATION_TRACE") as evaluate_span:
-              self.spans_for_traced_result['evaluate'] = evaluate_span  
-              with record_function("evaluate"):
-                for index, data in enumerate(dataloader):
-                  with tracer.start_as_current_span_from_context(f"Evaluate Batch {index}", trace_level="APPLICATION_TRACE") as evaluate_batch_span:
-                    self.spans_for_traced_result[f'evaluate_batch_{index}'] = evaluate_batch_span
-                    with record_function(f"evaluate_batch_{index}"):
-                      with tracer.start_as_current_span_from_context("preprocess", trace_level="APPLICATION_TRACE") as preprocess_span:
-                        self.spans_for_traced_result[f'evaluate_batch_{index}_preprocess'] = preprocess_span
-                        with record_function(f"evaluate_batch_{index}_preprocess"):
-                          model_input = self.model.preprocess(data)
-                          if hasattr(model_input, 'to'):
-                            model_input = model_input.to(self.device) 
-                      with tracer.start_as_current_span_from_context("predict", trace_level="MODEL_TRACE") as predict_span:  
-                        self.spans_for_traced_result[f'evaluate_batch_{index}_predict'] = predict_span
-                        with record_function(f"evaluate_batch_{index}_predict"):
-                          prop.inject(carrier=carrier, context=set_span_in_context(predict_span)) 
-                          model_output = self.model.predict(model_input) 
-                      with tracer.start_as_current_span_from_context("postprocess", trace_level="APPLICATION_TRACE") as postprocess_span:
-                        self.spans_for_traced_result[f'evaluate_batch_{index}_postprocess'] = postprocess_span
-                        with record_function(f"evaluate_batch_{index}_postprocess"): 
-                          post_processed_model_output = self.model.postprocess(model_output) 
-                      output_processor.process_batch_outputs_postprocessed(self.task, post_processed_model_output) 
+                  print('Warmup done')
+              dataloader.reset() 
+            with tracer.start_as_current_span_from_context(f"Evaluate", trace_level="APPLICATION_TRACE") as evaluate_span:
+                  self.spans_for_traced_result['evaluate'] = evaluate_span  
+                  with record_function("evaluate"):
+                    for index, data in enumerate(dataloader):
+                      with tracer.start_as_current_span_from_context(f"Evaluate Batch {index}", trace_level="APPLICATION_TRACE") as evaluate_batch_span:
+                        self.spans_for_traced_result[f'evaluate_batch_{index}'] = evaluate_batch_span
+                        with record_function(f"evaluate_batch_{index}"):
+                          with tracer.start_as_current_span_from_context("preprocess", trace_level="APPLICATION_TRACE") as preprocess_span:
+                            self.spans_for_traced_result[f'evaluate_batch_{index}_preprocess'] = preprocess_span
+                            with record_function(f"evaluate_batch_{index}_preprocess"):
+                              model_input = self.model.preprocess(data)
+                              if hasattr(model_input, 'to'):
+                                model_input = model_input.to(self.device) 
+                          with tracer.start_as_current_span_from_context("predict", trace_level="MODEL_TRACE") as predict_span:  
+                            self.spans_for_traced_result[f'evaluate_batch_{index}_predict'] = predict_span
+                            with record_function(f"evaluate_batch_{index}_predict"):
+                              prop.inject(carrier=carrier, context=set_span_in_context(predict_span)) 
+                              model_output = self.model.predict(model_input) 
+                          with tracer.start_as_current_span_from_context("postprocess", trace_level="APPLICATION_TRACE") as postprocess_span:
+                            self.spans_for_traced_result[f'evaluate_batch_{index}_postprocess'] = postprocess_span
+                            with record_function(f"evaluate_batch_{index}_postprocess"): 
+                              post_processed_model_output = self.model.postprocess(model_output) 
+                          output_processor.process_batch_outputs_postprocessed(self.task, post_processed_model_output) 
     final_outputs = output_processor.get_final_outputs() 
   
     # # for self.spans_for_traced_result 
