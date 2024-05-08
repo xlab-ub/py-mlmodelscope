@@ -7,7 +7,23 @@ from opentelemetry.trace import NoOpTracer
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource 
 from opentelemetry.sdk.trace import TracerProvider 
 from opentelemetry.sdk.trace.export import BatchSpanProcessor 
+from opentelemetry.sdk.trace.export import Span, SpanExportResult
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter 
+from typing import Sequence 
+
+class CustomOTLPSpanExporter(OTLPSpanExporter):
+    def __init__(self, filename=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.filename = filename
+        if filename and os.path.exists(filename):
+            os.remove(filename)  # Remove existing file 
+
+    def export(self, spans: Sequence[Span]) -> SpanExportResult:
+        # if self.filename:
+        with open(self.filename, "a") as file:  # Open file in append mode
+            span_data = [span.to_json() for span in spans]
+            file.write('\n\n'.join(span_data) + "\n\n")
+        return super().export(spans)
 
 class Tracer:
     TRACE_LEVEL = ( "NO_TRACE",
@@ -19,14 +35,17 @@ class Tracer:
                 "HARDWARE_TRACE",       # perf, papi, ...
                 "FULL_TRACE")           # includes all of the above)
     
-    def __init__(self, name="mlms", trace_level="NO_TRACE", endpoint='http://localhost:4318/v1/traces', max_queue_size=4096):
+    def __init__(self, name="mlms", trace_level="NO_TRACE", endpoint='http://localhost:4318/v1/traces', max_queue_size=4096, save_trace_result_path=None):
         resource = Resource(attributes={SERVICE_NAME: name})
         trace.set_tracer_provider(TracerProvider(resource=resource))
 
         if "tracer_HOST" in os.environ and "tracer_PORT" in os.environ:
             endpoint = f"{os.environ['tracer_HOST']}:{os.environ['tracer_PORT']}"
         # https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html
-        span_processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint), max_queue_size=max_queue_size)
+        if save_trace_result_path is None:
+            span_processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint), max_queue_size=max_queue_size)
+        else: 
+            span_processor = BatchSpanProcessor(CustomOTLPSpanExporter(filename=save_trace_result_path, endpoint=endpoint), max_queue_size=max_queue_size)
         trace.get_tracer_provider().add_span_processor(span_processor)
 
         self.trace_level = trace_level 
@@ -38,8 +57,8 @@ class Tracer:
         return
 
     @classmethod
-    def create(cls, name="mlms", trace_level="NO_TRACE", endpoint='http://localhost:4318/v1/traces', max_queue_size=4096):
-        tracer = cls(name=name, trace_level=trace_level, endpoint=endpoint, max_queue_size=max_queue_size) 
+    def create(cls, name="mlms", trace_level="NO_TRACE", endpoint='http://localhost:4318/v1/traces', max_queue_size=4096, save_trace_result_path=None):
+        tracer = cls(name=name, trace_level=trace_level, endpoint=endpoint, max_queue_size=max_queue_size, save_trace_result_path=save_trace_result_path) 
 
         span, ctx = tracer.start_span_from_context(name="mlmodelscope", trace_level="APPLICATION_TRACE") 
 

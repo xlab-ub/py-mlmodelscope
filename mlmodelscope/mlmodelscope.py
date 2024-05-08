@@ -14,12 +14,12 @@ sys.path.pop(1)
 logger = logging.getLogger(__name__) 
 
 class MLModelScope: 
-  def __init__(self, architecture, trace_level="NO_TRACE", gpu_trace=False): 
+  def __init__(self, architecture, trace_level="NO_TRACE", gpu_trace=False, save_trace_result_path=None): 
     sys.path.insert(1, os.path.join(sys.path[0], '..')) 
     from tracer import Tracer
     sys.path.pop(1) 
 
-    self.tracer, self.root_span, self.ctx = Tracer.create(trace_level=trace_level)
+    self.tracer, self.root_span, self.ctx = Tracer.create(trace_level=trace_level, save_trace_result_path=save_trace_result_path)
 
     self.architecture = architecture 
     self.gpu_trace = gpu_trace 
