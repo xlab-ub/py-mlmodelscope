@@ -7,18 +7,17 @@ from diffusers import AutoencoderKL, UNet2DConditionModel, PNDMScheduler
 class PyTorch_Transformers_Stable_Diffusion_v1_4(PyTorchAbstractClass):
   def __init__(self, config=None):
     self.config = config if config else {}
-    self.vae = AutoencoderKL.from_pretrained("CompVis/stable-diffusion-v1-4", subfolder="vae", use_safetensors=True)
-    self.tokenizer = CLIPTokenizer.from_pretrained("CompVis/stable-diffusion-v1-4", subfolder="tokenizer")
-    self.text_encoder = CLIPTextModel.from_pretrained(
-        "CompVis/stable-diffusion-v1-4", subfolder="text_encoder", use_safetensors=True
-    )
-    self.unet = UNet2DConditionModel.from_pretrained(
-        "CompVis/stable-diffusion-v1-4", subfolder="unet", use_safetensors=True
-    )
-    self.scheduler = PNDMScheduler.from_pretrained("CompVis/stable-diffusion-v1-4", subfolder="scheduler")
+    model_id = "CompVis/stable-diffusion-v1-4"
+    self.vae = AutoencoderKL.from_pretrained(model_id, subfolder="vae", use_safetensors=True)
+    self.tokenizer = CLIPTokenizer.from_pretrained(model_id, subfolder="tokenizer")
+    self.text_encoder = CLIPTextModel.from_pretrained(model_id, subfolder="text_encoder", use_safetensors=True)
+    self.unet = UNet2DConditionModel.from_pretrained(model_id, subfolder="unet", use_safetensors=True)
+    self.scheduler = PNDMScheduler.from_pretrained(model_id, subfolder="scheduler")
 
-    self.height = self.config.get('height', 512)  # default height of Stable Diffusion
-    self.width = self.config.get('width', 512)  # default width of Stable Diffusion 
+    self.vae_scale_factor = 2 ** (len(self.vae.config.block_out_channels) - 1) 
+    
+    self.height = self.config.get('height', self.unet.config.sample_size * self.vae_scale_factor) 
+    self.width = self.config.get('width', self.unet.config.sample_size * self.vae_scale_factor) 
     self.num_inference_steps = self.config.get('num_inference_steps', 25)  # Number of denoising steps
     self.guidance_scale = self.config.get('guidance_scale', 7.5)  # Scale for classifier-free guidance
     self.seed = self.config.get('seed', 0)
@@ -28,7 +27,8 @@ class PyTorch_Transformers_Stable_Diffusion_v1_4(PyTorchAbstractClass):
     text_inputs = self.tokenizer(input_prompts, padding="max_length", max_length=self.tokenizer.model_max_length,
                                  truncation=True, return_tensors="pt").input_ids.to(self.device)
     unconditional_input = self.tokenizer([""] * batch_size, padding="max_length",
-                                         max_length=self.tokenizer.model_max_length, return_tensors="pt").input_ids.to(self.device)
+                                         max_length=self.tokenizer.model_max_length, return_tensors="pt"
+                                         ).input_ids.to(self.device)
     
     with torch.no_grad():
       # Encode all prompts in one go to leverage GPU parallelization
