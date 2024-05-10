@@ -14,9 +14,8 @@ class PyTorch_Transformers_DDPM_Cat_256(PyTorchAbstractClass):
 
     self.num_inference_steps = self.config.get('num_inference_steps', 25) # num_inference_steps: int = 1000 
 
-    self.scheduler.set_timesteps(self.num_inference_steps) 
-
   def preprocess(self, no_input): 
+    self.scheduler.set_timesteps(self.num_inference_steps, device=self.device) 
     return torch.randn((len(no_input), 3, self.sample_size, self.sample_size), device=self.device) 
   
   def predict(self, model_input): 

@@ -43,7 +43,7 @@ class PyTorch_Transformers_Stable_Diffusion_v1_4(PyTorchAbstractClass):
       generator=self.generator, device=self.device
     ) * self.scheduler.init_noise_sigma
 
-    self.scheduler.set_timesteps(self.num_inference_steps)
+    self.scheduler.set_timesteps(self.num_inference_steps, device=self.device)
 
     return model_input 
   
