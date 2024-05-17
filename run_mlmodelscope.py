@@ -33,8 +33,12 @@ def main():
     parser.add_argument("--batch_size", type=int, nargs='?', default=2, help="Total batch size for predict.") 
     parser.add_argument("--trace_level", type=str, nargs='?', default="NO_TRACE", choices=TRACE_LEVEL, help="MLModelScope Trace Level") 
     parser.add_argument("--gpu_trace", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to trace GPU activities") 
+    parser.add_argument("--save_trace_result", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to save the trace result")
+    parser.add_argument("--save_trace_result_path", type=str, nargs='?', default="trace_result.txt", help="The path of the trace result file")
     parser.add_argument("--detailed_result", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to get detailed result") 
     parser.add_argument("--security_check", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to perform security check on the model file")
+    parser.add_argument("--save_output", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to save the output")
+    parser.add_argument("--save_output_path", type=str, nargs='?', default="output.json", help="The path of the output file")
 
   else: 
     parser.add_argument("--env_file", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to use env file") 
@@ -90,7 +94,12 @@ def main():
     detailed = True if args.detailed_result == "true" else False 
     security_check = True if args.security_check == "true" else False
 
-    mlms = MLModelScope(architecture, trace_level, gpu_trace) 
+    save_trace_result = True if (args.save_trace_result == "true") and (trace_level != "NO_TRACE") else False 
+    save_trace_result_path = args.save_trace_result_path if save_trace_result else None
+    save_output = True if args.save_output == "true" else False 
+    save_output_path = args.save_output_path if save_output else None 
+
+    mlms = MLModelScope(architecture, trace_level, gpu_trace, save_trace_result_path) 
     
     mlms.load_agent(task, agent, model_name, security_check, config, user) 
     print(f"{agent}-agent is loaded with {model_name} model\n") 
@@ -142,6 +151,10 @@ def main():
     else: 
       for index, output in enumerate(outputs): 
         print(f"outputs[{index}]: {output}") 
+      if task in ["text_to_text"] and save_output:
+        with open(save_output_path, 'w') as f: 
+          json.dump(outputs, f, indent=4) 
+        print(f"result is saved in {save_output_path}") 
 
     mlms.Close() 
   
