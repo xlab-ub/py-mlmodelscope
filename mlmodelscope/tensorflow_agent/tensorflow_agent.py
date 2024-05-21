@@ -1,14 +1,12 @@
 import os 
 import pathlib 
 import logging 
-# https://github.com/tensorflow/tensorflow/issues/33478 
-# import functools 
-# from typing import List, Callable, Optional 
+import types 
 
 import tensorflow as tf 
 
-# from opentelemetry import trace, context 
-# from opentelemetry.trace import set_span_in_context 
+from opentelemetry.trace import set_span_in_context 
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator 
 
 from ._load import _load 
 
@@ -20,20 +18,17 @@ logger = logging.getLogger(__name__)
 class TensorFlow_Agent: 
   def __init__(self, task, model_name, architecture, tracer, context, security_check=True, config=None, user='default'): 
     self.tracer = tracer 
-    # self.prop = prop 
-    # self.carrier = carrier 
+    self.prop = TraceContextTextMapPropagator() 
+    self.carrier = {} 
 
     self.all_spans = {} 
 
     self.span, self.ctx = self.tracer.start_span_from_context(name="tensorflow-agent", context=context, trace_level="APPLICATION_TRACE")
 
-    # self.device = 'cuda' if ((architecture == "gpu") and torch.cuda.is_available()) else 'cpu' 
     if architecture == "cpu": 
       if tf.__version__[0] == '1': 
-        # https://stackoverflow.com/questions/37660312/how-to-run-tensorflow-on-cpu 
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1' 
       else: 
-        # https://stackoverflow.com/questions/37660312/how-to-run-tensorflow-on-cpu 
         tf.config.set_visible_devices([], 'GPU') 
 
     self.load_model(task, model_name, security_check, config, user) 
@@ -51,48 +46,44 @@ class TensorFlow_Agent:
     with self.tracer.start_as_current_span_from_context(self.model_name + ' model load', context=self.ctx, trace_level="APPLICATION_TRACE"): 
       self.model = _load(task=task, model_name=self.model_name, security_check=security_check, config=config, user=user) 
 
-    # https://github.com/tensorflow/tensorflow/issues/33478 
-    # def proxy_call(input: tf.Tensor, layer: tf.keras.layers.Layer, training=False) -> tf.Tensor:
-    #   if layer._forward_pre_hook is not None:
-    #     layer._forward_pre_hook(layer, input)
-    #   output = layer._forward(input) 
-    #   if layer._forward_hook is not None:
-    #     hook_result = layer._forward_hook(layer, input, output)
-    #     if hook_result is not None:
-    #       output = hook_result
-    #   return output
+    def proxy_call(layer: tf.keras.layers.Layer, *args, **kwargs) -> tf.Tensor:
+      if layer._forward_pre_hook is not None:
+        layer._forward_pre_hook(layer, args, kwargs)
+      output = layer._forward(*args, **kwargs) 
+      if layer._forward_hook is not None:
+        hook_result = layer._forward_hook(layer, output, args, kwargs) 
+        if hook_result is not None:
+          output = hook_result
+      return output
 
-    # def register_pre_hook_and_hook(layers: List[tf.keras.layers.Layer], 
-    #                     forward_pre_hook: Callable[[tf.keras.layers.Layer, tf.Tensor], None]=None, 
-    #                     forward_hook: Callable[[tf.keras.layers.Layer, tf.Tensor, tf.Tensor], Optional[tf.Tensor]]=None): 
-    #   for layer in layers:
-    #     layer._forward_pre_hook = forward_pre_hook
-    #     layer._forward_hook = forward_hook
-    #     layer._forward = layer.call
-    #     layer.call = functools.partial(proxy_call, layer=layer) 
+    def register_pre_hook_and_hook(layers, forward_pre_hook, forward_hook): 
+      for layer in layers:
+        layer._forward_pre_hook = forward_pre_hook
+        layer._forward_hook = forward_hook
+        layer._forward = layer.call
+        
+        layer.call = types.MethodType(proxy_call, layer) 
 
-    # def pre_hook(layer: tf.keras.layers.Layer, input: tf.Tensor): 
-    #   prev_ctx = self.prop.extract(carrier=self.carrier) 
-    #   token = context.attach(prev_ctx) 
-    #   span = self.tracer.start_span(layer.name, context=prev_ctx) 
-    #   self.prop.inject(carrier=self.carrier, context=set_span_in_context(span)) 
-    #   self.all_spans[layer.name] = (span, token, prev_ctx) 
-    #   trace.use_span(span) 
+    def pre_hook(layer: tf.keras.layers.Layer, *args, **kwargs): 
+      prev_ctx = self.prop.extract(carrier=self.carrier) 
+      span, curr_ctx = self.tracer.start_span_from_context(layer.name, context=prev_ctx, trace_level="FRAMEWORK_TRACE") 
+      self.prop.inject(carrier=self.carrier, context=curr_ctx) 
+      self.all_spans[layer.name] = (span, prev_ctx) 
 
-    # def hook(layer: tf.keras.layers.Layer, input: tf.Tensor, output: tf.Tensor):
-    #   span, token, prev_ctx = self.all_spans[layer.name] 
-    #   span.end() 
-    #   context.detach(token) 
-    #   self.prop.inject(carrier=self.carrier, context=prev_ctx) 
-    #   del self.all_spans[layer.name] 
+    def hook(layer: tf.keras.layers.Layer, output: tf.Tensor, *args, **kwargs): 
+      span, prev_ctx = self.all_spans[layer.name] 
+      span.end() 
+      self.prop.inject(carrier=self.carrier, context=prev_ctx) 
 
-    # if hasattr(self.model.model, "layers"): 
-    #   register_pre_hook_and_hook(self.model.model.layers, forward_pre_hook=pre_hook, forward_hook=hook) 
+      del self.all_spans[layer.name] 
+
+    if hasattr(self.model.model, "layers"): 
+      register_pre_hook_and_hook(self.model.model.layers, forward_pre_hook=pre_hook, forward_hook=hook) 
 
   def predict(self, num_warmup, dataloader, output_processor, serialized=False, mlharness=False): 
     tracer = self.tracer 
-    # prop = self.prop 
-    # carrier = self.carrier 
+    prop = self.prop 
+    carrier = self.carrier 
 
     with tracer.start_as_current_span_from_context(self.model_name + ' start', context=self.ctx, trace_level="APPLICATION_TRACE") as model_start_span: 
       if num_warmup > 0: 
@@ -105,16 +96,17 @@ class TensorFlow_Agent:
         with tracer.start_as_current_span_from_context(f"Warmup", trace_level="APPLICATION_TRACE") as warmup_span:
           for index, data in enumerate(dataloader): 
             if index >= num_warmup: 
-              print('Warmup done') 
-              dataloader.reset() 
               break 
             with tracer.start_as_current_span_from_context(f"Warmup Batch {index}", trace_level="APPLICATION_TRACE") as warmup_batch_span:
               with tracer.start_as_current_span_from_context("preprocess", trace_level="APPLICATION_TRACE") as preprocess_span:
                 model_input = self.model.preprocess(data) 
               with tracer.start_as_current_span_from_context("predict", trace_level="MODEL_TRACE") as predict_span:  
+                prop.inject(carrier=carrier, context=set_span_in_context(predict_span)) 
                 model_output = self.model.predict(model_input) 
               with tracer.start_as_current_span_from_context("postprocess", trace_level="APPLICATION_TRACE") as postprocess_span:
                 self.model.postprocess(model_output)
+          print('Warmup done') 
+        dataloader.reset() 
 
       with tracer.start_as_current_span_from_context(f"Evaluate", trace_level="APPLICATION_TRACE") as evaluate_span:
         for index, data in enumerate(dataloader):
@@ -122,6 +114,7 @@ class TensorFlow_Agent:
             with tracer.start_as_current_span_from_context("preprocess", trace_level="APPLICATION_TRACE") as preprocess_span:
               model_input = self.model.preprocess(data)
             with tracer.start_as_current_span_from_context("predict", trace_level="MODEL_TRACE") as predict_span:  
+              prop.inject(carrier=carrier, context=set_span_in_context(predict_span)) 
               model_output = self.model.predict(model_input) 
             with tracer.start_as_current_span_from_context("postprocess", trace_level="APPLICATION_TRACE") as postprocess_span:
               post_processed_model_output = self.model.postprocess(model_output) 
