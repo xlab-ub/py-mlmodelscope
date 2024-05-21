@@ -2,6 +2,11 @@ import os
 import pathlib 
 import logging 
 
+import flax.linen as nn 
+
+from opentelemetry.trace import set_span_in_context 
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator 
+
 from ._load import _load 
 
 logger = logging.getLogger(__name__) 
@@ -9,6 +14,8 @@ logger = logging.getLogger(__name__)
 class JAX_Agent: 
   def __init__(self, task, model_name, architecture, tracer, context, security_check=True, config=None, user='default'): 
     self.tracer = tracer 
+    self.prop = TraceContextTextMapPropagator() 
+    self.carrier = {} 
 
     self.span, self.ctx = self.tracer.start_span_from_context("jax-agent", context=context, trace_level="APPLICATION_TRACE") 
 
@@ -29,8 +36,25 @@ class JAX_Agent:
     with self.tracer.start_as_current_span_from_context(self.model_name + ' model load', context=self.ctx, trace_level="APPLICATION_TRACE"): 
       self.model = _load(task=task, model_name=self.model_name, security_check=security_check, config=config, user=user) 
 
+  def method_interceptor(self, next_fun, args, kwargs, context): 
+    layer = type(next_fun.args[0]) 
+    layer_name = '.'.join([layer.__module__, layer.__name__])
+
+    prev_ctx = self.prop.extract(carrier=self.carrier) 
+    span, curr_ctx = self.tracer.start_span_from_context(layer_name, context=prev_ctx, trace_level="FRAMEWORK_TRACE")
+    self.prop.inject(carrier=self.carrier, context=curr_ctx) 
+
+    output = next_fun(*args, **kwargs) 
+
+    span.end() 
+    self.prop.inject(carrier=self.carrier, context=prev_ctx) 
+
+    return output 
+
   def predict(self, num_warmup, dataloader, output_processor, serialized=False, mlharness=False): 
     tracer = self.tracer 
+    prop = self.prop 
+    carrier = self.carrier 
 
     with tracer.start_as_current_span_from_context(self.model_name + ' start', context=self.ctx, trace_level="APPLICATION_TRACE") as model_start_span: 
       if num_warmup > 0: 
@@ -50,7 +74,9 @@ class JAX_Agent:
               with tracer.start_as_current_span_from_context("preprocess", trace_level="APPLICATION_TRACE") as preprocess_span: 
                 model_input = self.model.preprocess(data) 
               with tracer.start_as_current_span_from_context("predict", trace_level="MODEL_TRACE") as predict_span: 
-                model_output = self.model.predict(model_input) 
+                prop.inject(carrier=carrier, context=set_span_in_context(predict_span)) 
+                with nn.intercept_methods(self.method_interceptor): 
+                  model_output = self.model.predict(model_input) 
               with tracer.start_as_current_span_from_context("postprocess", trace_level="APPLICATION_TRACE") as postprocess_span: 
                 self.model.postprocess(model_output)
 
@@ -60,7 +86,9 @@ class JAX_Agent:
             with tracer.start_as_current_span_from_context("preprocess", trace_level="APPLICATION_TRACE") as preprocess_span: 
               model_input = self.model.preprocess(data)
             with tracer.start_as_current_span_from_context("predict", trace_level="MODEL_TRACE") as predict_span:  
-              model_output = self.model.predict(model_input) 
+              prop.inject(carrier=carrier, context=set_span_in_context(predict_span)) 
+              with nn.intercept_methods(self.method_interceptor):
+                model_output = self.model.predict(model_input) 
             with tracer.start_as_current_span_from_context("postprocess", trace_level="APPLICATION_TRACE") as postprocess_span: 
               post_processed_model_output = self.model.postprocess(model_output) 
             output_processor.process_batch_outputs_postprocessed(self.task, post_processed_model_output) 
