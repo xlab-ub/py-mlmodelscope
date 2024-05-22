@@ -65,7 +65,7 @@ class MLModelScope:
   def load_agent(self, task, agent, model_name, security_check=True, config=None, user='default'): 
     if agent == 'pytorch': 
       from mlmodelscope.pytorch_agent import PyTorch_Agent 
-      self.agent = PyTorch_Agent(task, model_name, self.architecture, self.tracer, self.ctx, security_check, config, user) 
+      self.agent = PyTorch_Agent(task, model_name, self.architecture, self.tracer, self.ctx, security_check, config, user, self.c) 
     elif agent == 'tensorflow': 
       from mlmodelscope.tensorflow_agent import TensorFlow_Agent 
       self.agent = TensorFlow_Agent(task, model_name, self.architecture, self.tracer, self.ctx, security_check, config, user) 
@@ -86,9 +86,6 @@ class MLModelScope:
   def predict(self, num_warmup, serialized=False): 
     outputs = self.agent.predict(num_warmup, self.dataloader, self.output_processor, serialized) 
     self.agent.Close() 
-
-    # if self.architecture == "gpu" and self.gpu_trace: 
-    #   self.c.Close() 
 
     return outputs 
 

@@ -5,17 +5,14 @@ import logging
 import torch 
 
 from opentelemetry.trace import set_span_in_context 
-from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator 
 
 from ._load import _load 
 
 logger = logging.getLogger(__name__) 
 
 class PyTorch_Agent: 
-  def __init__(self, task, model_name, architecture, tracer, context, security_check=True, config=None, user='default'): 
+  def __init__(self, task, model_name, architecture, tracer, context, security_check=True, config=None, user='default', c=None): 
     self.tracer = tracer 
-    self.prop = TraceContextTextMapPropagator() 
-    self.carrier = {} 
 
     self.all_spans = {} 
 
@@ -24,6 +21,8 @@ class PyTorch_Agent:
     self.device = 'cuda' if ((architecture == "gpu") and torch.cuda.is_available()) else 'cpu' 
 
     self.load_model(task, model_name, security_check, config, user) 
+    
+    self.c = c 
     return 
   
   def load_model(self, task, model_name, security_check=True, config=None, user='default'): 
@@ -43,9 +42,9 @@ class PyTorch_Agent:
     if hasattr(self.model, 'model') and (not hasattr(self.model.model, "isScriptModule")) and hasattr(self.model.model, "named_modules"): 
       def pre_hook(layer_name): 
         def pre_hook(module, input): 
-          prev_ctx = self.prop.extract(carrier=self.carrier) 
+          prev_ctx = self.tracer.extract_context() 
           span, curr_ctx = self.tracer.start_span_from_context(layer_name, context=prev_ctx, trace_level="FRAMEWORK_TRACE") 
-          self.prop.inject(carrier=self.carrier, context=curr_ctx) 
+          self.tracer.inject_context(curr_ctx) 
           self.all_spans[layer_name] = (span, prev_ctx) 
         return pre_hook 
 
@@ -53,7 +52,7 @@ class PyTorch_Agent:
         def hook(module, input, output): 
           span, prev_ctx = self.all_spans[layer_name] 
           span.end() 
-          self.prop.inject(carrier=self.carrier, context=prev_ctx) 
+          self.tracer.inject_context(prev_ctx) 
 
           del self.all_spans[layer_name] 
         return hook 
@@ -104,8 +103,6 @@ class PyTorch_Agent:
 
   def predict(self, num_warmup, dataloader, output_processor, serialized=False, mlharness=False): 
     tracer = self.tracer 
-    prop = self.prop 
-    carrier = self.carrier 
 
     with tracer.start_as_current_span_from_context(self.model_name + ' start', context=self.ctx, trace_level="APPLICATION_TRACE") as model_start_span: 
       with torch.no_grad(): 
@@ -126,8 +123,12 @@ class PyTorch_Agent:
                   if hasattr(model_input, 'to'):
                     model_input = model_input.to(self.device) 
                 with tracer.start_as_current_span_from_context("predict", trace_level="MODEL_TRACE") as predict_span:  
-                  prop.inject(carrier=carrier, context=set_span_in_context(predict_span)) 
+                  self.tracer.inject_context(set_span_in_context(predict_span)) 
+                  if self.c is not None:
+                    self.c.Start(set_span_in_context(predict_span)) 
                   model_output = self.model.predict(model_input) 
+                  if self.c is not None:
+                    self.c.Close() 
                 with tracer.start_as_current_span_from_context("postprocess", trace_level="APPLICATION_TRACE") as postprocess_span:
                   self.model.postprocess(model_output)
             print('Warmup done')
@@ -140,8 +141,12 @@ class PyTorch_Agent:
                     if hasattr(model_input, 'to'):
                       model_input = model_input.to(self.device) 
                   with tracer.start_as_current_span_from_context("predict", trace_level="MODEL_TRACE") as predict_span:  
-                    prop.inject(carrier=carrier, context=set_span_in_context(predict_span)) 
+                    self.tracer.inject_context(set_span_in_context(predict_span)) 
+                    if self.c is not None:
+                      self.c.Start(set_span_in_context(predict_span))
                     model_output = self.model.predict(model_input) 
+                    if self.c is not None:
+                      self.c.Close()
                   with tracer.start_as_current_span_from_context("postprocess", trace_level="APPLICATION_TRACE") as postprocess_span:
                     post_processed_model_output = self.model.postprocess(model_output) 
                   output_processor.process_batch_outputs_postprocessed(self.task, post_processed_model_output) 

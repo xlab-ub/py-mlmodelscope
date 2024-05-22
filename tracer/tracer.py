@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from opentelemetry import trace  
 from opentelemetry.trace import set_span_in_context 
 from opentelemetry.trace import NoOpTracer 
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator 
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource 
 from opentelemetry.sdk.trace import TracerProvider 
 from opentelemetry.sdk.trace.export import BatchSpanProcessor 
@@ -19,7 +20,6 @@ class CustomOTLPSpanExporter(OTLPSpanExporter):
             os.remove(filename)  # Remove existing file 
 
     def export(self, spans: Sequence[Span]) -> SpanExportResult:
-        # if self.filename:
         with open(self.filename, "a") as file:  # Open file in append mode
             span_data = [span.to_json() for span in spans]
             file.write('\n\n'.join(span_data) + "\n\n")
@@ -54,16 +54,26 @@ class Tracer:
         self.tracer = trace.get_tracer(__name__)
         self.noop = NoOpTracer() # for when we don't want to trace
 
+        self.prop = TraceContextTextMapPropagator() 
+        self.carrier = {} 
+
         return
 
     @classmethod
-    def create(cls, name="mlms", trace_level="NO_TRACE", endpoint='http://localhost:4318/v1/traces', max_queue_size=4096, save_trace_result_path=None):
+    def create(cls, name="mlms", trace_level="NO_TRACE", endpoint='http://localhost:4318/v1/traces', max_queue_size=32768, save_trace_result_path=None):
         tracer = cls(name=name, trace_level=trace_level, endpoint=endpoint, max_queue_size=max_queue_size, save_trace_result_path=save_trace_result_path) 
 
         span, ctx = tracer.start_span_from_context(name="mlmodelscope", trace_level="APPLICATION_TRACE") 
 
         return tracer, span, ctx
     
+    def inject_context(self, ctx):
+        self.prop.inject(carrier=self.carrier, context=ctx)
+        return 
+    
+    def extract_context(self):
+        return self.prop.extract(carrier=self.carrier) 
+
     def trace_level_to_int(self, level):
         try:
             level = self.TRACE_LEVEL.index(level)
@@ -98,7 +108,7 @@ class Tracer:
         return span, set_span_in_context(span)
     
     # without returning the context
-    def start_span_from_context_no_ctx(self, name, context=None, trace_level="NO_TRACE", attributes=None, start_time=None):
+    def start_span_from_context_no_ctx(self, name, context=None, trace_level="NO_TRACE", attributes=None, start_time=None, internal_context=False):
         trace_level_int = self.trace_level_to_int(trace_level)
 
         if attributes is None:
@@ -106,6 +116,9 @@ class Tracer:
         else:
             attributes["trace_level"] = trace_level
         
+        if internal_context:
+            context = self.extract_context() 
+
         if trace_level_int <= self.trace_level_int:
             span = self.tracer.start_span(name=name, context=context, attributes=attributes, start_time=start_time)
         else:
