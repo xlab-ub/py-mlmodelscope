@@ -40,6 +40,7 @@ class PyTorch_Agent:
       self.model.eval()
 
     if hasattr(self.model, 'model') and (not hasattr(self.model.model, "isScriptModule")) and hasattr(self.model.model, "named_modules"): 
+      self.input_shape = None 
       def pre_hook(layer_name): 
         def pre_hook(module, input): 
           prev_ctx = self.tracer.extract_context() 
@@ -51,6 +52,21 @@ class PyTorch_Agent:
       def hook(layer_name): 
         def hook(module, input, output): 
           span, prev_ctx = self.all_spans[layer_name] 
+          
+          span.set_attribute("layer_sequence_index", layer_name.split('__')[0]) 
+          span.set_attribute("module", '.'.join([type(module).__module__, type(module).__name__])) 
+          if input:
+            if layer_name.startswith('0-0__'):
+              self.input_shape = input[0].shape
+            span.set_attribute("input_shape", str(input[0].shape))
+          else: 
+            if layer_name.startswith('0__'):
+              span.set_attribute("input_shape", str(self.input_shape))
+            else:
+              span.set_attribute("input_shape", "None")
+
+          span.set_attribute("output_shape", str(output.shape) if hasattr(output, 'shape') else str(output[0].shape))
+          
           span.end() 
           self.tracer.inject_context(prev_ctx) 
 
