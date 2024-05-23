@@ -5,6 +5,7 @@ import logging
 
 from .dataloader import DataLoader 
 from .outputprocessor import OutputProcessor 
+from .processor_name import get_cpu_name, get_gpu_name 
 
 # https://stackoverflow.com/questions/714063/importing-modules-from-parent-folder 
 sys.path.insert(1, os.path.join(sys.path[0], '..')) 
@@ -21,10 +22,13 @@ class MLModelScope:
 
     self.tracer, self.root_span, self.ctx = Tracer.create(trace_level=trace_level, save_trace_result_path=save_trace_result_path)
 
+    self.root_span.set_attribute("cpu_name", get_cpu_name()) 
+
     self.architecture = architecture 
     self.gpu_trace = gpu_trace 
     self.c = None 
     if self.architecture == "gpu" and self.gpu_trace and self.tracer.is_trace_enabled("SYSTEM_LIBRARY_TRACE"): 
+      self.root_span.set_attribute("gpu_name", get_gpu_name()) 
       sys.path.insert(1, os.path.join(sys.path[0], '..')) 
       from pycupti import CUPTI 
       sys.path.pop(1) 
