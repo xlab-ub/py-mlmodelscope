@@ -26,9 +26,9 @@ class PyTorch_Transformers_Meta_Llama_3_8B_Instruct(PyTorchAbstractClass):
       self.tokenizer.convert_tokens_to_ids("<|eot_id|>")
     ]
 
-    self.max_new_tokens = self.config.get('max_new_tokens') 
+    self.max_new_tokens = self.config.get('max_new_tokens', 32) 
     self.top_p = self.config.get('top_p') 
-    self.temperature = self.config.get('temperature', 1.0) 
+    self.temperature = self.config.get('temperature') 
     self.do_sample = (self.top_p is not None) or (self.temperature is not None) 
 
     # If the model is used for chat, it is assumed that input_texts contains a single string 
@@ -40,26 +40,20 @@ class PyTorch_Transformers_Meta_Llama_3_8B_Instruct(PyTorchAbstractClass):
     # messages = [
     #     {"role": "system", "content": "You are a pirate chatbot who always responds in pirate speak!"},
     # ]
-    if 'messages' in self.config:
-      self.messages = self.config['messages'] 
-      self.preprocess = self.preprocess_chat 
-      self.postprocess = self.postprocess_chat
+    self.messages = self.config.get('messages', []) 
     
   def preprocess(self, input_texts):
-    return self.tokenizer(input_texts, return_tensors="pt", padding=True).input_ids 
-
-  def preprocess_chat(self, input_texts):
-    input_ids = self.tokenizer.apply_chat_template(
-      self.messages + [{"role": "user", "content": input_texts[0]}], 
-      add_generation_prompt=True, 
-      return_tensors="pt"
-    ) 
-    self.input_ids_shape = input_ids.shape
-    return input_ids 
-
+    model_inputs = self.tokenizer.apply_chat_template(
+      [self.messages + [{"role": "user", "content": input_text}] for input_text in input_texts],
+      tokenize=True, add_generation_prompt=True, padding=True, 
+      return_tensors="pt", return_dict=True
+    )
+    self.input_ids_shape = model_inputs.input_ids.shape
+    return model_inputs  
+  
   def predict(self, model_input):
     return self.model.generate(
-      model_input, 
+      **model_input, 
       pad_token_id=self.tokenizer.eos_token_id, 
       max_new_tokens=self.max_new_tokens, 
       top_p=self.top_p, 
@@ -69,8 +63,5 @@ class PyTorch_Transformers_Meta_Llama_3_8B_Instruct(PyTorchAbstractClass):
     )
 
   def postprocess(self, model_output):
-    return self.tokenizer.batch_decode(model_output, skip_special_tokens=True) 
-  
-  def postprocess_chat(self, model_output):
-    response = model_output[0][self.input_ids_shape[-1]:]
-    return [self.tokenizer.decode(response, skip_special_tokens=True)] 
+    response = [output[self.input_ids_shape[-1]:] for output in model_output] 
+    return self.tokenizer.batch_decode(response, skip_special_tokens=True) 
