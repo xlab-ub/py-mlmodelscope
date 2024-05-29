@@ -5,7 +5,7 @@ from transformers import GPT2Tokenizer, GPT2LMHeadModel
 class PyTorch_Transformers_DistilGPT2(PyTorchAbstractClass):
   def __init__(self, config=None):
     self.config = config if config else {} 
-    self.tokenizer = GPT2Tokenizer.from_pretrained('distilgpt2')
+    self.tokenizer = GPT2Tokenizer.from_pretrained('distilgpt2', padding_side='left')
     self.model = GPT2LMHeadModel.from_pretrained('distilgpt2')
 
     self.tokenizer.pad_token = self.tokenizer.eos_token 
