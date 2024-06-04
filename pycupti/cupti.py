@@ -1542,10 +1542,11 @@ class CUPTI:
             raise cls.CUPTIError(r) 
     
     @classmethod 
-    def startSpanFromContext(cls, correlationId, name, tags, start_time=None): 
+    def startSpanFromContext(cls, correlationId, name, tags, start_time=None, context=None, internal_context=True): 
         if start_time is None: 
             start_time = CUPTI.beginTime + (cls.cuptiGetTimestamp() - CUPTI.startTimeStamp) 
-        span = CUPTI.tracer.start_span_from_context_no_ctx(name=name, context=CUPTI.ctx, trace_level="SYSTEM_LIBRARY_TRACE", attributes=tags, start_time=start_time, internal_context=True) 
+        context = context if context is not None else CUPTI.ctx 
+        span = CUPTI.tracer.start_span_from_context_no_ctx(name=name, context=context, trace_level="SYSTEM_LIBRARY_TRACE", attributes=tags, start_time=start_time, internal_context=internal_context) 
         cls.activity_context_candidates[correlationId] = set_span_in_context(span) 
         cls.setSpanContextCorrelationId((span, start_time), correlationId, name) 
 
@@ -1622,7 +1623,9 @@ class CUPTI:
                 "destination_ptr":   params.dstDevice,
                 "source_ptr":        params.srcHost 
             }
-            CUPTI.startSpanFromContext(correlationId, "cuda_memcpy_dev", tags)
+            cuda_memcpy_dev_context = self.findActivitySpanContext(correlationId) 
+            internal_context = True if cuda_memcpy_dev_context is None else False 
+            CUPTI.startSpanFromContext(correlationId, "cuda_memcpy_dev", tags, context=cuda_memcpy_dev_context, internal_context=internal_context)
             return None 
         def onCudaMemCopyDeviceExit(cbInfo): 
             correlationId = cbInfo.correlationId 
@@ -2021,7 +2024,7 @@ class CUPTI:
                 "byte_count":        params.count, 
                 "destination_ptr":   params.dst,
                 "source_ptr":        params.src,
-                "kind":              params.kind,
+                "kind":              cudaMemcpyKind_(params.kind).name,
             }
             CUPTI.startSpanFromContext(correlationId, "cuda_memcpy", tags) 
             return None 

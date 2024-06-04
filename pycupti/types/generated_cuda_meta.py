@@ -47,7 +47,7 @@ class cudaMemcpy_v3020_params(ctypes.Structure):
     ]
 
 class cuMemcpyHtoD_v2_params(ctypes.Structure): 
-    _fields_ = [("dstDevice", CUdeviceptr), 
+    _fields_ = [("dstDevice", ctypes.c_void_p), 
                 ("srcHost", ctypes.c_void_p), 
                 ("ByteCount", ctypes.c_size_t) 
     ]
