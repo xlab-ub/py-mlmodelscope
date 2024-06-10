@@ -1,13 +1,11 @@
 from ....pytorch_abc import PyTorchAbstractClass 
 from transformers import CLIPTextModel, CLIPTokenizer
-from diffusers import AutoencoderKL, UNet3DConditionModel, PNDMScheduler, DPMSolverMultistepScheduler
+from diffusers import AutoencoderKL, UNet3DConditionModel,  DPMSolverMultistepScheduler
 from diffusers.video_processor import VideoProcessor
 from diffusers.utils import export_to_video
-from accelerate import init_empty_weights, infer_auto_device_map, load_checkpoint_and_dispatch
-from accelerate import Accelerator
-from accelerate.hooks import remove_hook_from_module
-# from xformers.ops import MemoryEfficientAttentionFlashAttentionOp  
+from diffusers.utils.torch_utils import randn_tensor
 import torch
+
 
 
 
@@ -15,10 +13,9 @@ class PyTorch_Transformers_Text_To_Video_Ms_1_7b(PyTorchAbstractClass):
   def __init__(self, config=None):
     self.config = config if config else {}
     model_id = "damo-vilab/text-to-video-ms-1.7b"
-    self.vae = AutoencoderKL.from_pretrained(model_id, subfolder="vae", use_safetensors=True)\
-
+    self.vae = AutoencoderKL.from_pretrained(model_id, subfolder="vae", use_safetensors=True)
+    self.num_images_per_prompt = 1
     # MemoryEfficientAttentionFlashAttentionOp.enable()
-    self.accelerator = Accelerator(mixed_precision="fp16")
     self.tokenizer = CLIPTokenizer.from_pretrained(model_id, subfolder="tokenizer")
     self.text_encoder = CLIPTextModel.from_pretrained(model_id, subfolder="text_encoder", use_safetensors=True)
     self.unet = UNet3DConditionModel.from_pretrained(model_id, subfolder="unet", use_safetensors=True)
@@ -27,97 +24,123 @@ class PyTorch_Transformers_Text_To_Video_Ms_1_7b(PyTorchAbstractClass):
     self.vae_scale_factor = 2 ** (len(self.vae.config.block_out_channels) - 1) 
     self.height = self.config.get('height', self.unet.config.sample_size * self.vae_scale_factor) 
     self.width = self.config.get('width', self.unet.config.sample_size * self.vae_scale_factor) 
-    self.num_inference_steps =  1 #self.config.get('num_inference_steps', 10)  # Number of denoising steps
+    self.num_inference_steps =  25 #self.config.get('num_inference_steps', 10)  # Number of denoising steps
     self.guidance_scale = self.config.get('guidance_scale', 7.5)  # Scale for classifier-free guidance
+    self.num_frames = 10
     self.seed = self.config.get('seed', 0)
     self.video_processor = VideoProcessor(do_resize=False, vae_scale_factor=self.vae_scale_factor)
 
   
-  def decode_latents(self, latents):
-        latents = 1 / self.vae.config.scaling_factor * latents
-        batch_size, channels, num_frames, height, width = latents.shapepip
-        latents = latents.permute(0, 2, 1, 3, 4).reshape(batch_size * num_frames, channels, height, width)
-        image = self.vae.decode(latents).sample
-        video = image[None, :].reshape((batch_size, num_frames, -1) + image.shape[2:]).permute(0, 2, 1, 3, 4)
-        video = video.float()
-        return video
-  
   def preprocess(self, input_prompts):
-    self.vae, self.text_encoder, self.unet, self.scheduler = self.accelerator.prepare(self.vae, self.text_encoder, self.unet, self.scheduler)
-    batch_size = len(input_prompts)
-    text_inputs = self.tokenizer(input_prompts, padding="max_length", max_length=self.tokenizer.model_max_length,
-                                 truncation=True, return_tensors="pt").input_ids.to(self.device)
-    unconditional_input = self.tokenizer([""] * batch_size, padding="max_length",
-                                         max_length=self.tokenizer.model_max_length, return_tensors="pt"
-                                         ).input_ids.to(self.device)
-    
-    # with torch.no_grad():
-      # Encode all prompts in one go to leverage GPU parallelization
-    cond_embeddings = self.text_encoder(text_inputs).last_hidden_state
-    uncond_embeddings = self.text_encoder(unconditional_input).last_hidden_state
-    # Concatenate conditional and unconditional embeddings
-    model_input = torch.cat([uncond_embeddings, cond_embeddings], dim=0)
+    with torch.no_grad():
+      batch_size = len(input_prompts)
 
-    self.latents = torch.randn(
-      (batch_size, self.unet.config.in_channels, self.height // 8, self.width // 8),
-      generator=self.generator, device=self.device
-    ) * self.scheduler.init_noise_sigma
-
-    self.scheduler.set_timesteps(self.num_inference_steps, device=self.device)
-
-    return model_input 
-
-  
-  def predict(self, model_input): 
+      text_inputs = self.tokenizer(input_prompts, padding="max_length", max_length=self.tokenizer.model_max_length,
+                                  truncation=True, return_tensors="pt")
+      text_input_ids = text_inputs.input_ids
+      
+      prompt_embeds = self.text_encoder(text_input_ids.to(self.device), attention_mask=None)
+      prompt_embeds = prompt_embeds[0]
+      prompt_embeds_dtype = self.text_encoder.dtype
+            # with torch.no_grad():
+        # Encode all prompts in one go to leverage GPU parallelization
+      bs_embed, seq_len, _ = prompt_embeds.shape
+      
+      # duplicate text embeddings for each generation per prompt, using mps friendly method
+      prompt_embeds = prompt_embeds.repeat(1, self.num_images_per_prompt, 1)
+      prompt_embeds = prompt_embeds.view(bs_embed * self.num_images_per_prompt, seq_len, -1)
 
 
-    for i, t in enumerate(self.scheduler.timesteps): 
+      uncond_tokens = [""] * batch_size
 
-      latent_model_input = torch.cat([self.latents] * 2) 
-      latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
+      max_length = prompt_embeds.shape[1]
+      
+      uncond_input = self.tokenizer(
+                  uncond_tokens,
+                  padding="max_length",
+                  max_length=max_length,
+                  truncation=True,
+                  return_tensors="pt",
+              )
+      
+      negative_prompt_embeds = self.text_encoder(
+          uncond_input.input_ids.to(self.device),
+          attention_mask=None,
+      )
+      negative_prompt_embeds = negative_prompt_embeds[0]
+      seq_len = negative_prompt_embeds.shape[1]
 
-      # predict the noise residual
-    # with self.accelerator.autocast():
-      noise_pred = self.unet(
-          latent_model_input,
-          t,
-          encoder_hidden_states=model_input,
-          return_dict=False,
-      )[0]
+      negative_prompt_embeds = negative_prompt_embeds.repeat(1, self.num_images_per_prompt, 1)
+      negative_prompt_embeds = negative_prompt_embeds.view(batch_size * self.num_images_per_prompt, seq_len, -1)
 
-      # perform guidance
-      noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
-      noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
+      # Concatenate conditional and unconditional embeddings
+      prompt_embeds = torch.cat([negative_prompt_embeds, prompt_embeds])
 
-      # reshape latents
-      bsz, channel, frames, width, height = self.latents.shape
-      self.latents = self.latents.permute(0, 2, 1, 3, 4).reshape(bsz * frames, channel, width, height)
-      noise_pred = noise_pred.permute(0, 2, 1, 3, 4).reshape(bsz * frames, channel, width, height)
+      shape = (
+              batch_size,
+              self.unet.config.in_channels,
+              self.num_frames,
+              self.height // self.vae_scale_factor,
+              self.width // self.vae_scale_factor,
+      )
+      self.latents = randn_tensor(shape, generator=self.generator, device=torch.device(self.device), dtype=prompt_embeds_dtype)
 
-      # compute the previous noisy sample x_t -> x_t-1
-      self.latents = self.scheduler.step(noise_pred, t, self.latents).prev_sample
+      self.scheduler.set_timesteps(self.num_inference_steps, device=self.device)
 
-      # reshape latents back
-      self.latents = self.latents.reshape(bsz, frames, channel, width, height).permute(0, 2, 1, 3, 4)
-    #   # call the callback, if provided
+    return prompt_embeds 
 
-    return self.latents 
+
+  def predict(self, model_input):
+    with torch.no_grad():
+      for i, t in enumerate(self.scheduler.timesteps):
+          
+          latent_model_input = torch.cat([self.latents] * 2)
+          latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
+
+          # predict the noise residual
+          with torch.no_grad(): 
+            noise_pred = self.unet(
+                latent_model_input,
+                t,
+                encoder_hidden_states=model_input,
+                return_dict=False,
+            )[0]
+
+          # perform guidance
+          noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+          noise_pred = noise_pred_uncond + self.guidance_scale * (noise_pred_text - noise_pred_uncond)
+
+          # compute the previous noisy sample x_t -> x_t-1
+          self.latents = self.scheduler.step(noise_pred, t, self.latents).prev_sample
+
+    return self.latents  # Return latents without reshaping here
 
 
   def postprocess(self, model_output):    # Decode latents into video
-      video_tensor = self.decode_latents(model_output)
-      video = self.video_processor.postprocess_video(video=video_tensor, output_type="np")
+      video_paths = []
+      latents = 1 / self.vae.config.scaling_factor * model_output
 
-      return video
+      batch_size, channels, num_frames, height, width = latents.shape
+      latents = latents.permute(0, 2, 1, 3, 4).reshape(batch_size * num_frames, channels, height, width)
+
+      image = self.vae.decode(latents).sample
+      video_tensor = image[None, :].reshape((batch_size, num_frames, -1) + image.shape[2:]).permute(0, 2, 1, 3, 4).float()
+      # we always cast to float32 as this does not cause significant overhead and is compatible with bfloat16
+      video_frames = self.video_processor.postprocess_video(video=video_tensor, output_type="np")[0]
+      video_path = export_to_video(video_frames)
+      video_paths.append(video_path)
+
+      return video_paths
+  
 
   def to(self, device):
     self.device = device 
 
     self.vae.to(device)
     self.text_encoder.to(device)
-    # self.unet.to(device)
-    self.generator = torch.Generator(device=device).manual_seed(self.seed)
+    self.unet.to(device)
 
+    self.generator = torch.Generator(device=device).manual_seed(self.seed)
 
   def eval(self):
     self.vae.eval()
