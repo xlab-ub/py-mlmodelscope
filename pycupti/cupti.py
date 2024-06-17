@@ -86,7 +86,7 @@ class CUPTI:
         def __str__(self):
             return f"cupti error code = {self.code}, message = {self.errstr}" 
 
-    def __init__(self, tracer): 
+    def __init__(self, tracer, runtime_driver_time_adjustment=False): 
         if CUPTI.cupti is None: 
             if CUPTI._system == 'Windows': 
                 path = glob.glob(os.environ.get('CUDA_PATH') + '/extras/CUPTI/lib64/cupti*.dll')[0] 
@@ -129,34 +129,50 @@ class CUPTI:
 
         self.samplingPeriod = 0 
 
-        self.activities =   [# "CUPTI_ACTIVITY_KIND_DEVICE", 
-                             "CUPTI_ACTIVITY_KIND_MEMCPY", 
+        self.activities =   [
+                            #  "CUPTI_ACTIVITY_KIND_DEVICE", 
+                            #  "CUPTI_ACTIVITY_KIND_MEMCPY", 
+                            #  "CUPTI_ACTIVITY_KIND_MEMSET",
                              "CUPTI_ACTIVITY_KIND_KERNEL", 
-                             # "CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL", # "CUPTI_ERROR_NOT_COMPATIBLE" error 
-                             # "CUPTI_ACTIVITY_KIND_DRIVER", 
-                             # "CUPTI_ACTIVITY_KIND_RUNTIME", 
-                             "CUPTI_ACTIVITY_KIND_OVERHEAD"
+                            #  "CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL", # not enabled with CUPIT_ACTIVITY_KIND_KERNEL 
+                            #  "CUPTI_ACTIVITY_KIND_DRIVER", 
+                            #  "CUPTI_ACTIVITY_KIND_RUNTIME", 
+                            #  "CUPTI_ACTIVITY_KIND_OVERHEAD", 
+                            #  "CUPTI_ACTIVITY_KIND_CDP_KERNEL", # enabled and disabled through _CONCURRENT_KERNEL
+                            #  "CUPTI_ACTIVITY_KIND_MEMORY",
+                            #  "CUPTI_ACTIVITY_KIND_SYNCHRONIZATION", 
                             ] 
         self.callbacks  =   [
-                            #  "CUPTI_DRIVER_TRACE_CBID_cuLaunchKernel", # Not needed if enabling the runtime *cudaLaunch* 
-                             "CUPTI_DRIVER_TRACE_CBID_cuMemcpyDtoH_v2",
-                             "CUPTI_DRIVER_TRACE_CBID_cuMemcpyDtoHAsync_v2",
-                             "CUPTI_DRIVER_TRACE_CBID_cuMemcpyHtoD_v2",
-                             "CUPTI_DRIVER_TRACE_CBID_cuMemcpyHtoDAsync_v2",
-                             "CUPTI_DRIVER_TRACE_CBID_cuMemcpyDtoD_v2",
-                             "CUPTI_DRIVER_TRACE_CBID_cuMemcpyDtoDAsync_v2",
+                             "CUPTI_DRIVER_TRACE_CBID_cuLaunchKernel",                      #  CUPTI_ACTIVITY_KIND_KERNEL, CUPTI_ACTIVITY_KIND_CDP_KERNEL
+                            #  "CUPTI_DRIVER_TRACE_CBID_cuLaunchCooperativeKernel",         #  CUPTI_ACTIVITY_KIND_KERNEL, CUPTI_ACTIVITY_KIND_CDP_KERNEL
+
+                            #  "CUPTI_DRIVER_TRACE_CBID_cuMemcpyDtoH_v2",                   #  CUPTI_ACTIVITY_KIND_MEMCPY
+                            #  "CUPTI_DRIVER_TRACE_CBID_cuMemcpyDtoHAsync_v2",              #  CUPTI_ACTIVITY_KIND_MEMCPY
+                            #  "CUPTI_DRIVER_TRACE_CBID_cuMemcpyHtoD_v2",                   #  CUPTI_ACTIVITY_KIND_MEMCPY
+                            #  "CUPTI_DRIVER_TRACE_CBID_cuMemcpyHtoDAsync_v2",              #  CUPTI_ACTIVITY_KIND_MEMCPY
+                            #  "CUPTI_DRIVER_TRACE_CBID_cuMemcpyDtoD_v2",                   #  CUPTI_ACTIVITY_KIND_MEMCPY
+                            #  "CUPTI_DRIVER_TRACE_CBID_cuMemcpyDtoDAsync_v2",              #  CUPTI_ACTIVITY_KIND_MEMCPY
+
                             #  "CUPTI_RUNTIME_TRACE_CBID_cudaDeviceSynchronize_v3020",
-                             "CUPTI_RUNTIME_TRACE_CBID_cudaStreamSynchronize_v3020",
+
+                            #  "CUPTI_RUNTIME_TRACE_CBID_cudaStreamSynchronize_v3020",
+
                             #  "CUPTI_RUNTIME_TRACE_CBID_cudaMalloc_v3020",
                             #  "CUPTI_RUNTIME_TRACE_CBID_cudaMallocArray_v3020",
                             #  "CUPTI_RUNTIME_TRACE_CBID_cudaMallocHost_v3020",
                             #  "CUPTI_RUNTIME_TRACE_CBID_cudaHostAlloc_v3020",
                             #  "CUPTI_RUNTIME_TRACE_CBID_cudaFree_v3020",
                             #  "CUPTI_RUNTIME_TRACE_CBID_cudaFreeHost_v3020",
-                             "CUPTI_RUNTIME_TRACE_CBID_cudaLaunch_v3020",
-                             "CUPTI_RUNTIME_TRACE_CBID_cudaLaunchKernel_v7000",
-                             "CUPTI_RUNTIME_TRACE_CBID_cudaMemcpy_v3020",
-                             "CUPTI_RUNTIME_TRACE_CBID_cudaMemcpyAsync_v3020",
+
+                             "CUPTI_RUNTIME_TRACE_CBID_cudaLaunch_v3020",                   #  CUPTI_ACTIVITY_KIND_KERNEL, CUPTI_ACTIVITY_KIND_CDP_KERNEL
+                             "CUPTI_RUNTIME_TRACE_CBID_cudaLaunchKernel_v7000",             #  CUPTI_ACTIVITY_KIND_KERNEL, CUPTI_ACTIVITY_KIND_CDP_KERNEL
+                            
+                            #  "CUPTI_RUNTIME_TRACE_CBID_cudaMemcpy_v3020",                 #  CUPTI_ACTIVITY_KIND_MEMCPY
+                            #  "CUPTI_RUNTIME_TRACE_CBID_cudaMemcpyAsync_v3020",            #  CUPTI_ACTIVITY_KIND_MEMCPY
+
+                            #  "CUPTI_RUNTIME_TRACE_CBID_cudaMemset_v3020",                 #  CUPTI_ACTIVITY_KIND_MEMSET
+                            #  "CUPTI_RUNTIME_TRACE_CBID_cudaMemsetAsync_v3020",            #  CUPTI_ACTIVITY_KIND_MEMSET
+
                             #  "CUPTI_RUNTIME_TRACE_CBID_cudaSetupArgument_v3020",
                             #  "CUPTI_RUNTIME_TRACE_CBID_cudaMallocManaged_v6000",
                             #  "CUPTI_RUNTIME_TRACE_CBID_cudaMallocPitch_v3020",
@@ -180,25 +196,7 @@ class CUPTI:
 
         self.profilingAPI = True if self.getProfilingAPI() == 1 else False # bool, true=1, false=0 
 
-        # self.subscriber = None 
-        # err = self.Subscribe() 
-        # if err is not None: 
-        #     raise RuntimeError("Error occurred in Subscribe() of CUPTI") 
-
-        # CUPTI.startTimeStamp = CUPTI.cuptiGetTimestamp() 
-        # CUPTI.beginTime = time.time_ns() 
-
-        # if self.profilingAPI: 
-        #     if len(self.metrics) == 0: 
-        #         self.startProfiling(None) 
-        #     else: 
-        #         metric = ",".join(self.metrics) 
-        #         cMetric = ctypes.c_char_p(metric.encode('utf-8')) 
-        #         self.startProfiling(cMetric) 
-        #         del cMetric 
-
-        #     self.correlationMap = {} 
-        #     self.correlationTime = {} 
+        CUPTI.runtime_driver_time_adjustment = runtime_driver_time_adjustment 
 
     # def runInit(self): 
     #     def initAvailableEvents(): 
@@ -279,15 +277,6 @@ class CUPTI:
         return None 
 
     def Close(self): 
-        def set_span_end_time(span, end_times, tag):
-            times_in_ms = {k: v // 1000 for k, v in end_times.items()} 
-            max_end_time_key = max(times_in_ms, key=times_in_ms.get) 
-
-            span.set_attribute('end_time', max_end_time_key) 
-            if max_end_time_key != tag:
-                span.set_attribute('originial_end_time', end_times[tag]) 
-            span.end(end_time=(times_in_ms[max_end_time_key] + 1) * 1000) 
-
         self.Unsubscribe() 
 
         if self.profilingAPI: 
@@ -297,40 +286,43 @@ class CUPTI:
                 for i in range(flattenedLength):
                     addr = ctypes.addressof(ctypes.c_double.from_address(ptr + i*8)) 
                     metricData[i] = ctypes.c_double.from_address(addr).value
-                
-            for key, value in CUPTI.spans.items(): 
-                correlationId, tag = key
-                if tag == 'cuda_launch': 
-                    sp = value 
+            
+            if CUPTI.runtime_driver_time_adjustment:
+                def update_and_set_end_time(sp, correlationId, tags):
+                    def set_span_end_time(span, end_times, tag):
+                        times_in_ms = {k: v // 1000 for k, v in end_times.items()} 
+                        max_end_time_key = max(times_in_ms, key=times_in_ms.get) 
 
-                    if flattenedLength != 0:
-                        st = self.correlationMap[int(correlationId)] * len(self.metrics) 
-                        for i, metric in enumerate(self.metrics): 
-                            sp.set_attribute(metric, self.metricData[st+i]) 
-                    
-                    cuda_launch_end_time, gpu_kernel_end_time = CUPTI.correlationTime[int(correlationId)] 
-                    end_times = {
-                        'cuda_launch': cuda_launch_end_time,
-                        'gpu_kernel': gpu_kernel_end_time
-                    }
-                    set_span_end_time(sp, end_times, tag) 
-                elif tag == 'cuda_memcpy':
-                    sp = value 
-                    cuda_memcpy_end_time, cuda_memcpy_dev_end_time, gpu_memcpy_end_time = CUPTI.correlationTime[int(correlationId)]
-                    end_times = {
-                        'cuda_memcpy': cuda_memcpy_end_time,
-                        'cuda_memcpy_dev': cuda_memcpy_dev_end_time,
-                        'gpu_memcpy': gpu_memcpy_end_time
-                    }
-                    set_span_end_time(sp, end_times, tag)
-                elif tag == 'cuda_memcpy_dev':
-                    sp = value 
-                    _, cuda_memcpy_dev_end_time, gpu_memcpy_end_time = CUPTI.correlationTime[int(correlationId)]
-                    end_times = {
-                        'cuda_memcpy_dev': cuda_memcpy_dev_end_time,
-                        'gpu_memcpy': gpu_memcpy_end_time
-                    }
-                    set_span_end_time(sp, end_times, tag)
+                        span.set_attribute('end_time', max_end_time_key) 
+                        if max_end_time_key != tag:
+                            span.set_attribute('originial_end_time', end_times[tag]) 
+                        span.end(end_time=(times_in_ms[max_end_time_key] + 1) * 1000) 
+                    correlation_times = CUPTI.correlationTime[int(correlationId)]
+                    end_times = {tag: correlation_times[idx] for idx, tag in enumerate(tags) if tag is not None}
+                    set_span_end_time(sp, end_times, tags[0])
+                
+                for (correlationId, tag), sp in CUPTI.spans.items(): 
+                    if tag == 'cuda_launch': 
+                        if flattenedLength != 0:
+                            st = self.correlationMap[int(correlationId)] * len(self.metrics) 
+                            for i, metric in enumerate(self.metrics): 
+                                sp.set_attribute(metric, self.metricData[st+i]) 
+                        
+                        update_and_set_end_time(sp, correlationId, ('cuda_launch', 'launch_kernel', 'gpu_kernel'))
+                    elif tag in ('launch_kernel', 'cuda_memcpy', 'cuda_memcpy_dev'):
+                        relevant_tags = {'launch_kernel': ('launch_kernel', 'gpu_kernel'),
+                                        'cuda_memcpy': ('cuda_memcpy', 'cuda_memcpy_dev', 'gpu_memcpy'),
+                                        'cuda_memcpy_dev': ('cuda_memcpy_dev', 'gpu_memcpy')}.get(tag)
+                        update_and_set_end_time(sp, correlationId, relevant_tags)
+            else:
+                for (correlationId, tag), sp in CUPTI.spans.items(): 
+                    if tag == 'cuda_launch': 
+                        if flattenedLength != 0:
+                            st = self.correlationMap[int(correlationId)] * len(self.metrics) 
+                            for i, metric in enumerate(self.metrics): 
+                                sp.set_attribute(metric, self.metricData[st+i]) 
+                        
+                        sp.end(end_time=CUPTI.correlationTime[int(correlationId)])
         
         # self.Unsubscribe() 
         self.activity_context_candidates = {} 
@@ -520,10 +512,11 @@ class CUPTI:
             span = CUPTI.tracer.start_span_from_context_no_ctx("gpu_memcpy", context=activity_context, trace_level="SYSTEM_LIBRARY_TRACE", attributes=tags, start_time=startTime, internal_context=internal_context) 
             span.end(end_time=endTime) 
 
-            if activity.correlationId not in CUPTI.correlationTime: 
-                CUPTI.correlationTime[activity.correlationId] = [0, 0, endTime]
-            else:
-                CUPTI.correlationTime[activity.correlationId][2] = endTime 
+            if CUPTI.runtime_driver_time_adjustment:
+                if activity.correlationId not in CUPTI.correlationTime: 
+                    CUPTI.correlationTime[activity.correlationId] = [0, 0, endTime]
+                else:
+                    CUPTI.correlationTime[activity.correlationId][2] = endTime 
             return None 
         elif kind == CUPTI_ACTIVITY_KIND_MEMSET: 
             activity = ctypes.cast(record, ctypes.POINTER(CUpti_ActivityMemset4)).contents 
@@ -560,8 +553,8 @@ class CUPTI:
 				"context_id":              activity.contextId,
 				"stream_id":               activity.streamId,
 				"correlation_id":          activity.correlationId,
-				"start":                   activity.start,
-				"end":                     activity.end,
+				# "start":                   activity.start,    # unadjusted 
+				# "end":                     activity.end,      # unadjusted
                 # "completed":               activity.completed,
 				# "queued":                  activity.queued,
 				# "submitted":               activity.submitted,
@@ -587,10 +580,11 @@ class CUPTI:
             span = CUPTI.tracer.start_span_from_context_no_ctx("gpu_kernel", context=activity_context, trace_level="SYSTEM_LIBRARY_TRACE", attributes=tags, start_time=startTime, internal_context=internal_context) 
             span.end(end_time=endTime) 
             
-            if activity.correlationId not in CUPTI.correlationTime: 
-                CUPTI.correlationTime[activity.correlationId] = [0, endTime] 
-            else: 
-                CUPTI.correlationTime[activity.correlationId][1] = endTime
+            if CUPTI.runtime_driver_time_adjustment:
+                if activity.correlationId not in CUPTI.correlationTime: 
+                    CUPTI.correlationTime[activity.correlationId] = [0, 0, endTime] 
+                else: 
+                    CUPTI.correlationTime[activity.correlationId][2] = endTime
             return None 
         elif kind == CUPTI_ACTIVITY_KIND_OVERHEAD: 
             activity = ctypes.cast(record, ctypes.POINTER(CUpti_ActivityOverhead)).contents 
@@ -606,6 +600,45 @@ class CUPTI:
             span = CUPTI.tracer.start_span_from_context_no_ctx("gpu_overhead", context=CUPTI.ctx, trace_level="SYSTEM_LIBRARY_TRACE", attributes=tags, start_time=startTime, internal_context=True) 
             span.end(end_time=endTime) 
             return None 
+        elif kind == CUPTI_ACTIVITY_KIND_CDP_KERNEL:
+            activity = ctypes.cast(record, ctypes.POINTER(CUpti_ActivityCdpKernel)).contents 
+            startTime = CUPTI.beginTime + (activity.start - CUPTI.startTimeStamp) 
+            endTime = CUPTI.beginTime + (activity.end - CUPTI.startTimeStamp) 
+            tags = {
+                "trace_source": "cupti",
+                "cupti_type":   "activity",
+                # "name":                    demangle(activity.name.decode()),
+                "grid_dim":                [activity.gridX, activity.gridY, activity.gridZ],
+				"block_dim":               [activity.blockX, activity.blockY, activity.blockZ],
+                "parent_block_dim":        [activity.parentBlockX, activity.parentBlockY, activity.parentBlockZ],
+                "device_id":               activity.deviceId,
+				"context_id":              activity.contextId,
+				"stream_id":               activity.streamId,
+				"correlation_id":          activity.correlationId,
+                # "start":                   activity.start,    # unadjusted
+				# "end":                     activity.end,      # unadjusted
+                # "completed":               activity.completed,
+				# "queued":                  activity.queued,
+				# "submitted":               activity.submitted,
+                "local_mem":               activity.localMemoryTotal,
+				"local_memory_per_thread": activity.localMemoryPerThread,
+                "registers_per_thread":    activity.registersPerThread,
+                "dynamic_sharedMemory":    activity.dynamicSharedMemory,
+                "static_sharedMemory": activity.staticSharedMemory,
+            }
+            if activity.name is not None:
+                try:
+                    mangledName = activity.name.decode()
+                    tags["name"] = demangle(mangledName)
+                except UnicodeDecodeError:
+                    pass
+                except ValueError:
+                    tags["name"] = mangledName
+            activity_context = cls.findActivitySpanContext(activity.correlationId)
+            internal_context = True if activity_context is None else False
+            span = CUPTI.tracer.start_span_from_context_no_ctx("gpu_cdp_kernel", context=activity_context, trace_level="SYSTEM_LIBRARY_TRACE", attributes=tags, start_time=startTime, internal_context=internal_context)
+            span.end(end_time=endTime)
+            return None 
         elif kind == CUPTI_ACTIVITY_KIND_DRIVER or kind == CUPTI_ACTIVITY_KIND_RUNTIME: 
             activity = ctypes.cast(record, ctypes.POINTER(CUpti_ActivityAPI)).contents 
             startTime = CUPTI.beginTime + (activity.start - CUPTI.startTimeStamp) 
@@ -613,9 +646,9 @@ class CUPTI:
             tags = {
                 "trace_source": "cupti",
                 "cupti_type":   "activity",
-                "cbid":           activity.cbid,
+                "cbid":           CUpti_driver_api_trace_cbid_(activity.cbid).name if kind == CUPTI_ACTIVITY_KIND_DRIVER else CUpti_runtime_api_trace_cbid_(activity.cbid).name,
 				"correlation_id": activity.correlationId,
-				"kind":           activity.kind,
+				"kind":           CUpti_ActivityKind_(activity.kind).name,
 				"process_id":     activity.processId,
 				"thread_id":      activity.threadId,
             }
@@ -624,6 +657,49 @@ class CUPTI:
             span = CUPTI.tracer.start_span_from_context_no_ctx("gpu_api", context=activity_context, trace_level="SYSTEM_LIBRARY_TRACE", attributes=tags, start_time=startTime, internal_context=internal_context) 
             span.end(end_time=endTime) 
             return None 
+        # elif kind == CUPTI_ACTIVITY_KIND_MEMORY:
+        #     activity = ctypes.cast(record, ctypes.POINTER(CUpti_ActivityMemory)).contents
+        #     startTime = CUPTI.beginTime + (activity.start - CUPTI.startTimeStamp)
+        #     # The end timestamp will be 0 if memory is not freed 
+        #     endTime = CUPTI.beginTime + (activity.end - CUPTI.startTimeStamp)
+        #     tags = {
+        #         "trace_source": "cupti",
+        #         "cupti_type":   "activity",
+        #         "bytes":            activity.bytes,
+        #         "memory_kind":      getActivityMemoryKindString(activity.memoryKind),
+        #         "address":          activity.address,
+        #         # "allocation_pc":    activity.allocPC,
+        #         # "free_pc":          activity.freePC,
+        #         "process_id":       activity.processId,
+        #         "device_id":        activity.deviceId,
+        #         "context_id":       activity.contextId,
+        #     }
+        #     if activity.name is not None:
+        #         try:
+        #             mangledName = activity.name.decode()
+        #             tags["name"] = demangle(mangledName)
+        #         except UnicodeDecodeError:
+        #             pass
+        #         except ValueError:
+        #             tags["name"] = mangledName
+        #     span = CUPTI.tracer.start_span_from_context_no_ctx("gpu_memory", context=CUPTI.ctx, trace_level="SYSTEM_LIBRARY_TRACE", attributes=tags, start_time=startTime, internal_context=True)
+        #     span.end(end_time=endTime)
+        elif kind == CUPTI_ACTIVITY_KIND_SYNCHRONIZATION:
+            activity = ctypes.cast(record, ctypes.POINTER(CUpti_ActivitySynchronization)).contents
+            startTime = CUPTI.beginTime + (activity.start - CUPTI.startTimeStamp)
+            endTime = CUPTI.beginTime + (activity.end - CUPTI.startTimeStamp)
+            tags = {
+                "trace_source": "cupti",
+                "cupti_type":   "activity",
+                "type":             getActivitySynchronizationTypeString(activity.type),
+                "correlation_id":   activity.correlationId,
+                "context_id":       activity.contextId,
+                "stream_id":        activity.streamId,
+                "cuda_event_id":    activity.cudaEventId,
+            }
+            span = CUPTI.tracer.start_span_from_context_no_ctx("gpu_synchronization", context=CUPTI.ctx, trace_level="SYSTEM_LIBRARY_TRACE", attributes=tags, start_time=startTime, internal_context=True)
+            span.end(end_time=endTime)
+            return None
         else: 
             logger.error("can not cast activity kind") 
 
@@ -1629,11 +1705,22 @@ class CUPTI:
                     pass 
                 except ValueError:
                     tags["kernel"] = mangledName 
-            CUPTI.startSpanFromContext(correlationId, "launch_kernel", tags) 
+            launch_kernel_context = self.findActivitySpanContext(correlationId) 
+            internal_context = True if launch_kernel_context is None else False 
+            CUPTI.startSpanFromContext(correlationId, "launch_kernel", tags, context=launch_kernel_context, internal_context=internal_context)
             return None  
         def onCULaunchKernelExit(cbInfo): 
             correlationId = cbInfo.correlationId 
-            CUPTI.endSpanFromContext(correlationId, "launch_kernel") 
+
+            if (not self.profilingAPI) or (not CUPTI.runtime_driver_time_adjustment): 
+                CUPTI.endSpanFromContext(correlationId, "launch_kernel")
+            else: 
+                endTime = CUPTI.removeSpanContextByCorrelationId(correlationId, "launch_kernel") 
+                
+                if correlationId not in CUPTI.correlationTime: 
+                    CUPTI.correlationTime[correlationId] = [0, endTime, 0] 
+                else: 
+                    CUPTI.correlationTime[correlationId][1] = endTime
             return None 
         
         if cbInfo.callbackSite == CUPTI_API_ENTER: 
@@ -1643,6 +1730,57 @@ class CUPTI:
         else: 
             return RuntimeError(f'invalid callback site {CUpti_ApiCallbackSite_(cbInfo.callbackSite).name}') 
         
+    def onCULaunchCooperativeKernel(self, domain, cbid, cbInfo):
+        def onCULaunchCooperativeKernelEnter(domain, cbid, cbInfo): 
+            functionName = cbInfo.functionName.decode() 
+            correlationId = cbInfo.correlationId 
+            params = ctypes.cast(cbInfo.functionParams, ctypes.POINTER(cuLaunchCooperativeKernel_params)).contents 
+            tags = {
+                "trace_source":      "cupti",
+                "cupti_type":        "callback",
+                "context_uid":       cbInfo.contextUid,
+                "correlation_id":    correlationId,
+                "function_name":     functionName,
+                "cupti_domain":      CUpti_CallbackDomain_(domain).name,
+                "cupti_callback_id": CUpti_driver_api_trace_cbid_(cbid).name,
+                "stream":            ctypes.addressof(params.hStream),
+                "grid_dim":          [params.gridDimX, params.gridDimY, params.gridDimZ],
+                "block_dim":         [params.blockDimX, params.blockDimY, params.blockDimZ],
+                "shared_mem":        params.sharedMemBytes,
+            }
+            if cbInfo.symbolName is not None: 
+                try: 
+                    mangledName = cbInfo.symbolName.decode()
+                    tags["kernel"] = demangle(mangledName)
+                except UnicodeDecodeError: 
+                    pass 
+                except ValueError:
+                    tags["kernel"] = mangledName 
+            launch_cooperative_kernel_context = self.findActivitySpanContext(correlationId)
+            internal_context = True if launch_cooperative_kernel_context is None else False
+            CUPTI.startSpanFromContext(correlationId, "launch_cooperative_kernel", tags, context=launch_cooperative_kernel_context, internal_context=internal_context)
+            return None
+        def onCULaunchCooperativeKernelExit(cbInfo):
+            correlationId = cbInfo.correlationId
+
+            if (not self.profilingAPI) or (not CUPTI.runtime_driver_time_adjustment): 
+                CUPTI.endSpanFromContext(correlationId, "launch_cooperative_kernel")
+            else:
+                endTime = CUPTI.removeSpanContextByCorrelationId(correlationId, "launch_cooperative_kernel")
+
+                if correlationId not in CUPTI.correlationTime:
+                    CUPTI.correlationTime[correlationId] = [0, endTime, 0]
+                else:
+                    CUPTI.correlationTime[correlationId][1] = endTime
+            return None
+        
+        if cbInfo.callbackSite == CUPTI_API_ENTER:
+            return onCULaunchCooperativeKernelEnter(domain, cbid, cbInfo)
+        elif cbInfo.callbackSite == CUPTI_API_EXIT:
+            return onCULaunchCooperativeKernelExit(cbInfo)
+        else:
+            return RuntimeError(f'invalid callback site {CUpti_ApiCallbackSite_(cbInfo.callbackSite).name}')
+
     def onCudaMemCopyDevice(self, domain, cbid, cbInfo): 
         def onCudaMemCopyDeviceEnter(domain, cbid, cbInfo): 
             functionName = cbInfo.functionName.decode() 
@@ -1667,7 +1805,7 @@ class CUPTI:
         def onCudaMemCopyDeviceExit(cbInfo): 
             correlationId = cbInfo.correlationId 
 
-            if not self.profilingAPI: 
+            if (not self.profilingAPI) or (not CUPTI.runtime_driver_time_adjustment): 
                 CUPTI.endSpanFromContext(correlationId, "cuda_memcpy_dev")
             else: 
                 endTime = CUPTI.removeSpanContextByCorrelationId(correlationId, "cuda_memcpy_dev") 
@@ -1725,10 +1863,13 @@ class CUPTI:
             else: 
                 endTime = CUPTI.removeSpanContextByCorrelationId(correlationId, "cuda_launch", attributes=attributes) 
                 
-                if correlationId not in CUPTI.correlationTime: 
-                    CUPTI.correlationTime[correlationId] = [endTime, 0] 
-                else: 
-                    CUPTI.correlationTime[correlationId][0] = endTime 
+                if CUPTI.runtime_driver_time_adjustment:
+                    if correlationId not in CUPTI.correlationTime: 
+                        CUPTI.correlationTime[correlationId] = [endTime, 0, 0] 
+                    else: 
+                        CUPTI.correlationTime[correlationId][0] = endTime 
+                else:
+                    CUPTI.correlationTime[correlationId] = endTime 
             return None 
         
         if cbInfo.callbackSite == CUPTI_API_ENTER: 
@@ -2082,7 +2223,7 @@ class CUPTI:
         def onCudaMemCopyExit(cbInfo): 
             correlationId = cbInfo.correlationId 
 
-            if not self.profilingAPI: 
+            if (not self.profilingAPI) or (not CUPTI.runtime_driver_time_adjustment): 
                 CUPTI.endSpanFromContext(correlationId, "cuda_memcpy")
             else: 
                 endTime = CUPTI.removeSpanContextByCorrelationId(correlationId, "cuda_memcpy") 

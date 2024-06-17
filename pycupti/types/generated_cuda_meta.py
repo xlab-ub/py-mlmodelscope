@@ -65,3 +65,16 @@ class cuLaunchKernel_params(ctypes.Structure):
                 ("kernelParams", ctypes.c_void_p), 
                 ("extra", ctypes.c_void_p) 
     ]
+
+class cuLaunchCooperativeKernel_params(ctypes.Structure):
+    _fields_ = [("f", CUfunction), 
+                ("gridDimX", ctypes.c_uint), 
+                ("gridDimY", ctypes.c_uint), 
+                ("gridDimZ", ctypes.c_uint), 
+                ("blockDimX", ctypes.c_uint), 
+                ("blockDimY", ctypes.c_uint), 
+                ("blockDimZ", ctypes.c_uint), 
+                ("sharedMemBytes", ctypes.c_uint), 
+                ("hStream", CUstream), 
+                ("kernelParams", ctypes.c_void_p)
+    ]

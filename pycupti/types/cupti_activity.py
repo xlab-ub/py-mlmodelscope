@@ -907,6 +907,36 @@ class CUpti_ActivityPartitionedGlobalCacheConfig_(IntEnum):
   CUPTI_ACTIVITY_PARTITIONED_GLOBAL_CACHE_CONFIG_ON = 3
   CUPTI_ACTIVITY_PARTITIONED_GLOBAL_CACHE_CONFIG_FORCE_INT  = 0x7fffffff
 
+# 
+# \brief Synchronization type.
+# 
+# The types of synchronization to be used with CUpti_ActivitySynchronization.
+# 
+CUpti_ActivitySynchronizationType = ctypes.c_int 
+@export(globals())
+class CUpti_ActivitySynchronizationType_(IntEnum):
+  # 
+  # Unknown data.
+  # 
+  CUPTI_ACTIVITY_SYNCHRONIZATION_TYPE_UNKNOWN = 0
+  # 
+  # Event synchronize API.
+  # 
+  CUPTI_ACTIVITY_SYNCHRONIZATION_TYPE_EVENT_SYNCHRONIZE = 1
+  # 
+  # Stream wait event API.
+  # 
+  CUPTI_ACTIVITY_SYNCHRONIZATION_TYPE_STREAM_WAIT_EVENT = 2
+  # 
+  # Stream synchronize API.
+  # 
+  CUPTI_ACTIVITY_SYNCHRONIZATION_TYPE_STREAM_SYNCHRONIZE = 3
+  # 
+  # Context synchronize API.
+  # 
+  CUPTI_ACTIVITY_SYNCHRONIZATION_TYPE_CONTEXT_SYNCHRONIZE = 4
+
+  CUPTI_ACTIVITY_SYNCHRONIZATION_TYPE_FORCE_INT     = 0x7fffffff
 
 CUpti_ChannelType = ctypes.c_int 
 @export(globals()) 
@@ -1198,6 +1228,95 @@ class CUpti_ActivityMemset4(ctypes.Structure):
                 #  Reserved for internal use.
                 #
                 ("pad2", ctypes.c_uint32) 
+    ]
+
+# 
+# \brief The activity record for memory.
+# 
+# This activity record represents a memory allocation and free operation
+# (CUPTI_ACTIVITY_KIND_MEMORY).
+# This activity record provides a single record for the memory
+# allocation and memory release operations.
+# 
+# Note: It is recommended to move to the new activity record \ref CUpti_ActivityMemory3
+# enabled using the kind \ref CUPTI_ACTIVITY_KIND_MEMORY2.
+# \ref CUpti_ActivityMemory3 provides separate records for memory
+# allocation and memory release operations. This allows to correlate the
+# corresponding driver and runtime API activity record with the memory operation.
+# 
+class CUpti_ActivityMemory(ctypes.Structure):
+    _fields_ = [#  
+                # The activity record kind, must be CUPTI_ACTIVITY_KIND_MEMORY
+                # 
+                ("kind", CUpti_ActivityKind), 
+
+                # 
+                # The memory kind requested by the user
+                # 
+                ("memoryKind", CUpti_ActivityMemoryKind), 
+
+                # 
+                # The virtual address of the allocation
+                # 
+                ("address", ctypes.c_uint64),
+
+                # 
+                # The number of bytes of memory allocated.
+                # 
+                ("bytes", ctypes.c_uint64),
+
+                # 
+                # The start timestamp for the memory operation, i.e.
+                # the time when memory was allocated, in ns.
+                # 
+                ("start", ctypes.c_uint64),
+
+                # 
+                # The end timestamp for the memory operation, i.e.
+                # the time when memory was freed, in ns.
+                # This will be 0 if memory is not freed in the application
+                # 
+                ("end", ctypes.c_uint64),
+
+                # 
+                # The program counter of the allocation of memory
+                # 
+                ("allocPC", ctypes.c_uint64),
+
+                # 
+                # The program counter of the freeing of memory. This will
+                # be 0 if memory is not freed in the application
+                # 
+                ("freePC", ctypes.c_uint64),
+
+                # 
+                # The ID of the process to which this record belongs to.
+                # 
+                ("processId", ctypes.c_uint32),
+
+                # 
+                # The ID of the device where the memory allocation is taking place.
+                # 
+                ("deviceId", ctypes.c_uint32),
+
+                # 
+                # The ID of the context. If context is NULL, \p contextId is set to CUPTI_INVALID_CONTEXT_ID.
+                # 
+                ("contextId", ctypes.c_uint32),
+
+                #ifdef CUPTILP64
+                #  
+                #  Undefined. Reserved for internal use.
+                #  
+                ("pad", ctypes.c_uint32), 
+                #endif
+
+                # 
+                # Variable name. This name is shared across all activity
+                # records representing the same symbol, and so should not be
+                #  modified.
+                #  
+                ("name", ctypes.c_char_p)
     ]
 
 #
@@ -1526,6 +1645,182 @@ class CUpti_ActivityOverhead(ctypes.Structure):
                 ("end", ctypes.c_uint64) 
     ]
 
+#  
+#  \brief The activity record for CDP (CUDA Dynamic Parallelism)
+#  kernel.
+#  
+#  This activity record represents a CDP kernel execution.
+#  
+class CUpti_ActivityCdpKernel(ctypes.Structure):
+    _fields_ = [#  
+                #  The activity record kind, must be CUPTI_ACTIVITY_KIND_CDP_KERNEL
+                #  
+                ("kind", CUpti_ActivityKind), 
+
+                ("cacheConfig", _cacheConfig), 
+
+                #
+                #  The shared memory configuration used for the kernel. The value is one of
+                #  the CUsharedconfig enumeration values from cuda.h.
+                #
+                ("sharedMemoryConfig", ctypes.c_uint8), 
+
+                #
+                #  The number of registers required for each thread executing the
+                #  kernel.
+                #
+                ("registersPerThread", ctypes.c_uint16), 
+
+                #
+                #  The start timestamp for the kernel execution, in ns. A value of 0
+                #  for both the start and end timestamps indicates that timestamp
+                #  information could not be collected for the kernel.
+                #
+                ("start", ctypes.c_uint64), 
+
+                #
+                #  The end timestamp for the kernel execution, in ns. A value of 0
+                #  for both the start and end timestamps indicates that timestamp
+                #  information could not be collected for the kernel.
+                #
+                ("end", ctypes.c_uint64), 
+
+                #
+                #  The ID of the device where the kernel is executing.
+                #
+                ("deviceId", ctypes.c_uint32), 
+
+                #
+                #  The ID of the context where the kernel is executing.
+                #
+                ("contextId", ctypes.c_uint32), 
+
+                #
+                #  The ID of the stream where the kernel is executing.
+                #
+                ("streamId", ctypes.c_uint32), 
+
+                #
+                #  The X-dimension grid size for the kernel.
+                #
+                ("gridX", ctypes.c_int32), 
+
+                #
+                #  The Y-dimension grid size for the kernel.
+                #
+                ("gridY", ctypes.c_int32), 
+
+                #
+                #  The Z-dimension grid size for the kernel.
+                #
+                ("gridZ", ctypes.c_int32), 
+
+                #
+                #  The X-dimension block size for the kernel.
+                #
+                ("blockX", ctypes.c_int32), 
+
+                #
+                #  The Y-dimension block size for the kernel.
+                #
+                ("blockY", ctypes.c_int32), 
+
+                #
+                #  The Z-dimension grid size for the kernel.
+                #
+                ("blockZ", ctypes.c_int32), 
+
+                #
+                #  The static shared memory allocated for the kernel, in bytes.
+                #
+                ("staticSharedMemory", ctypes.c_int32), 
+
+                #
+                #  The dynamic shared memory reserved for the kernel, in bytes.
+                #
+                ("dynamicSharedMemory", ctypes.c_int32), 
+
+                #
+                #  The amount of local memory reserved for each thread, in bytes.
+                #
+                ("localMemoryPerThread", ctypes.c_uint32), 
+
+                #
+                #  The total amount of local memory reserved for the kernel, in
+                #  bytes.
+                #
+                ("localMemoryTotal", ctypes.c_uint32), 
+
+                #
+                #  The correlation ID of the kernel. Each kernel execution is
+                #  assigned a unique correlation ID that is identical to the
+                #  correlation ID in the driver or runtime API activity record that
+                #  launched the kernel.
+                #
+                ("correlationId", ctypes.c_uint32), 
+
+                #
+                #  The grid ID of the kernel. Each kernel is assigned a unique
+                #  grid ID at runtime.
+                #
+                ("gridId", ctypes.c_int64), 
+
+                #  
+                #  The grid ID of the parent kernel.
+                #  
+                ("parentGridId", ctypes.c_int64), 
+
+                #  
+                #  The timestamp when kernel is queued up, in ns. A value of
+                #  CUPTI_TIMESTAMP_UNKNOWN indicates that the queued time is
+                #  unknown.
+                #  
+                ("queued", ctypes.c_uint64), 
+
+                #  
+                #  The timestamp when kernel is submitted to the gpu, in ns. A value
+                #  of CUPTI_TIMESTAMP_UNKNOWN indicates that the submission time is
+                #  unknown.
+                #  
+                ("submitted", ctypes.c_uint64), 
+
+                #  
+                #  The timestamp when kernel is marked as completed, in ns. A value
+                #  of CUPTI_TIMESTAMP_UNKNOWN indicates that the completion time is
+                #  unknown.
+                #  
+                ("completed", ctypes.c_uint64), 
+
+                #  
+                #  The X-dimension of the parent block.
+                #  
+                ("parentBlockX", ctypes.c_uint32), 
+
+                #  
+                #  The Y-dimension of the parent block.
+                #  
+                ("parentBlockY", ctypes.c_uint32), 
+
+                #  
+                #  The Z-dimension of the parent block.
+                #  
+                ("parentBlockZ", ctypes.c_uint32), 
+
+                #ifdef CUPTILP64
+                #  
+                #  Undefined. Reserved for internal use.
+                #  
+                ("pad", ctypes.c_uint32), 
+                #endif
+
+                #  
+                #  The name of the kernel. This name is shared across all activity
+                #  records representing the same kernel, and so should not be
+                #  modified.
+                #  
+                ("name", ctypes.c_char_p)
+    ]
+
 #
 #  \brief The activity record for a driver or runtime API invocation.
 # 
@@ -1585,6 +1880,64 @@ class CUpti_ActivityAPI(ctypes.Structure):
                 #  this will be a cudaError_t value.
                 #
                 ("returnValue", ctypes.c_uint32) 
+    ]
+
+# 
+# \brief The activity record for synchronization management.
+# 
+# This activity is used to track various CUDA synchronization APIs.
+# (CUPTI_ACTIVITY_KIND_SYNCHRONIZATION).
+# 
+class CUpti_ActivitySynchronization(ctypes.Structure): 
+    _fields_ = [#
+                # The activity record kind, must be CUPTI_ACTIVITY_KIND_SYNCHRONIZATION.
+                # 
+                ("kind", CUpti_ActivityKind), 
+
+                # 
+                # The type of record.
+                # 
+                ("type", CUpti_ActivitySynchronizationType), 
+
+                # 
+                # The start timestamp for the function, in ns. A value of 0 for
+                # both the start and end timestamps indicates that timestamp
+                # information could not be collected for the function.
+                # 
+                ("start", ctypes.c_uint64),
+
+                # 
+                # The end timestamp for the function, in ns. A value of 0 for both
+                # the start and end timestamps indicates that timestamp information
+                # could not be collected for the function.
+                # 
+                ("end", ctypes.c_uint64), 
+
+                # 
+                # The correlation ID of the API to which this result is associated.
+                # 
+                ("correlationId", ctypes.c_uint32),
+
+                # 
+                # The ID of the context for which the synchronization API is called.
+                # In case of context synchronization API it is the context id for which the API is called.
+                # In case of stream/event synchronization it is the ID of the context where the stream/event was created.
+                # 
+                ("contextId", ctypes.c_uint32),
+
+                # 
+                # The compute stream for which the synchronization API is called.
+                # A CUPTI_SYNCHRONIZATION_INVALID_VALUE value indicate the field is not applicable for this record.
+                # Not valid for cuCtxSynchronize, cuEventSynchronize.
+                # 
+                ("streamId", ctypes.c_uint32),
+
+                # 
+                # The event ID for which the synchronization API is called.
+                # A CUPTI_SYNCHRONIZATION_INVALID_VALUE value indicate the field is not applicable for this record.
+                # Not valid for cuCtxSynchronize, cuStreamSynchronize.
+                # 
+                ("cudaEventId", ctypes.c_uint32) 
     ]
 
 #

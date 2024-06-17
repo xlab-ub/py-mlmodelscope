@@ -33,6 +33,7 @@ def main():
     parser.add_argument("--batch_size", type=int, nargs='?', default=2, help="Total batch size for predict.") 
     parser.add_argument("--trace_level", type=str, nargs='?', default="NO_TRACE", choices=TRACE_LEVEL, help="MLModelScope Trace Level") 
     parser.add_argument("--gpu_trace", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to trace GPU activities") 
+    parser.add_argument("--cuda_runtime_driver_time_adjustment", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to adjust the CUDA Runtime/Driver time")
     parser.add_argument("--save_trace_result", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to save the trace result")
     parser.add_argument("--save_trace_result_path", type=str, nargs='?', default="trace_result.txt", help="The path of the trace result file")
     parser.add_argument("--detailed_result", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to get detailed result") 
@@ -66,6 +67,7 @@ def main():
     architecture  = args.architecture 
     trace_level   = args.trace_level
     gpu_trace     = True if (TRACE_LEVEL.index(trace_level) >= TRACE_LEVEL.index("SYSTEM_LIBRARY_TRACE")) and (args.gpu_trace == "true") else False 
+    cuda_runtime_driver_time_adjustment = True if args.cuda_runtime_driver_time_adjustment == "true" else False
     if architecture == "gpu": 
       # https://stackoverflow.com/questions/67504079/how-to-check-if-an-nvidia-gpu-is-available-on-my-system 
       try:
@@ -99,7 +101,7 @@ def main():
     save_output = True if args.save_output == "true" else False 
     save_output_path = args.save_output_path if save_output else None 
 
-    mlms = MLModelScope(architecture, trace_level, gpu_trace, save_trace_result_path) 
+    mlms = MLModelScope(architecture, trace_level, gpu_trace, save_trace_result_path, cuda_runtime_driver_time_adjustment) 
     
     mlms.load_agent(task, agent, model_name, security_check, config, user) 
     print(f"{agent}-agent is loaded with {model_name} model\n") 

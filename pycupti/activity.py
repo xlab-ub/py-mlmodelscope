@@ -107,6 +107,20 @@ def getActivityObjectKindId(kind, id):
     else: 
         return 0xffffffff 
 
+def getActivitySynchronizationTypeString(type):
+    if type == CUPTI_ACTIVITY_SYNCHRONIZATION_TYPE_UNKNOWN:
+        return "unknown"
+    elif type == CUPTI_ACTIVITY_SYNCHRONIZATION_TYPE_EVENT_SYNCHRONIZE:
+        return "event_synchronize"
+    elif type == CUPTI_ACTIVITY_SYNCHRONIZATION_TYPE_STREAM_WAIT_EVENT:
+        return "stream_wait_event"
+    elif type == CUPTI_ACTIVITY_SYNCHRONIZATION_TYPE_STREAM_SYNCHRONIZE:
+        return "stream_synchronize"
+    elif type == CUPTI_ACTIVITY_SYNCHRONIZATION_TYPE_CONTEXT_SYNCHRONIZE:
+        return "context_synchronize"
+    else: 
+        return f"<unknown> {type}"
+
 def getComputeApiKindString(kind): 
     if kind == CUPTI_ACTIVITY_COMPUTE_API_CUDA:
         return "CUDA"
