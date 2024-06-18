@@ -7,8 +7,6 @@ from diffusers.utils.torch_utils import randn_tensor
 import torch
 
 
-
-
 class PyTorch_Transformers_Text_To_Video_Ms_1_7b(PyTorchAbstractClass):
   def __init__(self, config=None):
     self.config = config if config else {}
@@ -25,25 +23,25 @@ class PyTorch_Transformers_Text_To_Video_Ms_1_7b(PyTorchAbstractClass):
     self.height = self.config.get('height', self.unet.config.sample_size * self.vae_scale_factor) 
     self.width = self.config.get('width', self.unet.config.sample_size * self.vae_scale_factor) 
     self.num_inference_steps =  25 #self.config.get('num_inference_steps', 10)  # Number of denoising steps
-    self.guidance_scale = self.config.get('guidance_scale', 7.5)  # Scale for classifier-free guidance
+    self.guidance_scale = self.config.get('guidance_scale', 1)  # Scale for classifier-free guidance
     self.num_frames = 10
     self.seed = self.config.get('seed', 0)
     self.video_processor = VideoProcessor(do_resize=False, vae_scale_factor=self.vae_scale_factor)
 
   
   def preprocess(self, input_prompts):
+
     with torch.no_grad():
       batch_size = len(input_prompts)
 
-      text_inputs = self.tokenizer(input_prompts, padding="max_length", max_length=self.tokenizer.model_max_length,
-                                  truncation=True, return_tensors="pt")
+      text_inputs = self.tokenizer(input_prompts, padding="max_length", max_length=self.tokenizer.model_max_length, 
+                                   truncation=True, return_tensors="pt")
       text_input_ids = text_inputs.input_ids
       
       prompt_embeds = self.text_encoder(text_input_ids.to(self.device), attention_mask=None)
       prompt_embeds = prompt_embeds[0]
       prompt_embeds_dtype = self.text_encoder.dtype
-            # with torch.no_grad():
-        # Encode all prompts in one go to leverage GPU parallelization
+
       bs_embed, seq_len, _ = prompt_embeds.shape
       
       # duplicate text embeddings for each generation per prompt, using mps friendly method
@@ -92,7 +90,7 @@ class PyTorch_Transformers_Text_To_Video_Ms_1_7b(PyTorchAbstractClass):
 
   def predict(self, model_input):
     with torch.no_grad():
-      for i, t in enumerate(self.scheduler.timesteps):
+      for t in self.scheduler.timesteps:
           
           latent_model_input = torch.cat([self.latents] * 2)
           latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
@@ -135,11 +133,9 @@ class PyTorch_Transformers_Text_To_Video_Ms_1_7b(PyTorchAbstractClass):
 
   def to(self, device):
     self.device = device 
-
     self.vae.to(device)
     self.text_encoder.to(device)
     self.unet.to(device)
-
     self.generator = torch.Generator(device=device).manual_seed(self.seed)
 
   def eval(self):

@@ -100,3 +100,5 @@ def _load(task, model_name, security_check=True, config=None, user='default'):
       pytorch_abstract_class_instance = create_instance_from_model_manifest_file(task, model_name, security_check, config, user) # Create an instance of the model class
       sys.path.remove(model_file_dir)
       return pytorch_abstract_class_instance
+    else:
+      raise e
