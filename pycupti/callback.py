@@ -20,6 +20,11 @@ def callback(userdata, domain, cbid, _cbInfo):
       if err is not None: 
         logger.error("failed during callback", exc_info=err, extra={"domain": CUpti_CallbackDomain_(domain).name, "callback": CUpti_driver_api_trace_cbid_(cbid).name})
       return 
+    elif cbid == CUPTI_DRIVER_TRACE_CBID_cuLaunchCooperativeKernel:
+      err = handle.onCULaunchCooperativeKernel(domain, cbid, cbInfo)
+      if err is not None:
+        logger.error("failed during callback", exc_info=err, extra={"domain": CUpti_CallbackDomain_(domain).name, "callback": CUpti_driver_api_trace_cbid_(cbid).name})
+      return
     elif (cbid == CUPTI_DRIVER_TRACE_CBID_cuMemcpyHtoD_v2 or 
           cbid == CUPTI_DRIVER_TRACE_CBID_cuMemcpyDtoH_v2 or 
           cbid == CUPTI_DRIVER_TRACE_CBID_cuMemcpyDtoD_v2 or 
