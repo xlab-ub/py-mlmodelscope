@@ -58,21 +58,21 @@ class MLModelScope:
     url = False 
     print(dataset_name)
     if isinstance(dataset_name, list): 
-      if dataset_name[0].startswith('http'): 
+      if dataset_name[0]["src"].startswith('http'): 
         url = True 
       else: 
-        dataset_name = dataset_name[0] 
+        dataset_name[0]["src"] = dataset_name[0]["src"]
     else:
-      if dataset_name.startswith('http'): 
+      if dataset_name["src"].startswith('http'): 
         url = True
     if not url and task is None: 
       dataset_list = [dataset[:-3] for dataset in os.listdir(f'./pydldataset/datasets/') if dataset.endswith('.py')]
       dataset_list.remove('url_data') 
-      if dataset_name in dataset_list: 
+      if dataset_name["src"] in dataset_list: 
         print(f"{dataset_name} dataset exists") 
       else: 
         raise NotImplementedError(f"{dataset_name} dataset is not supported, the available datasets are as follows:\n{', '.join(dataset_list)}") 
-    
+    print(dataset_name)
     name = 'url' if url else (dataset_name if task is None else task)
     with self.tracer.start_as_current_span_from_context(name + ' dataset load', context=self.ctx, trace_level="APPLICATION_TRACE"): 
       self.dataset = pydldataset.load(dataset_name, url, task=task, security_check=security_check) 

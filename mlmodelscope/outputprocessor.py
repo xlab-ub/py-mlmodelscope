@@ -33,7 +33,7 @@ class OutputProcessor:
     
     @staticmethod
     def process_final_outputs_for_serialization(modality, final_outputs, model_features=None): 
-        if (model_features is None) and (modality not in ['image_enhancement', 'image_synthesis', 'text_to_code', 'text_to_text']): 
+        if (model_features is None) and (modality not in ['image_enhancement', 'image_synthesis', 'text_to_code', 'text_to_text',"text_conversation"]): 
             raise ValueError(f"model_features is required for {modality} modality") 
         
         serialized_outputs = []
@@ -77,7 +77,7 @@ class OutputProcessor:
 
             serialized_outputs.append({"duration":None,"duration_for_inference":None,"responses":[{"features":features,"id":None}]})
         
-        elif modality in ['text_to_code', 'text_to_text']: 
+        elif modality in ['text_to_code', 'text_to_text',"text_conversation"]: 
             for idx, output in enumerate(final_outputs): 
                 features = [{"text":output,"type":"TEXT"}] 
 

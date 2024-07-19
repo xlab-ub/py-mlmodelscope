@@ -3,7 +3,7 @@ from ..dataset_abc import DatasetAbstractClass
 import os
 import requests 
 
-class Url_Data(DatasetAbstractClass):
+class Multi_Url_Data(DatasetAbstractClass):
   def __init__(self, url_list): 
     self.root = self.get_directory('url_data') 
     self.url_list = url_list 
@@ -15,8 +15,10 @@ class Url_Data(DatasetAbstractClass):
   def __getitem__(self, idx):
     try:
       # Send a GET request to the URL to download the image data
-      response = requests.get(self.url_list[idx]["src"]) 
 
+      print(self.url_list[idx]["src"])
+      response = requests.get(self.url_list[idx]["src"]) 
+      print(response)
       # Check if the request was successful (status code 200)
       if response.status_code == 200:
         url_file_name = self.url_list[idx]["src"].split('/')[-1] 

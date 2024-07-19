@@ -301,6 +301,7 @@ class DPN_107(PyTorchAbstractClass):
       transforms.ToTensor(),
       transforms.Normalize(mean=[124 / 255, 117 / 255, 104 / 255], std=[59.88 / 255, 59.88 / 255, 59.88 / 255])
     ])
+    print(input_images)
     for i in range(len(input_images)):
       input_images[i] = preprocessor(Image.open(input_images[i]).convert('RGB'))
     model_input = torch.stack(input_images)

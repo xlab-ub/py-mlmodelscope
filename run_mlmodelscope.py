@@ -198,6 +198,7 @@ def main():
 
     global conn 
     # Connect to an existing database 
+    print(f"host={db_host} dbname={db_name} user={db_user} password={db_password} port={db_port}")
     conn = psycopg.connect(f"host={db_host} dbname={db_name} user={db_user} password={db_password} port={db_port}") 
     
     global cur 
@@ -210,6 +211,7 @@ def main():
       global cur 
 
       id = properties.correlation_id 
+      print(f" [x] Received {id}")
       
       received_message = json.loads(body.decode()) 
       
@@ -229,7 +231,7 @@ def main():
           gpu_trace = False 
           print("GPU device will not be used because \"cpu\" is chosen for architecture.\nTherefore, gpu_trace option becomes off.") 
 
-      model_name    = received_message['ModelName'][:-4].lower().replace('.', '_') # _1.0 
+      model_name    = received_message['ModelName'].lower().replace('.', '_') # _1.0 
       num_warmup    = received_message['NumWarmup'] 
       dataset_name  = received_message['InputFiles'] 
       batch_size    = received_message['BatchSize'] 
@@ -265,7 +267,11 @@ def main():
 
       # https://www.geeksforgeeks.org/how-to-insert-current_timestamp-into-postgres-via-python/ 
       dt = datetime.now(timezone.utc) 
-      
+      print(f"dt={dt}")
+      # print(f"result={result}")
+      print(f"id={id}")
+      print(f"query={f'UPDATE trials SET updated_at = {dt}, completed_at = {dt}, result = {str(json.dumps(result))} WHERE id = {id};'}")
+      print
       try:
         query = f"UPDATE trials SET updated_at = %s, completed_at = %s, result = %s WHERE id = %s;"
         # https://stackoverflow.com/questions/18283725/how-to-create-a-python-dictionary-with-double-quotes-as-default-quote-format 
@@ -278,7 +284,9 @@ def main():
         conn.commit()
 
     # Establish a connection to RabbitMQ server
+    print(f"host={mq_host} port={mq_port} user={mq_user} password={mq_password}")
     credentials = pika.PlainCredentials(mq_user, mq_password) 
+    print(f"host={mq_host} port={mq_port} credentials={credentials.password}")
     parameters = pika.ConnectionParameters(host=mq_host,
                                            port=mq_port,
                                            credentials=credentials)

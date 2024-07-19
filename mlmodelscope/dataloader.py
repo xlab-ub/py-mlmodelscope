@@ -1,6 +1,7 @@
 class DataLoader:
   def __init__(self, dataset, batch_size):
     self.dataset = dataset
+    # print(dataset)
     self.batch_size  = batch_size
     self.idx = 0
 

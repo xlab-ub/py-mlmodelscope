@@ -58,12 +58,14 @@ class PyTorch_Agent:
           if input:
             if layer_name.startswith('0-0__'):
               self.input_shape = input[0].shape
-            span.set_attribute("input_shape", str(input[0].shape))
-          else: 
-            if layer_name.startswith('0__'):
-              span.set_attribute("input_shape", str(self.input_shape))
-            else:
-              span.set_attribute("input_shape", "None")
+            input_shape_str = str(self.input_shape) if layer_name.startswith('0__') else "None"
+            span.set_attribute("input_shape", input_shape_str)
+            # span.set_attribute("input_shape", str(input[0].shape))
+          # else: 
+          #   if layer_name.startswith('0__'):
+          #     span.set_attribute("input_shape", str(self.input_shape))
+          #   else:
+          #     span.set_attribute("input_shape", "None")
 
           span.set_attribute("output_shape", str(output.shape) if hasattr(output, 'shape') else str(output[0].shape))
           
@@ -128,6 +130,7 @@ class PyTorch_Agent:
           if num_warmup > num_round: 
             print('Warmup Size is too big, so it is reduced to the number of batches') 
             num_warmup = num_round 
+          print(dataloader)
 
           with tracer.start_as_current_span_from_context(f"Warmup", trace_level="APPLICATION_TRACE") as warmup_span:
             for index, data in enumerate(dataloader): 
@@ -153,6 +156,7 @@ class PyTorch_Agent:
               for index, data in enumerate(dataloader):
                 with tracer.start_as_current_span_from_context(f"Evaluate Batch {index}", trace_level="APPLICATION_TRACE") as evaluate_batch_span:
                   with tracer.start_as_current_span_from_context("preprocess", trace_level="APPLICATION_TRACE") as preprocess_span:
+                    # print(data)
                     model_input = self.model.preprocess(data)
                     if hasattr(model_input, 'to'):
                       model_input = model_input.to(self.device) 
@@ -160,6 +164,7 @@ class PyTorch_Agent:
                     self.tracer.inject_context(set_span_in_context(predict_span)) 
                     if self.c is not None:
                       self.c.Start(set_span_in_context(predict_span))
+                    print(model_input)
                     model_output = self.model.predict(model_input) 
                     if self.c is not None:
                       self.c.Close()

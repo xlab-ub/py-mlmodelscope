@@ -90,6 +90,7 @@ def load(dataset_name, url=False, count=None, task=None, security_check=True):
   try:
     if url: 
       exec('from .datasets.url_data' + ' import Url_Data', globals())
+      # print(dataset_name)
       return Url_Data(dataset_name) 
     else: 
       if task is None:
@@ -100,6 +101,7 @@ def load(dataset_name, url=False, count=None, task=None, security_check=True):
           return init() 
       elif task[:4] == "text": 
         exec('from .datasets.text_data import Text_Data', globals())
+        print(dataset_name)
         return Text_Data(dataset_name) 
       else:
         raise NotImplementedError(f"{task} dataset is not supported")
