@@ -1,0 +1,78 @@
+# Copyright 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#  * Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#  * Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#  * Neither the name of NVIDIA CORPORATION nor the names of its
+#    contributors may be used to endorse or promote products derived
+#    from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY
+# EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+# OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+import argparse
+
+import numpy as np
+import requests
+import tritonclient.http as httpclient
+from PIL import Image
+from tritonclient.utils import *
+
+
+def preprocess_image(image_url, target_shape):
+    image = Image.open(requests.get(image_url, stream=True).raw).convert('RGB')
+    image = image.resize((target_shape[2], target_shape[1]))  # Resize to (width, height)
+    image = np.asarray(image).astype(np.float32)
+    image = image.transpose(2, 0, 1)  # Convert to (C, H, W)
+    return image
+
+def main(model_name, batch_size):
+    client = httpclient.InferenceServerClient(url="localhost:8000")
+
+    # Inputs
+    url = "http://images.cocodataset.org/val2017/000000161642.jpg"
+    image = preprocess_image(url, (3, 224, 224))
+    image_batch = np.expand_dims(image, axis=0)
+    image_batch = np.repeat(image_batch, batch_size, axis=0)  # Create a batch of images
+
+    # Set Inputs
+    input_tensors = [httpclient.InferInput("IMAGE", image_batch.shape, "FP32")]
+    input_tensors[0].set_data_from_numpy(image_batch)
+
+    # Set outputs
+    outputs = [httpclient.InferRequestedOutput("last_hidden_state")]
+
+    # Query
+    try:
+        query_response = client.infer(model_name=model_name, inputs=input_tensors, outputs=outputs)
+    except InferenceServerException as e:
+        print(f"An error occurred: {e}")
+        return
+
+    # Output
+    last_hidden_state = query_response.as_numpy("last_hidden_state")
+    print(last_hidden_state.shape)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--model_name", default="python_vit"
+    )
+    parser.add_argument("--batch_size", type=int, default=4)
+    args = parser.parse_args()
+    main(args.model_name)
