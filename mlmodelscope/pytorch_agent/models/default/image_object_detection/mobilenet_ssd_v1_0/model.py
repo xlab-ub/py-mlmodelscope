@@ -7,8 +7,8 @@ import numpy as np
 
 class MobileNet_SSD_v1_0(PyTorchAbstractClass): 
   def __init__(self):
-    if torch.__version__[:5] != "1.8.1": 
-      raise RuntimeError("This model needs pytorch v1.8.1") 
+    # if torch.__version__[:5] != "1.8.1": 
+    #   raise RuntimeError("This model needs pytorch v1.8.1") 
 
     model_file_url = 'https://s3.amazonaws.com/store.carml.org/models/pytorch/mb1-ssd.pt' 
     model_path = self.model_file_download(model_file_url) 

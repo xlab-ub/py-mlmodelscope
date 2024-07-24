@@ -89,9 +89,16 @@ def create_instance_from_dataset_manifest_file(dataset_name, security_check=True
 def load(dataset_name, url=False, count=None, task=None, security_check=True):
   try:
     if url: 
-      exec('from .datasets.url_data' + ' import Url_Data', globals())
+      print("task",task)
+      if "visual_question_answering" in task :
+        print("visual_question_answering_url_data")
+        exec('from .datasets.visual_question_answering' + ' import Visual_URL_Data', globals())
+        # print(dataset_name)
+        return Visual_URL_Data(dataset_name)
+      else:
+        exec('from .datasets.url_data' + ' import Url_Data', globals())
       # print(dataset_name)
-      return Url_Data(dataset_name) 
+        return Url_Data(dataset_name) 
     else: 
       if task is None:
         exec('from .datasets.' + dataset_name + ' import init', globals())

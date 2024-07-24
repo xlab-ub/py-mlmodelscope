@@ -57,7 +57,8 @@ class PyTorch_Agent:
           span.set_attribute("module", '.'.join([type(module).__module__, type(module).__name__])) 
           if input:
             if layer_name.startswith('0-0__'):
-              self.input_shape = input[0].shape
+              if input[0] != None:
+                self.input_shape = input[0].shape
             input_shape_str = str(self.input_shape) if layer_name.startswith('0__') else "None"
             span.set_attribute("input_shape", input_shape_str)
             # span.set_attribute("input_shape", str(input[0].shape))
