@@ -1,0 +1,41 @@
+{
+  "models": [
+    {
+      "attributes": {
+        "Top1": "",
+        "Top5": "",
+        "kind": "text-to-video",
+        "manifest_author": "Shanchuan Lin, Xiao Yang",
+        "training_dataset": "AnimateDiff SD1.5 v2"
+      },
+      "description": "AnimateDiff-Lightning is a fast text-to-video generation model, generating videos up to ten times faster than AnimateDiff.",
+      "short_description": "A fast text-to-video model for efficient video generation.",
+      "model": {
+        "graph_checksum": "",
+        "graph_path": "",
+        "weights_checksum": "",
+        "weights_path": "animatediff_lightning_Nstep_comfyui.safetensors"
+      },
+      "framework": {
+        "id": 4,
+        "name": "PyTorch",
+        "version": "1.14.0",
+        "architectures": [{ "name": ["gpu"] }]
+      },
+      "input": { "description": "Text prompt", "type": "text" },
+      "license": "creativeml-openrail-m",
+      "name": "AnimateDiff-Lightning",
+      "output": {
+        "description": "Generated video",
+        "type": "video"
+      },
+      "url": {
+        "github": "https://github.com/ByteDance/AnimateDiff-Lightning",
+        "citation": "https://arxiv.org/abs/2403.12706",
+        "link1": "https://huggingface.co/ByteDance/AnimateDiff-Lightning",
+        "link2": ""
+      },
+      "version": "1.0"
+    }
+  ]
+}
