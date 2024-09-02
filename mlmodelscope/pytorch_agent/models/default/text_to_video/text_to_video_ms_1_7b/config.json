@@ -1,0 +1,41 @@
+{
+  "models": [
+    {
+      "attributes": {
+        "Top1": "",
+        "Top5": "",
+        "kind": "text-to-video",
+        "manifest_author": "Jiuniu Wang, Hangjie Yuan, et al.",
+        "training_dataset": "Webvid, LAION5B, ImageNet"
+      },
+      "description": "A multi-stage text-to-video diffusion model designed for generating videos based on arbitrary English text descriptions.",
+      "short_description": "A diffusion-based text-to-video model with 1.7 billion parameters.",
+      "model": {
+        "graph_checksum": "",
+        "graph_path": "",
+        "weights_checksum": "",
+        "weights_path": "text-to-video-ms-1.7b"
+      },
+      "framework": {
+        "id": 4,
+        "name": "PyTorch",
+        "version": "1.14.0",
+        "architectures": [{ "name": ["gpu"] }]
+      },
+      "input": { "description": "English text prompt", "type": "text" },
+      "license": "cc-by-nc-4.0",
+      "name": "Text-to-Video-MS-1.7b",
+      "output": {
+        "description": "Generated video",
+        "type": "image_classification"
+      },
+      "url": {
+        "github": "https://github.com/ModelScope",
+        "citation": "https://arxiv.org/abs/2308.06571",
+        "link1": "https://huggingface.co/ali-vilab/text-to-video-ms-1.7b",
+        "link2": ""
+      },
+      "version": "1.0"
+    }
+  ]
+}

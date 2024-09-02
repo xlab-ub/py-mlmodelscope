@@ -1,6 +1,13 @@
 # VS Code
 .vscode/
 
+#mlharness
+
+/mlharness
+/mlperf_inference
+*.tar
+
+
 # Temp directory to download model
 /tmp
 mlmodelscope/pytorch_agent/tmp/
