@@ -80,7 +80,10 @@ def create_instance_from_model_manifest_file(task, model_name, providers, securi
       break
 
   if target_class:
-    instance = target_class(providers)  # Create an instance of the found class
+    if config:
+      instance = target_class(providers, config)  # Create an instance of the found class
+    else:
+      instance = target_class(providers)  # Create an instance of the found class
     return instance
   else:
     raise ModuleNotFoundError("No subclass of ONNXRuntimeAbstractClass was found in the module.") 

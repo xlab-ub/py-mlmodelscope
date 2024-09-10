@@ -22,6 +22,7 @@ class ONNXRuntime_Agent:
     self.span, self.ctx = self.tracer.start_span_from_context("onnxruntime-agent", context=context, trace_level="APPLICATION_TRACE") 
 
     self.providers = ['CUDAExecutionProvider'] if architecture == "gpu" else ['CPUExecutionProvider'] 
+    self.device = 'cuda' if architecture == "gpu" else 'cpu' 
 
     self.load_model(task, model_name, security_check, config, user) 
 
@@ -61,6 +62,8 @@ class ONNXRuntime_Agent:
             with tracer.start_as_current_span_from_context(f"Warmup Batch {index}", trace_level="APPLICATION_TRACE"):  
               with tracer.start_as_current_span_from_context("preprocess", trace_level="APPLICATION_TRACE") as preprocess_span: 
                 model_input = self.model.preprocess(data) 
+                if hasattr(model_input, 'to'):
+                  model_input = model_input.to(self.device) 
               with tracer.start_as_current_span_from_context("predict", trace_level="MODEL_TRACE") as predict_span: 
                 self.spans_for_traced_result[f'warmup_batch_{index}_predict'] = predict_span 
                 if self.c is not None:
@@ -76,6 +79,8 @@ class ONNXRuntime_Agent:
           with tracer.start_as_current_span_from_context(f"Evaluate Batch {index}", trace_level="APPLICATION_TRACE"):  
             with tracer.start_as_current_span_from_context("preprocess", trace_level="APPLICATION_TRACE") as preprocess_span: 
               model_input = self.model.preprocess(data)
+              if hasattr(model_input, 'to'):
+                model_input = model_input.to(self.device) 
             with tracer.start_as_current_span_from_context("predict", trace_level="MODEL_TRACE") as predict_span:  
               self.spans_for_traced_result[f'evaluate_batch_{index}_predict'] = predict_span 
               if self.c is not None:
