@@ -5,7 +5,7 @@ from transformers import AutoProcessor, VideoMAEForVideoClassification
 import av 
 import numpy as np
 
-class PyTorch_Transformers_BLIP_VQA_Base(PyTorchAbstractClass):
+class PyTorch_Transformers_XCLIP_Base_Patch32(PyTorchAbstractClass):
   def __init__(self, config=None):
     self.config = config if config else {}
     self.processor = AutoProcessor.from_pretrained("microsoft/xclip-base-patch32") 
