@@ -1,31 +1,27 @@
 from ....pytorch_abc import PyTorchAbstractClass 
-import requests
 import torch
 from PIL import Image
 
 from transformers import SamModel, SamProcessor
-
-
-# Generate segmentation masks given a 2D localization - 
-# Generate segmentation masks per given localization (one prediction per 2D point)
-# Generate segmentation masks given a bounding box
-# Generate segmentation masks given a bounding box and a 2D points
-# Generate segmentat
-
 class Medsam_Vit_Base(PyTorchAbstractClass):
   
   def __init__(self, config=None):
     self.config = config if config else {}
     self.model = SamModel.from_pretrained("facebook/sam-vit-huge")
+    self.input_type = "2d_localization"  # 2d_localization, bounding_box, bounding_box_2d_points 
     self.processor = SamProcessor.from_pretrained("facebook/sam-vit-huge")
-    self.input_points = [[[450, 600]]]
     self.sample_size = self.model.config.sample_size
     self.num_inference_steps = self.config.get('num_inference_steps', 25) # num_inference_steps: int = 1000 
 
-  def preprocess(self, no_input): 
-    img_url = "https://huggingface.co/ybelkada/segment-anything/resolve/main/assets/car.png"
-    raw_image = Image.open(requests.get(img_url, stream=True).raw).convert("RGB")
-    inputs = self.processor(raw_image, input_points=self.input_points, return_tensors="pt")
+  def preprocess(self, segmentation_input): 
+    input_img, seg_input = segmentation_input[0], segmentation_input[1]
+    raw_image = Image.open(input_img).convert("RGB")
+    if self.input_type == "2d_localization":
+          inputs = self.processor(raw_image, input_points=seg_input, return_tensors="pt")
+    elif self.input_type == "bounding_box":
+          inputs = self.processor(raw_image, input_box=[seg_input], return_tensors="pt")
+    elif self.input_type == "bounding_box_2d_points":
+          inputs = self.processor(raw_image, input_box=[seg_input], input_points=[seg_input], return_tensors="pt")
     return inputs
   
   def predict(self, model_input): 
