@@ -10,6 +10,8 @@ class PyTorch_Transformers_XCLIP_Base_Patch32(PyTorchAbstractClass):
     self.config = config if config else {}
     self.processor = AutoProcessor.from_pretrained("microsoft/xclip-base-patch32") 
     self.model = VideoMAEForVideoClassification.from_pretrained("microsoft/xclip-base-patch32") 
+
+    self.features = [v for k, v in sorted(self.model.config.text_config['id2label'].items())]
   
   def read_video_pyav(self, container, indices):
     '''
