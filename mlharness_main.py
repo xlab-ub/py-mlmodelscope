@@ -20,16 +20,11 @@ import subprocess
 import mlperf_loadgen as lg
 import numpy as np
 
-from opentelemetry import trace 
-from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator 
-from opentelemetry.sdk.resources import SERVICE_NAME, Resource 
-from opentelemetry.sdk.trace import TracerProvider 
-from opentelemetry.sdk.trace.export import BatchSpanProcessor 
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter 
-
 from mlmodelscope.dataloader import DataLoader 
 from mlmodelscope.outputprocessor import OutputProcessor 
+from mlmodelscope.processor_name import get_cpu_name, get_gpu_name 
 import pydldataset 
+from tracer import Tracer 
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("main")
@@ -58,7 +53,7 @@ TRACE_LEVEL = ( "NO_TRACE",
                 "SYSTEM_LIBRARY_TRACE", # cupti
                 "HARDWARE_TRACE",       # perf, papi, ...
                 "FULL_TRACE")           # includes all of the above)
-BACKENDS = ("pytorch", "onnxruntime", "tensorflow", "mxnet")
+BACKENDS = ("pytorch", "onnxruntime", "tensorflow", "mxnet", "jax") 
 
 def get_args():
     """Parse commandline."""
@@ -92,12 +87,15 @@ def get_args():
 
 
     # MLHarness Parameters
-    parser.add_argument("--use_gpu", type=int, default=0, help="enable gpu for inference")
+    parser.add_argument("--use_gpu", type=int, default=1, help="enable gpu for inference")
     parser.add_argument("--gpu_id", type=int, default=0, help="which GPU")
-    parser.add_argument("--trace_level", choices=TRACE_LEVEL, default="NO_TRACE", help="MLModelScope Trace Level")
-    # py-mlmdoelscope Parameters
+    parser.add_argument("--trace_level", type=str, nargs='?', default="NO_TRACE", choices=TRACE_LEVEL, help="MLModelScope Trace Level") 
+    parser.add_argument("--gpu_trace", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to trace GPU activities") 
+    parser.add_argument("--save_trace_result", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to save the trace result")
+    parser.add_argument("--save_trace_result_path", type=str, nargs='?', default="trace_result.txt", help="The path of the trace result file")
+    # py-mlmodelscope Parameters
     parser.add_argument("--security_check", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to perform security check on the model file")
-    parser.add_argument("--config", type=str, nargs='?', default=None, help="The path to the configuration file") 
+    parser.add_argument("--config_file", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to use config file (.json)") 
     parser.add_argument("--config_file_path", type=str, nargs='?', default="config.json", help="The path of the config file") 
     # Modality Specific
     # inv_map for object detection
@@ -111,18 +109,6 @@ def get_args():
     return args
 
 def main():
-    resource = Resource(attributes={
-        SERVICE_NAME: "mlharness"
-    }) 
-    trace.set_tracer_provider(TracerProvider(resource=resource)) 
-    # https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html 
-    span_processor = BatchSpanProcessor(OTLPSpanExporter(endpoint='http://localhost:4317', insecure=True)) 
-    trace.get_tracer_provider().add_span_processor(span_processor) 
-
-    tracer = trace.get_tracer(__name__) 
-    prop = TraceContextTextMapPropagator() 
-    carrier = {} 
-
     global last_timeing
     global last_loaded
     global result_timeing
@@ -148,30 +134,49 @@ def main():
     model_name = args.model_name 
     config = None 
     if args.config_file == "true":
-      config_file_path = args.config_file_path 
-      try: 
-        with open(config_file_path, 'r') as f:
-          config = json.load(f)
-          print(f"config file {config_file_path} is loaded")
-      except (json.JSONDecodeError, FileNotFoundError) as e:
-        print(f"config file {config_file_path} is not loaded: {e}") 
+        config_file_path = args.config_file_path 
+        try: 
+            with open(config_file_path, 'r') as f:
+                config = json.load(f)
+                print(f"config file {config_file_path} is loaded")
+        except (json.JSONDecodeError, FileNotFoundError) as e:
+            print(f"config file {config_file_path} is not loaded: {e}") 
     architecture = 'cpu' if args.use_gpu == 0 else 'gpu' 
+    trace_level = args.trace_level
+    gpu_trace = True if (TRACE_LEVEL.index(trace_level) >= TRACE_LEVEL.index("SYSTEM_LIBRARY_TRACE")) and (args.gpu_trace == "true") else False 
     security_check = True if args.security_check == "true" else False 
+
+    save_trace_result = True if (args.save_trace_result == "true") and (trace_level != "NO_TRACE") else False 
+    save_trace_result_path = args.save_trace_result_path if save_trace_result else None
+
+    tracer, root_span, ctx = Tracer.create(trace_level=trace_level, save_trace_result_path=save_trace_result_path)
+    root_span.set_attribute("cpu_name", get_cpu_name()) 
+    
+    c = None 
+    if architecture == "gpu" and gpu_trace and tracer.is_trace_enabled("SYSTEM_LIBRARY_TRACE"): 
+        root_span.set_attribute("gpu_name", get_gpu_name()) 
+        from pycupti import CUPTI 
+        c = CUPTI(tracer=tracer) 
+        print("CUPTI version", c.cuptiGetVersion())
 
     output_processor = OutputProcessor() 
 
+    user = 'default' 
     if backend == 'pytorch': 
-      from mlmodelscope.pytorch_agent import PyTorch_Agent 
-      agent = PyTorch_Agent(task, model_name, architecture, tracer, prop, carrier, security_check, config) 
+        from mlmodelscope.pytorch_agent import PyTorch_Agent 
+        agent = PyTorch_Agent(task, model_name, architecture, tracer, ctx, security_check, config, user, c) 
     elif backend == 'tensorflow': 
-      from mlmodelscope.tensorflow_agent import TensorFlow_Agent 
-      agent = TensorFlow_Agent(task, model_name, architecture, tracer, prop, carrier, security_check) 
+        from mlmodelscope.tensorflow_agent import TensorFlow_Agent 
+        agent = TensorFlow_Agent(task, model_name, architecture, tracer, ctx, security_check, config, user) 
     elif backend == 'onnxruntime': 
-      from mlmodelscope.onnxruntime_agent import ONNXRuntime_Agent 
-      agent = ONNXRuntime_Agent(task, model_name, architecture, tracer, prop, carrier, security_check) 
+        from mlmodelscope.onnxruntime_agent import ONNXRuntime_Agent 
+        agent = ONNXRuntime_Agent(task, model_name, architecture, tracer, ctx, security_check, config, user) 
     elif backend == 'mxnet': 
-      from mlmodelscope.mxnet_agent import MXNet_Agent 
-      agent = MXNet_Agent(task, model_name, architecture, tracer, prop, carrier, security_check) 
+        from mlmodelscope.mxnet_agent import MXNet_Agent 
+        agent = MXNet_Agent(task, model_name, architecture, tracer, ctx, security_check, config, user) 
+    elif backend == 'jax':
+        from mlmodelscope.jax_agent import JAX_Agent
+        agent = JAX_Agent(task, model_name, architecture, tracer, ctx, security_check, config, user)
     else: 
       raise NotImplementedError(f"{backend} agent is not supported") 
 

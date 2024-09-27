@@ -2,8 +2,6 @@ from ....pytorch_abc import PyTorchAbstractClass
 
 import warnings 
 import os 
-import pathlib 
-from urllib.request import urlretrieve 
 
 import torch 
 
@@ -17,24 +15,10 @@ class PyTorch_GPT_J_6B(PyTorchAbstractClass):
       "num_beams": int(os.environ.get("GPTJ_BEAM_SIZE", "4")), # only beam_size 4 is allowed for official submission
   }
 
-  def __init__(self):
+  def __init__(self, config=None):
     warnings.warn("The batch size should be 1.") 
-    
-    temp_path = os.path.join(pathlib.Path(__file__).resolve().parent.parent.parent, 'tmp') 
-    if not os.path.isdir(temp_path): 
-      os.mkdir(temp_path) 
-
-    # https://github.com/mlcommons/inference/tree/master/language/gpt-j 
-    model_url = 'https://cloud.mlcommons.org/index.php/s/QAZ2oM94MkFtbQx/download'
-
-    model_folder_name = 'gpt-j/checkpoint-final' 
-    model_path = os.path.join(temp_path, model_folder_name) 
-
-    if not os.path.isdir(model_path): 
-      urlretrieve(model_url, temp_path + '/checkpoint.zip') 
-      os.system('unzip ' + temp_path + '/checkpoint.zip -d ' + temp_path)
-
-    self.model = AutoModelForCausalLM.from_pretrained(model_path)
+    self.config = config if config else {} 
+    self.model = AutoModelForCausalLM.from_pretrained("EleutherAI/gpt-j-6B")
 
     print('Model loaded.')
     self.tokenizer = AutoTokenizer.from_pretrained("EleutherAI/gpt-j-6B",

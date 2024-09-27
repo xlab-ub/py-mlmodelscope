@@ -95,7 +95,8 @@ class ONNXRuntimeAbstractClass(ABC):
         '''
         Disable profiling
         '''
-        os.remove(self.get_profile_filename()) 
+        if hasattr(self, 'session'): 
+            os.remove(self.get_profile_filename()) 
 
     def get_profile_filename(self) -> str:
         '''
