@@ -1,0 +1,74 @@
+FROM ubuntu:18.04
+# Build-time metadata as defined at http://label-schema.org
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VCS_URL
+ARG VERSION=0.1
+ARG ARCH=amd64
+# ARG FRAMEWORK_VERSION
+# ARG GCC_VERSION=9
+ARG PYTORCH_VERSION=2.4.1
+ENV PYTHON_VERSION=3.11
+ENV LANG C.UTF-8
+ENV LC_ALL C.UTF-8
+
+######################################################################
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update
+RUN apt-get install -y --no-install-recommends \
+    git \
+    build-essential \
+    software-properties-common \
+    ca-certificates \
+    wget \
+    curl \
+    htop \
+    zip \
+    unzip \
+    tzdata \
+    locales && \
+    rm -rf /var/lib/apt/lists/* 
+
+RUN ln -fs /usr/share/zoneinfo/America/Chicago /etc/localtime && dpkg-reconfigure --frontend noninteractive tzdata
+
+RUN locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8
+
+RUN cd /opt && \
+  wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh && \
+  /bin/bash ./miniconda.sh -b -p /opt/anaconda3 && \
+  rm miniconda.sh && \
+  /opt/anaconda3/bin/conda clean --all -y -f && \
+  ln -s /opt/anaconda3/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
+  echo ". /opt/anaconda3/etc/profile.d/conda.sh" >> ~/.bashrc && \
+  echo "conda activate base" >> ~/.bashrc && \
+  conda config --set always_yes yes --set changeps1 no
+RUN pip install --upgrade pip
+
+########## PYTORCH INSTALLATION ######################
+RUN conda install pytorch=PYTORCH_VERSION torchvision torchaudio cpuonly -c pytorch
+
+########## PY-MLMODELSCOPE INSTALLATION #################
+RUN pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc grpcio==1.27.2 
+RUN transformers datasets evaluate accelerate tokenizers pycocotools tokenization simplejson nltk rouge_score requests
+
+########## LOADGEN INSTALLATION #################
+RUN pip install absl-py numpy 
+RUN pip install matplotlib pycocotools 
+RUN cd /
+RUN git clone --recursive https://github.com/xlab-ub/py-mlmodelscope.git 
+RUN cd py-mlmodelscope/inference/loadgen && \
+    pip install pybind11 && \
+    CFLAGS="-std=c++14 -O3" python3 ./setup.py install && \
+    rm -rf mlperf && \
+    python3 demos/py_demo_single_stream.py
+
+RUN cd /py-mlmodelscope 
+WORKDIR /py-mlmodelscope 
+
+########## DATASET PLACEHOLDER #####################
+RUN mkdir -p /dataset
+
+# The user will mount their local dataset to this /dataset directory
+WORKDIR /dataset
+
+#docker run -v /path/to/local/dataset:/dataset my-docker-image

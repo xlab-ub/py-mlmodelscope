@@ -13,15 +13,15 @@ class Medsam_Vit_Base(PyTorchAbstractClass):
     self.sample_size = self.model.config.sample_size
     self.num_inference_steps = self.config.get('num_inference_steps', 25) # num_inference_steps: int = 1000 
 
-  def preprocess(self, segmentation_input): 
-    input_img, seg_input = segmentation_input[0], segmentation_input[1]
+  def preprocess(self, inputs): 
+    input_img, anchor = inputs[0], inputs[1]
     raw_image = Image.open(input_img).convert("RGB")
     if self.input_type == "2d_localization":
-          inputs = self.processor(raw_image, input_points=seg_input, return_tensors="pt")
+          inputs = self.processor(raw_image, input_points=anchor, return_tensors="pt")
     elif self.input_type == "bounding_box":
-          inputs = self.processor(raw_image, input_box=[seg_input], return_tensors="pt")
+          inputs = self.processor(raw_image, input_box=[anchor], return_tensors="pt")
     elif self.input_type == "bounding_box_2d_points":
-          inputs = self.processor(raw_image, input_box=[seg_input], input_points=[seg_input], return_tensors="pt")
+          inputs = self.processor(raw_image, input_box=[anchor], input_points=[anchor], return_tensors="pt")
     return inputs
   
   def predict(self, model_input): 
