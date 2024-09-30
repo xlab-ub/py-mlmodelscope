@@ -8,33 +8,36 @@ ARG ARCH=amd64
 # ARG FRAMEWORK_VERSION
 # ARG GCC_VERSION=9
 ARG PYTORCH_VERSION=2.4.1
-ENV PYTHON_VERSION=3.11
+
+ENV PYTHON_VERSION=3.10
 ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
+ENV PATH /opt/anaconda3/bin:$PATH
 
 ######################################################################
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update
 RUN apt-get install -y --no-install-recommends \
-    git \
-    build-essential \
-    software-properties-common \
-    ca-certificates \
-    wget \
-    curl \
-    htop \
-    zip \
-    unzip \
-    tzdata \
-    locales && \
-    rm -rf /var/lib/apt/lists/* 
+  git \
+  build-essential \
+  software-properties-common \
+  ca-certificates \
+  wget \
+  curl \
+  htop \
+  zip \
+  unzip \
+  tzdata \
+  locales && \
+  rm -rf /var/lib/apt/lists/* 
 
 RUN ln -fs /usr/share/zoneinfo/America/Chicago /etc/localtime && dpkg-reconfigure --frontend noninteractive tzdata
 
 RUN locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8
 
+########## ANACONDA INSTALLATION ########################
 RUN cd /opt && \
-  wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh && \
+  wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py310_24.7.1-0-Linux-x86_64.sh -O miniconda.sh && \
   /bin/bash ./miniconda.sh -b -p /opt/anaconda3 && \
   rm miniconda.sh && \
   /opt/anaconda3/bin/conda clean --all -y -f && \
@@ -44,31 +47,25 @@ RUN cd /opt && \
   conda config --set always_yes yes --set changeps1 no
 RUN pip install --upgrade pip
 
-########## PYTORCH INSTALLATION ######################
-RUN conda install pytorch=PYTORCH_VERSION torchvision torchaudio cpuonly -c pytorch
+########## TENSORFLOW INSTALLATION ######################
+RUN conda install pytorch torchvision torchaudio cpuonly -c pytorch
 
 ########## PY-MLMODELSCOPE INSTALLATION #################
-RUN pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc grpcio==1.27.2 
-RUN transformers datasets evaluate accelerate tokenizers pycocotools tokenization simplejson nltk rouge_score requests
+RUN pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc opentelemetry-exporter-otlp opentelemetry-exporter-otlp-proto-http grpcio requests
+RUN pip install transformers
 
-########## LOADGEN INSTALLATION #################
+# RUN pip install psycopg "psycopg[binary]" 
+# RUN pip install Pika 
 RUN pip install absl-py numpy 
-RUN pip install matplotlib pycocotools 
 RUN cd /
 RUN git clone --recursive https://github.com/xlab-ub/py-mlmodelscope.git 
 RUN cd py-mlmodelscope/inference/loadgen && \
-    pip install pybind11 && \
-    CFLAGS="-std=c++14 -O3" python3 ./setup.py install && \
-    rm -rf mlperf && \
-    python3 demos/py_demo_single_stream.py
-
+  CFLAGS="-std=c++14 -O3" python3 -m pip install . && \
+  rm -rf mlperf && \
+  python3 demos/py_demo_single_stream.py
 RUN cd /py-mlmodelscope 
 WORKDIR /py-mlmodelscope 
 
-########## DATASET PLACEHOLDER #####################
-RUN mkdir -p /dataset
+RUN mkdir -p /datasets
 
-# The user will mount their local dataset to this /dataset directory
-WORKDIR /dataset
-
-#docker run -v /path/to/local/dataset:/dataset my-docker-image
+CMD ["/bin/bash"]

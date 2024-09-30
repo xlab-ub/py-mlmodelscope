@@ -65,10 +65,10 @@ RUN conda install -c conda-forge onnx==1.7.0
 RUN pip install absl-py numpy 
 RUN pip install matplotlib pycocotools 
 RUN cd /
+
 RUN git clone --recursive https://github.com/xlab-ub/py-mlmodelscope.git 
 RUN cd py-mlmodelscope/inference/loadgen && \
-  pip install pybind11 && \
-  CFLAGS="-std=c++14 -O3" python3 ./setup.py install && \
+  CFLAGS="-std=c++14 -O3" python -m pip install . && \
   rm -rf mlperf && \
   python3 demos/py_demo_single_stream.py
 RUN cd /py-mlmodelscope 
