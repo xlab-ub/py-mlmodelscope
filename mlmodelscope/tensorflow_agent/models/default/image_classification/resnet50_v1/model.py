@@ -1,4 +1,4 @@
-from ..tensorflow_abc import TensorFlowAbstractClass
+from ....tensorflow_abc import TensorFlowAbstractClass
 
 import tensorflow as tf 
 import numpy as np 

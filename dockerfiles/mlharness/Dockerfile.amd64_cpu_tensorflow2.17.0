@@ -1,5 +1,4 @@
-FROM ubuntu:18.04
-MAINTAINER Changjae Lee <changjae@buffalo.edu>
+FROM ubuntu:22.04
 
 # Build-time metadata as defined at http://label-schema.org
 ARG BUILD_DATE
@@ -9,9 +8,9 @@ ARG VERSION=0.1
 ARG ARCH=amd64
 # ARG FRAMEWORK_VERSION
 # ARG GCC_VERSION=9
-ARG TENSORFLOW_VERSION=1.14.0
+ARG TENSORFLOW_VERSION=2.17.0
 
-ENV PYTHON_VERSION=3.7
+ENV PYTHON_VERSION=3.10
 ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
 ENV PATH /opt/anaconda3/bin:$PATH
@@ -19,6 +18,7 @@ ENV PATH /opt/anaconda3/bin:$PATH
 ######################################################################
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update
+RUN  apt-get install ffmpeg libsm6 libxext6  -y
 RUN apt-get install -y --no-install-recommends \
   git \
   build-essential \
@@ -39,7 +39,7 @@ RUN locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8
 
 ########## ANACONDA INSTALLATION ########################
 RUN cd /opt && \
-  wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py37_23.1.0-1-Linux-x86_64.sh -O miniconda.sh && \
+  wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py310_24.7.1-0-Linux-x86_64.sh -O miniconda.sh && \
   /bin/bash ./miniconda.sh -b -p /opt/anaconda3 && \
   rm miniconda.sh && \
   /opt/anaconda3/bin/conda clean --all -y -f && \
@@ -50,27 +50,24 @@ RUN cd /opt && \
 RUN pip install --upgrade pip
 
 ########## TENSORFLOW INSTALLATION ######################
-RUN conda install -c anaconda tensorflow-gpu=$TENSORFLOW_VERSION 
+RUN conda install -c conda-forge tensorflow=${TENSORFLOW_VERSION} -y
+
 
 ########## PY-MLMODELSCOPE INSTALLATION #################
-RUN pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc grpcio==1.27.2 
-RUN pip install google-pasta  
-RUN pip install opencv-python-headless 
-RUN pip install Pillow 
-RUN pip install aenum requests
-RUN conda install -c pytorch torchvision==0.9.1 
-RUN conda install -c conda-forge onnx==1.7.0 
-# RUN pip install psycopg "psycopg[binary]" 
-# RUN pip install Pika 
-RUN pip install absl-py numpy 
-RUN pip install matplotlib pycocotools 
+RUN pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc opentelemetry-exporter-otlp opentelemetry-exporter-otlp-proto-http 
+RUN pip install transformers grpcio requests opencv-python pillow
 RUN cd /
 
+#LoadGen Dependicies 
+RUN pip install absl-py numpy 
 RUN git clone --recursive https://github.com/xlab-ub/py-mlmodelscope.git 
 RUN cd py-mlmodelscope/inference/loadgen && \
-  CFLAGS="-std=c++14 -O3" python -m pip install . && \
+  CFLAGS="-std=c++14 -O3" python3 -m pip install . && \
   rm -rf mlperf && \
   python3 demos/py_demo_single_stream.py
 RUN cd /py-mlmodelscope 
 WORKDIR /py-mlmodelscope 
-ENTRYPOINT ["conda", "run", "--no-capture-output", "python", "mlharness_main.py", "--backend", "tensorflow"] 
+
+RUN mkdir -p /datasets
+
+CMD ["/bin/bash"]

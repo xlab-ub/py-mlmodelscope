@@ -81,7 +81,7 @@ def get_args():
     
     # below will override mlperf rules compliant settings - don't use for official submission
     parser.add_argument("--time", type=int, help="time to scan in seconds")
-    parser.add_argument("--count", type=int, default=10, help="dataset items to use")
+    parser.add_argument("--count", type=int, default=None, help="dataset items to use")
     parser.add_argument("--max_latency", type=float, help="mlperf max latency in pct tile")
     parser.add_argument("--samples_per_query", type=int, help="mlperf multi-stream sample per query")
 
@@ -301,7 +301,7 @@ def main():
     log_output_settings.copy_summary_to_stdout = True
     log_settings = lg.LogSettings()
     log_settings.log_output = log_output_settings
-    # log_settings.enable_trace = True
+    log_settings.enable_trace = True
     # lg.StartTest(sut, qsl, settings)
     lg.StartTestWithLogSettings(sut, qsl, settings, log_settings)
 

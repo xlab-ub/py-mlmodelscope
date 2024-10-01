@@ -92,8 +92,11 @@ def _load(task, model_name, security_check=True, config=None, user='default'):
     exec(f'from .models.{user}.{task}.{model_name}.model' + ' import init', globals())
     sys.path.remove(model_file_dir)
     return init()
-  except ImportError as e:
+  except Exception as e:
     if e.msg.split()[3] == "'init'": 
       tensorflow_abstract_class_instance = create_instance_from_model_manifest_file(task, model_name, security_check, config, user) # Create an instance of the model class
       sys.path.remove(model_file_dir)
       return tensorflow_abstract_class_instance
+    else:
+      print(e)
+      
