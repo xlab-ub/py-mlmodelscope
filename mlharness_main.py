@@ -81,7 +81,7 @@ def get_args():
     
     # below will override mlperf rules compliant settings - don't use for official submission
     parser.add_argument("--time", type=int, help="time to scan in seconds")
-    parser.add_argument("--count", type=int, default=None, help="dataset items to use")
+    parser.add_argument("--count", type=int, help="dataset items to use")
     parser.add_argument("--max_latency", type=float, help="mlperf max latency in pct tile")
     parser.add_argument("--samples_per_query", type=int, help="mlperf multi-stream sample per query")
 
