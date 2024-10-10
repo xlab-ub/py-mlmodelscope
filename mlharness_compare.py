@@ -66,7 +66,7 @@ def get_args():
     parser.add_argument("--max_batchsize", type=int, default=1, help="max batch size in a single inference")
     parser.add_argument("--backend", default='pytorch', choices=BACKENDS, help="runtime to use")
     parser.add_argument("--task", type=str, nargs='?', default="summarization", help="The name of the task to predict.") 
-    parser.add_argument("--model_names", type=str, nargs='+', default="resnet_50", help="The name of the model") 
+    parser.add_argument("--model_names", type=str, nargs='+', default=["resnet_50"], help="all the models you want to compare") 
     parser.add_argument("--qps", type=int, help="target qps")
     # parser.add_argument("--accuracy", action="store_true", help="enable accuracy pass")
     parser.add_argument("--accuracy", type=bool, default=True, help="enable accuracy pass")
@@ -128,7 +128,7 @@ def parse_summary_file(summary_file_path):
     return summary_dict
 
 
-def run_harness(args, model_name):
+def run_harness(args, benchmark_model):
 
     # --count applies to accuracy mode only and can be used to limit the number of images
     # for testing. For perf model we always limit count to 200.
@@ -144,7 +144,7 @@ def run_harness(args, model_name):
     # load model 
     backend = args.backend 
     task = args.task 
-    model_name = args.model_name 
+    model_name = benchmark_model
     config = None 
     if args.config_file == "true":
         config_file_path = args.config_file_path 
@@ -364,6 +364,11 @@ def run_harness(args, model_name):
     lg.DestroySUT(sut)
 
     return parse_summary_file(log_dir)
+
+
+def process_benchmark_results(benchmark_results):
+    print("hi")
+
 
 
 def main():
