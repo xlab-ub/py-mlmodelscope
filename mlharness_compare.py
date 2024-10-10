@@ -67,7 +67,7 @@ def get_args():
     parser.add_argument("--backend", default='pytorch', choices=BACKENDS, help="runtime to use")
     parser.add_argument("--task", type=str, nargs='?', default="summarization", help="The name of the task to predict.") 
     parser.add_argument("--model_names", type=str, nargs='+', default=["mlperf_resnet_50"], help="all the models you want to compare") 
-    parser.add_argument("--mlperf_model_name", type=str, nargs='+', default=None, help="all the models you want to compare") 
+    parser.add_argument("--mlperf_model_names", type=str, nargs='+', default=None, help="all the models you want to compare") 
     parser.add_argument("--qps", type=int, help="target qps")
     # parser.add_argument("--accuracy", action="store_true", help="enable accuracy pass")
     parser.add_argument("--accuracy", type=bool, default=True, help="enable accuracy pass")
@@ -130,7 +130,9 @@ def parse_summary_file(summary_file_path):
 
 
 def run_harness(args, benchmark_model, mlperf_model_name=None):
-
+    global last_timeing
+    global last_loaded
+    global result_timeing
     # --count applies to accuracy mode only and can be used to limit the number of images
     # for testing. For perf model we always limit count to 200.
     count_override = False
@@ -376,17 +378,15 @@ def process_benchmark_results(benchmark_results):
 
 
 def main():
-    global last_timeing
-    global last_loaded
-    global result_timeing
+
 
     args = get_args()
     log.info(args)
 
     benchmark_results = []
 
-    if args.mlperf_model_name:
-        for model_name, mlperf_model_name in zip(args.model_names, args.mlperf_model_name):
+    if args.mlperf_model_names:
+        for model_name, mlperf_model_name in zip(args.model_names, args.mlperf_model_names):
             if mlperf_model_name == "None":
                 mlperf_model_name = None
             summary_result = run_harness(args, model_name, mlperf_model_name)
