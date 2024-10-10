@@ -66,7 +66,8 @@ def get_args():
     parser.add_argument("--max_batchsize", type=int, default=1, help="max batch size in a single inference")
     parser.add_argument("--backend", default='pytorch', choices=BACKENDS, help="runtime to use")
     parser.add_argument("--task", type=str, nargs='?', default="summarization", help="The name of the task to predict.") 
-    parser.add_argument("--model_names", type=str, nargs='+', default=["resnet_50"], help="all the models you want to compare") 
+    parser.add_argument("--model_names", type=str, nargs='+', default=["mlperf_resnet_50"], help="all the models you want to compare") 
+    parser.add_argument("--mlperf_model_name", type=str, nargs='+', default=None, help="all the models you want to compare") 
     parser.add_argument("--qps", type=int, help="target qps")
     # parser.add_argument("--accuracy", action="store_true", help="enable accuracy pass")
     parser.add_argument("--accuracy", type=bool, default=True, help="enable accuracy pass")
@@ -128,7 +129,7 @@ def parse_summary_file(summary_file_path):
     return summary_dict
 
 
-def run_harness(args, benchmark_model):
+def run_harness(args, benchmark_model, mlperf_model_name=None):
 
     # --count applies to accuracy mode only and can be used to limit the number of images
     # for testing. For perf model we always limit count to 200.
@@ -275,9 +276,12 @@ def run_harness(args, benchmark_model):
         pass
     
     settings = lg.TestSettings()
-    if args.model_name != "":
-        settings.FromConfig(mlperf_conf, args.model_name, args.scenario)
-        settings.FromConfig(user_conf, args.model_name, args.scenario)
+
+    if mlperf_model_name:
+        settings.FromConfig(mlperf_conf, mlperf_model_name, args.scenario)
+        settings.FromConfig(user_conf, mlperf_model_name, args.scenario)
+
+
     settings.scenario = scenario
     settings.mode = lg.TestMode.PerformanceOnly
     if args.accuracy:
@@ -381,9 +385,14 @@ def main():
 
     benchmark_results = []
 
-    for model_name in args.model_names:
-        summary_result = run_harness(args, model_name)
-        benchmark_results.append(summary_result)
+    if args.mlperf_model_name:
+        for model_name, mlperf_model_name in zip(args.model_names, args.mlperf_model_name):
+            if mlperf_model_name == "None":
+                mlperf_model_name = None
+            summary_result = run_harness(args, model_name, mlperf_model_name)
+            benchmark_results.append(summary_result)
+
+
     
     print(benchmark_results)
 if __name__ == "__main__":
