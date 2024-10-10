@@ -29,6 +29,7 @@ from tracer import Tracer
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("main")
 
+
 NANO_SEC = 1e9
 MILLI_SEC = 1000
 
@@ -65,10 +66,10 @@ def get_args():
     parser.add_argument("--max_batchsize", type=int, default=1, help="max batch size in a single inference")
     parser.add_argument("--backend", default='pytorch', choices=BACKENDS, help="runtime to use")
     parser.add_argument("--task", type=str, nargs='?', default="summarization", help="The name of the task to predict.") 
-    parser.add_argument("--model_names", type=str, nargs='+', default="gpt_j", help="The name of the model") 
+    parser.add_argument("--model_names", type=str, nargs='+', default="resnet_50", help="The name of the model") 
     parser.add_argument("--qps", type=int, help="target qps")
     # parser.add_argument("--accuracy", action="store_true", help="enable accuracy pass")
-    parser.add_argument("--accuracy", default=True, help="enable accuracy pass")
+    parser.add_argument("--accuracy", type=bool, default=True, help="enable accuracy pass")
     parser.add_argument("--find_peak_performance", action="store_true", help="enable finding peak performance pass")
 
     # file to use mlperf rules compliant parameters
@@ -107,6 +108,25 @@ def get_args():
         parser.error("valid scenarios:" + str(list(SCENARIO_MAP.keys())))
 
     return args
+
+def parse_summary_file(summary_file_path):
+    summary_dict = {}
+    try:
+        with open(summary_file_path, 'r') as text_file:
+            for line in text_file:
+                if not line.strip() or ':' not in line:
+                    continue
+                key, value = line.split(':', 1)
+                key = key.strip()
+                value = value.strip()
+                summary_dict[key] = value
+    except FileNotFoundError as err:
+        logging.error(f"FileNotFoundError: {err}")
+    except Exception as err:
+        logging.error(f"Unexpected error: {err}")
+
+    return summary_dict
+
 
 def run_harness(args, model_name):
 
@@ -154,6 +174,8 @@ def run_harness(args, model_name):
 
     output_processor = OutputProcessor() 
 
+    #load backend
+
     user = 'default' 
     if backend == 'pytorch': 
         from mlmodelscope.pytorch_agent import PyTorch_Agent 
@@ -172,6 +194,7 @@ def run_harness(args, model_name):
         agent = JAX_Agent(task, model_name, architecture, tracer, ctx, security_check, config, user)
     else: 
       raise NotImplementedError(f"{backend} agent is not supported") 
+
 
     mlperf_conf = os.path.abspath(args.mlperf_conf)
     if not os.path.exists(mlperf_conf):
@@ -215,7 +238,7 @@ def run_harness(args, model_name):
             start = time.time()
             response_array_refs = []
             response = []
-            for i, qid in enumerate(query_id):
+            for index, qid in enumerate(query_id):
                 # processed_results = so.IssueQuery(1, idx[i][np.newaxis])
                 processed_results = agent.predict(0, DataLoader(dataset.get_samples(idx[i][np.newaxis]), args.max_batchsize), output_processor, mlharness=True) 
                 # processed_results = json.loads(processed_results.decode('utf-8'))
@@ -336,8 +359,11 @@ def run_harness(args, model_name):
         else:
             raise RuntimeError('Dataset not Implemented.')
 
+
     lg.DestroyQSL(qsl)
     lg.DestroySUT(sut)
+
+    return parse_summary_file(log_dir)
 
 
 def main():
@@ -346,12 +372,14 @@ def main():
     global result_timeing
 
     args = get_args()
-
     log.info(args)
 
-    for model_name in args.model_name:
-        performance_metrics = run_harness(args, model_name)
-    
+    benchmark_results = []
 
+    for model_name in args.model_names:
+        summary_result = run_harness(args, model_name)
+        benchmark_results.append(summary_result)
+    
+    print(benchmark_results)
 if __name__ == "__main__":
     main()

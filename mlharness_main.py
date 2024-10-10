@@ -68,7 +68,7 @@ def get_args():
     parser.add_argument("--model_name", type=str, nargs='?', default="gpt_j", help="The name of the model") 
     parser.add_argument("--qps", type=int, help="target qps")
     # parser.add_argument("--accuracy", action="store_true", help="enable accuracy pass")
-    parser.add_argument("--accuracy", default=True, help="enable accuracy pass")
+    parser.add_argument("--accuracy", type=bool, default=True, help="enable accuracy pass")
     parser.add_argument("--find_peak_performance", action="store_true", help="enable finding peak performance pass")
 
     # file to use mlperf rules compliant parameters
@@ -222,7 +222,7 @@ def main():
             start = time.time()
             response_array_refs = []
             response = []
-            for i, qid in enumerate(query_id):
+            for index, qid in enumerate(query_id):
                 # processed_results = so.IssueQuery(1, idx[i][np.newaxis])
                 processed_results = agent.predict(0, DataLoader(dataset.get_samples(idx[i][np.newaxis]), args.max_batchsize), output_processor, mlharness=True) 
                 # processed_results = json.loads(processed_results.decode('utf-8'))
