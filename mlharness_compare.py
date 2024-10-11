@@ -406,7 +406,7 @@ def run_harness(args, benchmark_model, mlperf_model_name=None):
         else:
             raise RuntimeError('Dataset not Implemented.')
 
-    result_dict = calculate_accuracy(f"{log_dir}/mlperf_log_accuracy.json",)
+    result_dict = calculate_accuracy(f"{log_dir}/mlperf_log_accuracy.json",f"{data_dir}/val_map.txt", scenario=args.scenario)
     
     add_results(final_results, "{}".format(scenario) , result_dict, last_timeing, time.time() - dataset.last_loaded, args.accuracy )
 
