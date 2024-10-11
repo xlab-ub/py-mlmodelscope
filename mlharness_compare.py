@@ -20,6 +20,7 @@ import subprocess
 import mlperf_loadgen as lg
 import numpy as np
 from mlharness_tools.accuracy_imagenet import calculate_accuracy
+from mlharness_tools.process_benchmark_results import process_benchmark_results
 from mlmodelscope.dataloader import DataLoader 
 from mlmodelscope.outputprocessor import OutputProcessor 
 from mlmodelscope.processor_name import get_cpu_name, get_gpu_name 
@@ -416,15 +417,7 @@ def run_harness(args, benchmark_model, mlperf_model_name=None):
     return final_results
 
 
-
-
-def process_benchmark_results(benchmark_results):
-    print("hi")
-
-
-
 def main():
-
 
     args = get_args()
     log.info(args)
@@ -437,9 +430,8 @@ def main():
                 mlperf_model_name = None
             summary_result = run_harness(args, model_name, mlperf_model_name)
             benchmark_results.append(summary_result)
-
-
     
-    print(benchmark_results)
+    process_benchmark_results(benchmark_results)
+
 if __name__ == "__main__":
     main()
