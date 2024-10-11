@@ -110,6 +110,41 @@ def get_args():
 
     return args
 
+def add_results(final_results, name, result_dict, result_list, took, show_accuracy=False):
+    percentiles = [50., 80., 90., 95., 99., 99.9]
+    buckets = np.percentile(result_list, percentiles).tolist()
+    buckets_str = ",".join(["{}:{:.4f}".format(p, b) for p, b in zip(percentiles, buckets)])
+
+    if result_dict["total"] == 0:
+        result_dict["total"] = len(result_list)
+
+    # this is what we record for each run
+    result = {
+        "took": took,
+        "mean": np.mean(result_list),
+        "percentiles": {str(k): v for k, v in zip(percentiles, buckets)},
+        "qps": len(result_list) / took,
+        "count": len(result_list),
+        "good_items": result_dict["good"],
+        "total_items": result_dict["total"],
+    }
+    acc_str = ""
+    if show_accuracy:
+        result["accuracy"] = 100. * result_dict["good"] / result_dict["total"]
+        acc_str = ", acc={:.3f}%".format(result["accuracy"])
+        if "mAP" in result_dict:
+            result["mAP"] = 100. * result_dict["mAP"]
+            acc_str += ", mAP={:.3f}%".format(result["mAP"])
+
+    # add the result to the result dict
+    final_results[name] = result
+
+    # to stdout
+    print("{} qps={:.2f}, mean={:.4f}, time={:.3f}{}, queries={}, tiles={}".format(
+        name, result["qps"], result["mean"], took, acc_str,
+        len(result_list), buckets_str))
+    
+
 def parse_summary_file(summary_file_path):
     summary_dict = {}
     try:
@@ -369,7 +404,9 @@ def run_harness(args, benchmark_model, mlperf_model_name=None):
     lg.DestroyQSL(qsl)
     lg.DestroySUT(sut)
 
-    return parse_summary_file(log_dir)
+    return parse_summary_file(f"{log_dir}/mlperf_log_summary.txt")
+
+
 
 
 def process_benchmark_results(benchmark_results):
