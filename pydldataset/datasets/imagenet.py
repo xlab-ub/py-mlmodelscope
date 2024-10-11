@@ -11,7 +11,7 @@ class ImageNet:
         data_dir = os.path.expanduser(data_dir)
         val_path = os.path.join(data_dir, "val_map.txt") 
         self.last_loaded = -1
-
+        self.image_list = []
         # if not os.path.exists(val_path): 
         #     with open(os.path.join(data_dir, "ILSVRC2012_validation_ground_truth.txt"), 'r') as f: 
         #         labels = f.readlines()

@@ -180,3 +180,4 @@ cython_debug/
 
 # OS files
 .DS_Store
+logs/mlperf_log_accuracy.json

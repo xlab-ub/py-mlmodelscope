@@ -172,11 +172,11 @@ def run_harness(args, benchmark_model, mlperf_model_name=None):
     count = args.count
     if count:
         count_override = True
-
+    print(count)
     # dataset to use 
     dataset_name = args.dataset
     dataset = pydldataset.load(dataset_name, count=count) 
-
+    print(len(dataset))
     # load model 
     backend = args.backend 
     task = args.task 
@@ -258,6 +258,7 @@ def run_harness(args, benchmark_model, mlperf_model_name=None):
     # make one pass over the dataset to validate accuracy
     #
     count = dataset.get_item_count() 
+    print(f"count: {count}")
 
     # warmup
     dataset.load([0]) 
@@ -271,6 +272,7 @@ def run_harness(args, benchmark_model, mlperf_model_name=None):
 
     # for lg.ConstructSUT() 
     def issue_queries(query_samples):
+
         idx = np.array([q.index for q in query_samples]).astype(np.int32)
         query_id = [q.id for q in query_samples]
         if args.dataset == 'brats2019':
@@ -403,10 +405,12 @@ def run_harness(args, benchmark_model, mlperf_model_name=None):
 
     result_dict = calculate_accuracy(f"{log_dir}/mlperf_log_accuracy.json",f"{data_dir}/val_map.txt", scenario=args.scenario)
     
+    print(f"last_timeing len: {len(last_timeing)}")
     add_results(final_results, "{}".format(scenario) , result_dict, last_timeing, time.time() - dataset.last_loaded, args.accuracy )
 
     lg.DestroyQSL(qsl)
     lg.DestroySUT(sut)
+
 
     return final_results
 
