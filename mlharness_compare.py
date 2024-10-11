@@ -19,7 +19,7 @@ from queue import Queue
 import subprocess
 import mlperf_loadgen as lg
 import numpy as np
-
+from mlharness_tools.accuracy_imagenet import calculate_accuracy
 from mlmodelscope.dataloader import DataLoader 
 from mlmodelscope.outputprocessor import OutputProcessor 
 from mlmodelscope.processor_name import get_cpu_name, get_gpu_name 
@@ -70,7 +70,7 @@ def get_args():
     parser.add_argument("--mlperf_model_names", type=str, nargs='+', default=None, help="all the models you want to compare") 
     parser.add_argument("--qps", type=int, help="target qps")
     # parser.add_argument("--accuracy", action="store_true", help="enable accuracy pass")
-    parser.add_argument("--accuracy", type=bool, default=True, help="enable accuracy pass")
+    parser.add_argument("--accuracy", type=bool, default=False, help="enable accuracy pass")
     parser.add_argument("--find_peak_performance", action="store_true", help="enable finding peak performance pass")
 
     # file to use mlperf rules compliant parameters
@@ -120,7 +120,7 @@ def add_results(final_results, name, result_dict, result_list, took, show_accura
 
     # this is what we record for each run
     result = {
-        "took": took,
+        # "took": took,
         "mean": np.mean(result_list),
         "percentiles": {str(k): v for k, v in zip(percentiles, buckets)},
         "qps": len(result_list) / took,
@@ -232,7 +232,13 @@ def run_harness(args, benchmark_model, mlperf_model_name=None):
         agent = JAX_Agent(task, model_name, architecture, tracer, ctx, security_check, config, user)
     else: 
       raise NotImplementedError(f"{backend} agent is not supported") 
-
+    
+    final_results = {
+        "runtime": backend,
+        "time": int(time.time()),
+        "args": vars(args),
+        "cmdline": str(args),
+    }
 
     mlperf_conf = os.path.abspath(args.mlperf_conf)
     if not os.path.exists(mlperf_conf):
@@ -278,7 +284,7 @@ def run_harness(args, benchmark_model, mlperf_model_name=None):
             response = []
             for index, qid in enumerate(query_id):
                 # processed_results = so.IssueQuery(1, idx[i][np.newaxis])
-                processed_results = agent.predict(0, DataLoader(dataset.get_samples(idx[i][np.newaxis]), args.max_batchsize), output_processor, mlharness=True) 
+                processed_results = agent.predict(0, DataLoader(dataset.get_samples(idx[index][np.newaxis]), args.max_batchsize), output_processor, mlharness=True) 
                 # processed_results = json.loads(processed_results.decode('utf-8'))
                 for j in range(len(processed_results[index])): 
                     processed_results[index][j] = [idx[index]] + processed_results[index][j] 
@@ -400,11 +406,14 @@ def run_harness(args, benchmark_model, mlperf_model_name=None):
         else:
             raise RuntimeError('Dataset not Implemented.')
 
+    result_dict = calculate_accuracy(f"{log_dir}/mlperf_log_accuracy.json",)
+    
+    add_results(final_results, "{}".format(scenario) , result_dict, last_timeing, time.time() - dataset.last_loaded, args.accuracy )
 
     lg.DestroyQSL(qsl)
     lg.DestroySUT(sut)
 
-    return parse_summary_file(f"{log_dir}/mlperf_log_summary.txt")
+    return final_results
 
 
 

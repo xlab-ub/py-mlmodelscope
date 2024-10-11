@@ -7,21 +7,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import argparse
 import json
-
 import numpy as np
-
-
-def get_args():
-    """Parse commandline."""
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--mlperf-accuracy-file", required=True, help="path to mlperf_log_accuracy.json")
-    parser.add_argument("--imagenet-val-file", required=True, help="path to imagenet val_map.txt")
-    parser.add_argument("--verbose", action="store_true", help="verbose messages")
-    parser.add_argument("--dtype", default="float32", choices=["float32", "int32", "int64"], help="data type of the label")
-    args = parser.parse_args()
-    return args
 
 dtype_map = {
     "float32": np.float32,
@@ -29,16 +16,30 @@ dtype_map = {
     "int64": np.int64
 }
 
-def main():
-    args = get_args()
+"""
+Calculate accuracy for loadgen accuracy output found in mlperf_log_accuracy.json.
+Assumes that loadgen's query index is in the same order as the images in imagenet2012/val_map.txt.
+
+Args:
+    mlperf_accuracy_file (str): Path to mlperf_log_accuracy.json.
+    imagenet_val_file (str): Path to imagenet val_map.txt.
+    verbose (bool): If True, prints detailed messages.
+    dtype (str): Data type of the label. Choices are 'float32', 'int32', 'int64'.
+    scenario (str): The scenario under which the accuracy was calculated.
+
+Returns:
+    dict: A dictionary containing 'good', 'total', and 'scenario'.
+"""
+
+def calculate_accuracy(mlperf_accuracy_file, imagenet_val_file, verbose=False, dtype='float32', scenario='Unknown'):
 
     imagenet = []
-    with open(args.imagenet_val_file, "r") as f:
+    with open(imagenet_val_file, "r") as f:
         for line in f:
             cols = line.strip().split()
             imagenet.append((cols[0], int(cols[1])))
 
-    with open(args.mlperf_accuracy_file, "r") as f:
+    with open(mlperf_accuracy_file, "r") as f:
         results = json.load(f)
 
     seen = set()
@@ -46,27 +47,28 @@ def main():
     for j in results:
         idx = j['qsl_idx']
 
-        # de-dupe in case loadgen sends the same image multiple times
+        # De-duplicate in case loadgen sends the same image multiple times
         if idx in seen:
             continue
         seen.add(idx)
 
-        # get the expected label and image
+        # Get the expected label and image
         img, label = imagenet[idx]
 
-        # reconstruct label from mlperf accuracy log
-        data = np.frombuffer(bytes.fromhex(j['data']), dtype_map[args.dtype])
+        # Reconstruct label from mlperf accuracy log
+        data = np.frombuffer(bytes.fromhex(j['data']), dtype_map[dtype])
         found = int(data[0])
         if label == found:
             good += 1
         else:
-            if args.verbose:
+            if verbose:
                 print("{}, expected: {}, found {}".format(img, label, found))
 
-    print("accuracy={:.3f}%, good={}, total={}".format(100. * good / len(seen), good, len(seen)))
-    if args.verbose:
-        print("found and ignored {} dupes".format(len(results) - len(seen)))
+    accuracy = 100.0 * good / len(seen)
+    print("accuracy={:.3f}%, good={}, total={}".format(accuracy, good, len(seen)))
+    if verbose:
+        print("Found and ignored {} duplicates".format(len(results) - len(seen)))
 
-
-if __name__ == "__main__":
-    main()
+    # Return the dictionary
+    result_dict = {"good": good, "total": len(seen), "scenario": str(scenario)}
+    return result_dict

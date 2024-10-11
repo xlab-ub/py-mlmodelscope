@@ -1,5 +1,6 @@
 import os 
 import re 
+import time
 
 class ImageNet: 
     dataset = {}
@@ -9,6 +10,8 @@ class ImageNet:
         data_dir = os.environ['DATA_DIR']
         data_dir = os.path.expanduser(data_dir)
         val_path = os.path.join(data_dir, "val_map.txt") 
+        self.last_loaded = -1
+
         # if not os.path.exists(val_path): 
         #     with open(os.path.join(data_dir, "ILSVRC2012_validation_ground_truth.txt"), 'r') as f: 
         #         labels = f.readlines()
@@ -49,6 +52,8 @@ class ImageNet:
     def load(self, sample_list):
         for sample in sample_list:
             self.dataset[sample] = self.image_list[sample]
+        self.last_loaded = time.time()
+
 
     def unload(self, sample_list):
         self.dataset = {}
