@@ -32,13 +32,13 @@ def process_benchmark_results(benchmark_results):
         
         # Extract and format metrics
         scenario = args.get('scenario', 'N/A')
-        accuracy = f"{test_scenario.get('accuracy', 'N/A'):.2f}"
-        qps = f"{test_scenario.get('qps', 'N/A'):.2f}"
-        mean_latency = f"{test_scenario.get('mean', 'N/A'):.5f}"
+        accuracy = f"{test_scenario.get('accuracy', 'N/A')}"
+        qps = f"{test_scenario.get('qps', 'N/A')}"
+        mean_latency = f"{test_scenario.get('mean', 'N/A')}"
         percentiles = test_scenario.get('percentiles', {})
-        p50 = f"{percentiles.get('50.0', 'N/A'):.5f}"
-        p90 = f"{percentiles.get('90.0', 'N/A'):.5f}"
-        p99 = f"{percentiles.get('99.0', 'N/A'):.5f}"
+        p50 = f"{percentiles.get('50.0', 'N/A')}"
+        p90 = f"{percentiles.get('90.0', 'N/A')}"
+        p99 = f"{percentiles.get('99.0', 'N/A')}"
         took = f"{test_scenario.get('took', 'N/A')}"
         count = test_scenario.get('count', 'N/A')
         good_items = test_scenario.get('good_items', 'N/A')

@@ -66,5 +66,4 @@ class TensorFlow_MLPerf_Mobilenet_v1(TensorFlowAbstractClass):
   def postprocess(self, model_output): 
     # https://github.com/tensorflow/docs/blob/r1.14/site/en/api_docs/python/tf/nn/softmax.md 
     # https://github.com/keras-team/keras/issues/9621 
-    probabilities = tf.compat.v1.nn.softmax(model_output, dim = 1) 
-    return probabilities 
+    return  model_output[:, 1:].tolist()  
