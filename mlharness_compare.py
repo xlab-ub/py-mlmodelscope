@@ -43,9 +43,6 @@ SCENARIO_MAP = {
     "Offline": lg.TestScenario.Offline,
 }
 
-last_timeing = []
-result_timeing = []
-last_loaded = -1
 
 TRACE_LEVEL = ( "NO_TRACE",
                 "APPLICATION_TRACE",
@@ -166,9 +163,9 @@ def parse_summary_file(summary_file_path):
 
 
 def run_harness(args, benchmark_model, mlperf_model_name=None):
-    global last_timeing
-    global last_loaded
-    global result_timeing
+    last_timeing = []
+    last_loaded = -1
+    result_timeing = []
     # --count applies to accuracy mode only and can be used to limit the number of images
     # for testing. For perf model we always limit count to 200.
     count_override = False
@@ -274,9 +271,6 @@ def run_harness(args, benchmark_model, mlperf_model_name=None):
 
     # for lg.ConstructSUT() 
     def issue_queries(query_samples):
-        global so
-        global last_timeing
-        global result_timeing
         idx = np.array([q.index for q in query_samples]).astype(np.int32)
         query_id = [q.id for q in query_samples]
         if args.dataset == 'brats2019':
