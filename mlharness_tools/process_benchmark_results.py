@@ -39,7 +39,7 @@ def process_benchmark_results(benchmark_results):
         p50 = f"{percentiles.get('50.0', 'N/A'):.5f}"
         p90 = f"{percentiles.get('90.0', 'N/A'):.5f}"
         p99 = f"{percentiles.get('99.0', 'N/A'):.5f}"
-        took = f"{test_scenario.get('took', 'N/A'):.2f}"
+        took = f"{test_scenario.get('took', 'N/A')}"
         count = test_scenario.get('count', 'N/A')
         good_items = test_scenario.get('good_items', 'N/A')
         total_items = test_scenario.get('total_items', 'N/A')
