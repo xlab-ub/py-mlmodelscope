@@ -35,6 +35,7 @@ NANO_SEC = 1e9
 MILLI_SEC = 1000
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+last_timeing = []
 
 SCENARIO_MAP = {
     "SingleStream": lg.TestScenario.SingleStream,
@@ -108,7 +109,7 @@ def get_args():
 
     return args
 
-def add_results(final_results, name, result_dict, result_list, took, show_accuracy=False):
+def add_results(final_results, name, result_dict, result_list, took, show_accuracy=False, show_results=True):
     percentiles = [50., 80., 90., 95., 99., 99.9]
     buckets = np.percentile(result_list, percentiles).tolist()
     buckets_str = ",".join(["{}:{:.4f}".format(p, b) for p, b in zip(percentiles, buckets)])
@@ -138,33 +139,17 @@ def add_results(final_results, name, result_dict, result_list, took, show_accura
     final_results[name] = result
 
     # to stdout
-    print("{} qps={:.2f}, mean={:.4f}, time={:.3f}{}, queries={}, tiles={}".format(
-        name, result["qps"], result["mean"], took, acc_str,
-        len(result_list), buckets_str))
+    if show_results:
+        print("{} qps={:.2f}, mean={:.4f}, time={:.3f}{}, queries={}, tiles={}".format(
+            name, result["qps"], result["mean"], took, acc_str,
+            len(result_list), buckets_str))
     
-
-def parse_summary_file(summary_file_path):
-    summary_dict = {}
-    try:
-        with open(summary_file_path, 'r') as text_file:
-            for line in text_file:
-                if not line.strip() or ':' not in line:
-                    continue
-                key, value = line.split(':', 1)
-                key = key.strip()
-                value = value.strip()
-                summary_dict[key] = value
-    except FileNotFoundError as err:
-        logging.error(f"FileNotFoundError: {err}")
-    except Exception as err:
-        logging.error(f"Unexpected error: {err}")
-
-    return summary_dict
 
 
 def run_harness(args, benchmark_model, mlperf_model_name=None):
-    last_timeing = []
     last_loaded = -1
+    global last_timeing
+
     result_timeing = []
     # --count applies to accuracy mode only and can be used to limit the number of images
     # for testing. For perf model we always limit count to 200.
@@ -172,11 +157,9 @@ def run_harness(args, benchmark_model, mlperf_model_name=None):
     count = args.count
     if count:
         count_override = True
-    print(count)
     # dataset to use 
     dataset_name = args.dataset
     dataset = pydldataset.load(dataset_name, count=count) 
-    print(len(dataset))
     # load model 
     backend = args.backend 
     task = args.task 
@@ -410,14 +393,6 @@ def run_harness(args, benchmark_model, mlperf_model_name=None):
 
     lg.DestroyQSL(qsl)
     lg.DestroySUT(sut)
-
-<<<<<<< HEAD
-=======
-    for filename in os.listdir(log_dir):
-        file_path = os.path.join(log_dir, filename)
-        if os.path.isfile(file_path):
-            os.remove(file_path)
->>>>>>> 44ee621 (fx12)
 
     return final_results
 
