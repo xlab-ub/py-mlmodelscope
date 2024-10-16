@@ -411,6 +411,13 @@ def run_harness(args, benchmark_model, mlperf_model_name=None):
     lg.DestroyQSL(qsl)
     lg.DestroySUT(sut)
 
+<<<<<<< HEAD
+=======
+    for filename in os.listdir(log_dir):
+        file_path = os.path.join(log_dir, filename)
+        if os.path.isfile(file_path):
+            os.remove(file_path)
+>>>>>>> 44ee621 (fx12)
 
     return final_results
 

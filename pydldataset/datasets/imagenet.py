@@ -4,10 +4,10 @@ import time
 
 class ImageNet: 
     dataset = {}
-    image_list = []
 
     def __init__(self, count):
         data_dir = os.environ['DATA_DIR']
+        self.image_list = []
         data_dir = os.path.expanduser(data_dir)
         val_path = os.path.join(data_dir, "val_map.txt") 
         self.last_loaded = -1
