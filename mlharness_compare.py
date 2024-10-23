@@ -351,40 +351,16 @@ def run_harness(args, benchmark_model, mlperf_model_name=None):
     if not last_timeing:
         last_timeing = result_timeing
 
-    if args.accuracy:
-        accuracy_script_paths = {'coco': os.path.realpath('./inference/vision/classification_and_detection/tools/accuracy-coco.py'),
-                        'imagenet': os.path.realpath('./inference/vision/classification_and_detection/tools/accuracy-imagenet.py'),
-                        'squad': os.path.realpath('./inference/language/bert/accuracy-squad.py'),
-                        'brats2019': os.path.realpath('./inference/vision/medical_imaging/3d-unet/accuracy-brats.py'),
-                        'cnn': os.path.realpath('./inference/language/gpt-j/evaluation.py')} 
-        accuracy_script_path = accuracy_script_paths[args.dataset]
-        accuracy_file_path = os.path.join(log_dir, 'mlperf_log_accuracy.json')
-        data_dir = os.environ['DATA_DIR']
-        if args.dataset == 'coco':
-            if args.use_inv_map:
-                subprocess.check_call('python3 {} --mlperf-accuracy-file {} --coco-dir {} --use-inv-map'.format(accuracy_script_path, accuracy_file_path, data_dir), shell=True)
-            else:
-                subprocess.check_call('python3 {} --mlperf-accuracy-file {} --coco-dir {}'.format(accuracy_script_path, accuracy_file_path, data_dir), shell=True)
-        elif args.dataset == 'imagenet':   # imagenet
-            subprocess.check_call('python3 {} --mlperf-accuracy-file {} --imagenet-val-file {}'.format(accuracy_script_path, accuracy_file_path, os.path.join(data_dir, 'val_map.txt')), shell=True)
-        elif args.dataset == 'squad':   # squad
-            vocab_path = os.path.join(data_dir, 'vocab.txt')
-            val_path = os.path.join(data_dir, 'dev-v1.1.json')
-            out_path = os.path.join(log_dir, 'predictions.json')
-            cache_path = os.path.join(data_dir, 'eval_features.pickle')
-            subprocess.check_call('python3 {} --vocab_file {} --val_data {} --log_file {} --out_file {} --features_cache_file {} --max_examples {}'.
-            format(accuracy_script_path, vocab_path, val_path, accuracy_file_path, out_path, cache_path, count), shell=True)
-        elif args.dataset == 'brats2019':   # brats2019
-            base_dir = os.path.realpath('./inference/vision/medical_imaging/3d-unet/build')
-            post_dir = os.path.join(base_dir, 'postprocessed_data')
-            label_dir = os.path.join(base_dir, 'raw_data/nnUNet_raw_data/Task043_BraTS2019/labelsTr')
-            os.makedirs(post_dir, exist_ok=True)
-            subprocess.check_call('python3 {} --log_file {} --preprocessed_data_dir {} --postprocessed_data_dir {} --label_data_dir {}'.
-            format(accuracy_script_path, accuracy_file_path, data_dir, post_dir, label_dir), shell=True)
-        elif args.dataset == 'cnn':   # cnn
-            subprocess.check_call('python3 {} --mlperf-accuracy-file {} --dataset-file {}'.format(accuracy_script_path, accuracy_file_path, os.path.join(data_dir, 'cnn_eval.json')), shell=True)
-        else:
-            raise RuntimeError('Dataset not Implemented.')
+    # if args.accuracy:
+    #     accuracy_script_paths = {'coco': os.path.realpath('./inference/vision/classification_and_detection/tools/accuracy-coco.py'),
+    #                     'imagenet': os.path.realpath('./inference/vision/classification_and_detection/tools/accuracy-imagenet.py'),
+    #                     'squad': os.path.realpath('./inference/language/bert/accuracy-squad.py'),
+    #                     'brats2019': os.path.realpath('./inference/vision/medical_imaging/3d-unet/accuracy-brats.py'),
+    #                     'cnn': os.path.realpath('./inference/language/gpt-j/evaluation.py')} 
+    #     accuracy_script_path = accuracy_script_paths[args.dataset]
+    #     accuracy_file_path = os.path.join(log_dir, 'mlperf_log_accuracy.json')
+    
+    data_dir = os.environ['DATA_DIR']
 
     result_dict = calculate_accuracy(f"{log_dir}/mlperf_log_accuracy.json",f"{data_dir}/val_map.txt", scenario=args.scenario)
     

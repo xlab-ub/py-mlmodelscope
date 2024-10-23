@@ -88,6 +88,7 @@ def process_benchmark_results(benchmark_results):
 
     headers = ["Metric"] + model_names
 
+    print("\Benchmark Results:")
 
     print(tabulate(table_data, headers=headers, tablefmt="grid"))
 

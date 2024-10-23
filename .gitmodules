@@ -1,3 +1,6 @@
 [submodule "inference"]
 	path = inference
 	url = https://github.com/mlcommons/inference
+[submodule "training"]
+	path = training
+	url = https://github.com/mlcommons/training.git

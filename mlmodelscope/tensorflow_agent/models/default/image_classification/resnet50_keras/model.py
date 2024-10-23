@@ -53,7 +53,8 @@ class TensorFlow_ResNet50_Keras(TensorFlowAbstractClass):
     return model_input
 
   def predict(self, model_input): 
-    return self.model.predict(model_input) 
+    # return self.model.predict(model_input, batch_size=model_input.shape[0]) 
+    return self.model(model_input, training=False)
 
   def postprocess(self, model_output): 
     # https://github.com/tensorflow/docs/blob/r1.14/site/en/api_docs/python/tf/nn/softmax.md 
