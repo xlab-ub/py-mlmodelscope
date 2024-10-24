@@ -1,104 +1,79 @@
 from .models.pytorch_abc import PyTorchAbstractClass
-import inspect 
-import ast 
-import os
+import inspect
+import ast
 import pathlib
-import sys 
+import sys
+
+# Use sets for quicker lookups
+UNSAFE_MODULES = {'os', 'sys', 'subprocess'}
+UNSAFE_FUNCTIONS = {'eval', 'pickle', 'exec'}
 
 def check_for_unsafe_modules(module_name):
-  unsafe_modules = ['os', 'sys', 'subprocess']
-  return module_name in unsafe_modules
+    return module_name in UNSAFE_MODULES
 
 def check_for_unsafe_functions(function_name):
-  unsafe_functions = ['eval', 'pickle', 'exec']
-  return function_name in unsafe_functions
+    return function_name in UNSAFE_FUNCTIONS
 
 def perform_syntax_and_security_check(file_name):
-  '''
-  Perform security check on the model file.
-
-  '''
-  with open(file_name, 'r') as file:
+    '''
+    Perform security check on the model file.
+    '''
     try:
-      # Parse the file into an AST (Abstract Syntax Tree)
-      tree = ast.parse(file.read())
+        with open(file_name, 'r') as file:
+            # Parse the file into an AST (Abstract Syntax Tree)
+            tree = ast.parse(file.read())
 
-      # Check if the AST contains any dangerous nodes
-      unsafe_nodes = []
-      for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-          for name in node.names:
-            if check_for_unsafe_modules(name.name):
-              unsafe_nodes.append(node)
-        elif isinstance(node, ast.ImportFrom):
-          if node.module:
-            if check_for_unsafe_modules(node.module):
-              unsafe_nodes.append(node)
-        elif isinstance(node, ast.Call):
-          if hasattr(node.func, 'id'):
-            if check_for_unsafe_functions(node.func.id):
-              unsafe_nodes.append(node)
+        # Check if the AST contains any dangerous nodes
+        unsafe_nodes = [
+            node for node in ast.walk(tree)
+            if (isinstance(node, ast.Import) or isinstance(node, ast.ImportFrom)) and 
+               any(check_for_unsafe_modules(name.name if isinstance(node, ast.Import) else node.module) for name in node.names)
+            or (isinstance(node, ast.Call) and hasattr(node.func, 'id') and check_for_unsafe_functions(node.func.id))
+        ]
 
-      if len(unsafe_nodes) > 0:
-        print("Unsafe code detected:")
-        for node in unsafe_nodes:
-          print(f"Found unsafe call: {ast.dump(node)}")
-        return False
-      else:
+        if unsafe_nodes:
+            print("Unsafe code detected:")
+            for node in unsafe_nodes:
+                print(f"Found unsafe call: {ast.dump(node)}")
+            return False
         return True
 
     except SyntaxError as e:
-      raise Exception(f"Syntax Error in the file: {e}")
+        raise Exception(f"Syntax Error in the file: {e}")
 
 def create_instance_from_model_manifest_file(task, model_name, security_check=True, config=None, user='default'):
-  '''
-  Create an instance of a class from a file.
-  '''
-  file_name = os.path.join(pathlib.Path(__file__).resolve().parent, f'models/{user}/{task}/{model_name}/model.py') # Get the path of the model file
-  if security_check and (not perform_syntax_and_security_check(file_name)):
-    raise Exception("Security issue detected. Aborting.")
+    '''
+    Create an instance of a class from a file.
+    '''
+    file_path = pathlib.Path(__file__).resolve().parent / f'models/{user}/{task}/{model_name}/model.py' 
+    
+    if security_check and not perform_syntax_and_security_check(file_path):
+        raise Exception("Security issue detected. Aborting.")
 
-  with open(file_name, 'r') as file:
-    code = compile(file.read(), file_name, 'exec')
+    with open(file_path, 'r') as file:
+        code = compile(file.read(), file_path, 'exec')
 
-    globals_dict = {
-      '__name__': '.'.join(__name__.split('.')[:-1]) + f'.models.{user}.' + task + '.' + model_name + '.', 
-      '__file__': file_name, 
-    }
-    exec(code, globals_dict)  # Execute the code in the current scope
+        globals_dict = {
+            '__name__': '.'.join(__name__.split('.')[:-1]) + f'.models.{user}.{task}.{model_name}.',
+            '__file__': str(file_path),
+        }
+        exec(code, globals_dict)  # Execute the code in the current scope
 
-  # Get all classes in the current scope
-  classes = [cls for cls in globals_dict.values() if inspect.isclass(cls)]
+    # Get all classes in the current scope
+    classes = [cls for cls in globals_dict.values() if inspect.isclass(cls)]
 
-  # Find the class that inherits from PyTorchAbstractClass
-  abstractClass = PyTorchAbstractClass 
-  target_class = None
+    # Find the class that inherits from PyTorchAbstractClass
+    abstract_class = PyTorchAbstractClass
+    target_class = next((cls for cls in classes if issubclass(cls, abstract_class) and cls != abstract_class), None)
 
-  for cls in classes:
-    if issubclass(cls, abstractClass) and cls != abstractClass:
-      target_class = cls
-      break
-
-  if target_class:
-    if config:
-      instance = target_class(config)
+    if target_class:
+        return target_class(*(config,) if config else ()) # Create an instance of the found class 
     else:
-      instance = target_class()  # Create an instance of the found class
-    return instance
-  else:
-    raise ModuleNotFoundError("No subclass of PyTorchAbstractClass was found in the module.") 
+        raise ModuleNotFoundError("No subclass of PyTorchAbstractClass was found in the module.")
 
 def _load(task, model_name, security_check=True, config=None, user='default'):
-  model_file_dir = os.path.join(pathlib.Path(__file__).resolve().parent, f'models/{user}/{task}/{model_name}') 
-  try: 
-    sys.path.append(model_file_dir)
-    exec(f'from .models.{user}.{task}.{model_name}.model' + ' import init', globals())
-    sys.path.remove(model_file_dir)
-    return init()
-  except ImportError as e:
-    if e.msg.split()[3] == "'init'": 
-      pytorch_abstract_class_instance = create_instance_from_model_manifest_file(task, model_name, security_check, config, user) # Create an instance of the model class
-      sys.path.remove(model_file_dir)
-      return pytorch_abstract_class_instance
-    else:
-      raise e
+    model_file_dir = pathlib.Path(__file__).resolve().parent / f'models/{user}/{task}/{model_name}'
+    sys.path.append(str(model_file_dir))
+    pytorch_abstract_class_instance = create_instance_from_model_manifest_file(task, model_name, security_check, config, user) 
+    sys.path.remove(str(model_file_dir))
+    return pytorch_abstract_class_instance
