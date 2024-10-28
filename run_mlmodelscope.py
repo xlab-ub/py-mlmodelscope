@@ -240,8 +240,15 @@ def main():
       # measure duration 
       duration_start_time = time.time()
       mlms = MLModelScope(architecture, gpu_trace) 
-    
-      mlms.load_agent(task, agent, model_name, security_check, config, user) 
+      
+      try:
+        mlms.load_agent(task, agent, model_name, security_check, config, user) 
+      except NotImplementedError as e:
+        if 'model not found' in str(e):
+          model_name = received_message['ModelName'].lower().replace('.', '_')
+          mlms.load_agent(task, agent, model_name, security_check, config, user)
+        else:
+          raise e
       print(f"{agent}-agent is loaded with {model_name} model\n") 
       mlms.load_dataset(dataset_name, batch_size, task, security_check) 
       print(f"{dataset_name} dataset is loaded\n") 
