@@ -89,6 +89,8 @@ def create_instance_from_dataset_manifest_file(dataset_name, security_check=True
 def load(dataset_name, url=False, count=None, task=None, security_check=True):
   try:
     if url: 
+      if isinstance(dataset_name[0], dict):
+        dataset_name = [url['src'] for url in dataset_name]
       exec('from .datasets.url_data' + ' import Url_Data', globals())
       return Url_Data(dataset_name) 
     else: 
