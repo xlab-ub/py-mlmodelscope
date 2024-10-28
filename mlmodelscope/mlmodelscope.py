@@ -58,7 +58,7 @@ class MLModelScope:
     return 
 
   def load_dataset(self, dataset_name, batch_size, task=None, security_check=True):
-    url = isinstance(dataset_name, list) and dataset_name[0].startswith('http') or isinstance(dataset_name, str) and dataset_name.startswith('http')
+    url = (isinstance(dataset_name, list) and (dataset_name[0]["src"].startswith('http') or dataset_name[0].startswith('http'))) or (isinstance(dataset_name, str) and dataset_name.startswith('http'))
     
     if not url and task is None:
       dataset_list = [dataset[:-3] for dataset in os.listdir('./pydldataset/datasets/') if dataset.endswith('.py') and dataset != 'url_data.py']
