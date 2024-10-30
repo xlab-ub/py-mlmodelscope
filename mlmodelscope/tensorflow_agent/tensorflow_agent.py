@@ -77,7 +77,8 @@ class TensorFlow_Agent:
             final_outputs = self._evaluate(dataloader, output_processor)
 
         if serialized or mlharness:
-            final_outputs = [output.numpy() for output in final_outputs] 
+            # EagerTensor is not JSON serializable
+            final_outputs = [output.numpy().tolist() for output in final_outputs]
 
         if serialized:
             return output_processor.process_final_outputs_for_serialization(self.task, final_outputs, getattr(self.model, 'features', None))
