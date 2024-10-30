@@ -24,14 +24,14 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         context: .
-        file: ./dockerfiles/pytorch/Dockerfile.gpu_pytorch2.0.1_cuda11.7
+        file: ./dockerfiles/pytorch/Dockerfile.cpu_pytorch2.0.1
         push: true
         tags: xlabub/pytorch-agent:latest
     - name: Build and push Tensorflow
       uses: docker/build-push-action@v2
       with:
         context: .
-        file: ./dockerfiles/tensorflow/Dockerfile.gpu_tensorflow2.10_cuda11.2
+        file: ./dockerfiles/tensorflow/Dockerfile.cpu_tensorflow2.10.1
         push: true
         tags: xlabub/tensorflow-agent:latest
     - name: Build and push MXNet
@@ -41,3 +41,17 @@ jobs:
         file: ./dockerfiles/mxnet/Dockerfile.cpu_mxnet1.9.1
         push: true
         tags: xlabub/mxnet-agent:latest
+    - name: Build and push ONNXRuntime
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: ./dockerfiles/onnxruntime/Dockerfile.cpu_onnxruntime1.19.2
+        push: true
+        tags: xlabub/onnxruntime-agent:latest
+    - name: Build and push JAX
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: ./dockerfiles/jax/Dockerfile.cpu_jax0.4.30
+        push: true
+        tags: xlabub/jax-agent:latest

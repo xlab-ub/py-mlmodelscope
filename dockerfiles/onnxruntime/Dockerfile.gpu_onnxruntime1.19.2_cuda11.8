@@ -24,12 +24,11 @@ RUN apt-get update && \
 
 # Install Python packages
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir tensorflow-cpu==2.10.1 tensorflow-hub && \
-    pip install --no-cache-dir transformers sentencepiece opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc grpcio opentelemetry-exporter-otlp-proto-http httpio aenum requests tqdm scipy chardet psycopg "psycopg[binary]" Pika opencv-python-headless && \
-    pip install --no-cache-dir protobuf==3.20.* Pillow
+    pip install --no-cache-dir onnxruntime-gpu==1.19.2 optimum[onnxruntime-gpu] onnxruntime-training && \
+    pip install --no-cache-dir opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc grpcio opentelemetry-exporter-otlp-proto-http httpio aenum requests tqdm torchvision scipy chardet psycopg "psycopg[binary]" Pika opencv-python-headless 
 
 # Clone py-mlmodelscope repository
 RUN git clone https://github.com/xlab-ub/py-mlmodelscope.git /py-mlmodelscope
 
 WORKDIR /py-mlmodelscope
-ENTRYPOINT ["python", "run_mlmodelscope.py", "--standalone", "false", "--agent", "tensorflow", "--env_file", "true"]
+ENTRYPOINT ["python", "run_mlmodelscope.py", "--standalone", "false", "--agent", "onnxruntime", "--env_file", "true"]
