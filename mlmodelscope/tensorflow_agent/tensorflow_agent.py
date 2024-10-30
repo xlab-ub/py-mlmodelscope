@@ -4,6 +4,8 @@ import logging
 import types
 
 import tensorflow as tf
+from tensorflow.python.ops.numpy_ops import np_config
+np_config.enable_numpy_behavior()
 
 from opentelemetry.trace import set_span_in_context
 from ._load import _load
