@@ -4,8 +4,6 @@ import logging
 import types
 
 import tensorflow as tf
-from tensorflow.python.ops.numpy_ops import np_config
-np_config.enable_numpy_behavior()
 
 from opentelemetry.trace import set_span_in_context
 from ._load import _load
@@ -77,6 +75,9 @@ class TensorFlow_Agent:
         with self.tracer.start_as_current_span_from_context(f'{self.model_name} start', context=self.ctx, trace_level="APPLICATION_TRACE"):
             self._warmup(num_warmup, dataloader)
             final_outputs = self._evaluate(dataloader, output_processor)
+
+        if serialized or mlharness:
+            final_outputs = [output.numpy() for output in final_outputs] 
 
         if serialized:
             return output_processor.process_final_outputs_for_serialization(self.task, final_outputs, getattr(self.model, 'features', None))
