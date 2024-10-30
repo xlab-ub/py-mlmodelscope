@@ -12,9 +12,11 @@ class JAX_Transformers_BEiT_Base_Patch16_224(JAXAbstractClass):
     self.features = [v for k, v in sorted(self.model.config.id2label.items())]
   
   def preprocess(self, input_images):
-    for i in range(len(input_images)):
-      input_images[i] = Image.open(input_images[i])
-    model_input = self.processor(input_images, return_tensors="np")
+    processed_images = [
+      Image.open(image_path).convert('RGB')
+      for image_path in input_images
+    ]
+    model_input = self.processor(processed_images, return_tensors="np")
     return model_input
 
   def predict(self, model_input): 
