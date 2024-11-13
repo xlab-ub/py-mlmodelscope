@@ -131,7 +131,7 @@ class TensorFlow_Agent:
             supported_losses = [name for name in dir(tf.keras.losses) if not name.startswith('_')]
             raise NotImplementedError(f"Loss '{loss_name}' not found. Supported losses: {supported_losses}")
 
-    def train(self, num_epochs, num_batches, train_dataloader, val_dataloader, output_processor):
+    def train(self, num_epochs, num_batches, train_dataloader, val_dataloader, output_processor, save_trained_model_path=None):
         total_batches_processed = 0
         train_losses = []
         val_losses = []
@@ -149,6 +149,9 @@ class TensorFlow_Agent:
                 if num_batches and total_batches_processed >= num_batches:
                     print(f"Total number of batches processed ({total_batches_processed}) reached or exceeded the limit ({num_batches}). Stopping training.")
                     break
+        
+        if save_trained_model_path:
+            self.model.model.save(save_trained_model_path)
 
         return train_losses, val_losses
 

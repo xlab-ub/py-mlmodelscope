@@ -8,7 +8,7 @@ import jax
 import jax.numpy as jnp
 import optax 
 import flax.linen as nn 
-from flax.training import train_state 
+from flax.training import train_state, checkpoints
  
 from opentelemetry.trace import set_span_in_context 
 
@@ -128,7 +128,7 @@ class JAX_Agent:
             loss_function=loss_fn
         )
 
-    def train(self, num_epochs, num_batches, train_dataloader, val_dataloader, output_processor):
+    def train(self, num_epochs, num_batches, train_dataloader, val_dataloader, output_processor, save_trained_model_path=None):
         total_batches_processed = 0
         train_losses = []
         val_losses = []
@@ -151,6 +151,10 @@ class JAX_Agent:
                     break
         
         self.model.model.params = state.params
+
+        if save_trained_model_path:
+            checkpoints.save_checkpoint(save_trained_model_path, {'model': state}, step=epoch, overwrite=True)
+
         return train_losses, val_losses
     
     def _train_epoch(self, epoch, num_batches, train_dataloader, total_batches_processed, state):

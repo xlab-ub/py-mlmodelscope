@@ -1,7 +1,7 @@
 import os 
 import pathlib 
 import logging 
-
+import shutil
 # import json 
 try:
     # import onnxruntime.training.onnxblock as onnxblock
@@ -205,7 +205,6 @@ class ONNXRuntime_Agent:
                 )
             else:
                 if os.path.exists(self.training_directory):
-                    import shutil
                     shutil.rmtree(self.training_directory)
                 raise e
 
@@ -252,7 +251,7 @@ class ONNXRuntime_Agent:
         # self.optimizer_model = optimizer_model
         # return training_model, eval_model, optimizer_model
 
-    def train(self, num_epochs, num_batches, train_dataloader, val_dataloader, output_processor):
+    def train(self, num_epochs, num_batches, train_dataloader, val_dataloader, output_processor, save_trained_model_path=None):
         total_batches_processed = 0
         train_losses = []
         val_losses = []
@@ -274,11 +273,13 @@ class ONNXRuntime_Agent:
                 if num_batches and total_batches_processed >= num_batches:
                     print(f"Total number of batches processed ({total_batches_processed}) reached or exceeded the limit ({num_batches}). Stopping training.")
                     break
-
-        trained_model_path = f"{self.training_directory}/inference_model.onnx" 
-        self.training_model.export_model_for_inferencing(trained_model_path, [output.name for output in self.model.model.graph.output])
+        
+        if not save_trained_model_path.endswith('.onnx'):
+            save_trained_model_path += '.onnx'
+        self.training_model.export_model_for_inferencing(save_trained_model_path, [output.name for output in self.model.model.graph.output])
+        shutil.rmtree(self.training_directory)
         # TODO: Need to check if it works with the tasks such as style_transfer, text_to_text, etc.
-        self.model.load_onnx(trained_model_path, self.providers, predict_method_replacement=False)
+        self.model.load_onnx(save_trained_model_path, self.providers, predict_method_replacement=False)
 
         return train_losses, val_losses
 

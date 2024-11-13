@@ -123,11 +123,11 @@ class MLModelScope:
   def load_optimizer(self, optimizer, optimizer_config=None):
     self.agent.load_optimizer(optimizer, optimizer_config)
   
-  def train(self, num_epochs, num_batches):
+  def train(self, num_epochs, num_batches, save_trained_model_path=None):
     if not hasattr(self, 'train_dataloader'):
       raise ValueError("Training dataset is not loaded")
 
-    train_outputs = self.agent.train(num_epochs, num_batches, self.train_dataloader, self.val_dataloader, self.output_processor)
+    train_outputs = self.agent.train(num_epochs, num_batches, self.train_dataloader, self.val_dataloader, self.output_processor, save_trained_model_path)
 
     test_outputs = None
     if hasattr(self, 'test_dataloader'):

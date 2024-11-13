@@ -95,7 +95,7 @@ class MXNet_Agent:
     def create_trainer(self):
         self.trainer = gluon.Trainer(self.model.model.collect_params(), self.optimizer)
     
-    def train(self, num_epochs, num_batches, train_dataloader, val_dataloader, output_processor):
+    def train(self, num_epochs, num_batches, train_dataloader, val_dataloader, output_processor, save_trained_model_path=None):
         total_batches_processed = 0
         train_losses = []
         val_losses = []
@@ -116,6 +116,9 @@ class MXNet_Agent:
                 if num_batches and total_batches_processed >= num_batches:
                     print(f"Total number of batches processed ({total_batches_processed}) reached or exceeded the limit ({num_batches}). Stopping training.")
                     break
+        
+        if save_trained_model_path:
+            self.model.model.export(save_trained_model_path, epoch)
         
         return train_losses, val_losses
 

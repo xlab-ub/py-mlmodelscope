@@ -166,7 +166,7 @@ class PyTorch_Agent:
             supported_losses = [name for name in dir(torch.nn) if 'Loss' in name]
             raise NotImplementedError(f"Loss '{loss_name}' not found. Supported losses: {supported_losses}")
 
-    def train(self, num_epochs, num_batches, train_dataloader, val_dataloader, output_processor):
+    def train(self, num_epochs, num_batches, train_dataloader, val_dataloader, output_processor, save_trained_model_path=None):
         total_batches_processed = 0
         train_losses = []
         val_losses = []
@@ -185,6 +185,15 @@ class PyTorch_Agent:
                 if num_batches and total_batches_processed >= num_batches:
                     print(f"Total number of batches processed ({total_batches_processed}) reached or exceeded the limit ({num_batches}). Stopping training.")
                     break
+        
+        if save_trained_model_path and hasattr(self.model.model, "named_modules"):
+            for _, layer in self.model.model.named_modules():
+                layer._forward_hooks.clear()
+                layer._forward_pre_hooks.clear()
+
+            if not save_trained_model_path.endswith('.pth'):
+                save_trained_model_path += '.pth'
+            torch.save(self.model.model, save_trained_model_path)
 
         return train_losses, val_losses
 

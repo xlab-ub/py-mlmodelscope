@@ -58,6 +58,8 @@ def parse_args():
             parser.add_argument("--loss", type=str, nargs='?', default="CrossEntropyLoss", help="The loss function to use")
             parser.add_argument("--optimizer", type=str, nargs='?', default="Adam", help="The optimizer to use")
             parser.add_argument("--learning_rate", type=float, nargs='?', default=0.0001, help="The learning rate for train.")
+            parser.add_argument("--save_trained_model", type=str, nargs='?', default="true", choices=["false", "true"], help="Whether to save the trained model")
+            parser.add_argument("--save_trained_model_path", type=str, nargs='?', default="trained_model", help="The path of the trained model file")
 
     else: 
         parser.add_argument("--env_file", type=str, nargs='?', default="false", choices=["false", "true"], help="Whether to use env file") 
@@ -228,6 +230,10 @@ def run_standalone(args):
         optimizer = args.optimizer
         learning_rate = args.learning_rate
 
+        save_trained_model_path = args.save_trained_model_path if args.save_trained_model == "true" else None
+        if save_trained_model_path is not None and not os.path.isabs(save_trained_model_path):
+            save_trained_model_path = os.path.join(os.getcwd(), save_trained_model_path)
+
     mlms = MLModelScope(architecture, trace_level, gpu_trace, save_trace_result_path, args.cuda_runtime_driver_time_adjustment == "true") 
     
     mlms.load_agent(task, agent, model_name, security_check, config, user) 
@@ -251,7 +257,7 @@ def run_standalone(args):
         print("prediction is done\n") 
     else: # train
         print(f"training starts")
-        _, outputs = mlms.train(num_epochs, num_batches)
+        _, outputs = mlms.train(num_epochs, num_batches, save_trained_model_path)
         print("training is done\n")
 
     print_outputs(outputs, task, detailed, save_output_path)
