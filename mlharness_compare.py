@@ -19,8 +19,10 @@ from queue import Queue
 import subprocess
 import mlperf_loadgen as lg
 import numpy as np
+from opentelemetry import trace
 from mlharness_tools.accuracy_imagenet import calculate_accuracy
 from mlharness_tools.process_benchmark_results import process_benchmark_results
+from mlharness_tools.process_trace_results import extract_span_info, single_run_insights, parse_trace_output, generate_tables_and_plots
 from mlmodelscope.dataloader import DataLoader 
 from mlmodelscope.outputprocessor import OutputProcessor 
 from mlmodelscope.processor_name import get_cpu_name, get_gpu_name 
@@ -181,7 +183,7 @@ def run_harness(args, benchmark_model, mlperf_model_name=None):
     save_trace_result = True if (args.save_trace_result == "true") and (trace_level != "NO_TRACE") else False 
     save_trace_result_path = args.save_trace_result_path if save_trace_result else None
 
-    tracer, root_span, ctx = Tracer.create(trace_level=trace_level, save_trace_result_path=save_trace_result_path)
+    tracer, root_span, ctx = Tracer.create(trace_level=trace_level, save_trace_result_path=save_trace_result_path, endpoint="http://jaeger:4318/v1/traces")
     root_span.set_attribute("cpu_name", get_cpu_name()) 
     
     c = None 
@@ -377,8 +379,11 @@ def main():
 
     args = get_args()
     log.info(args)
+    
+    trace_file = 'trace_result.txt' 
 
     benchmark_results = []
+    tracer_results = []
 
     if args.mlperf_model_names:
         for model_name, mlperf_model_name in zip(args.model_names, args.mlperf_model_names):
@@ -386,8 +391,18 @@ def main():
                 mlperf_model_name = None
             summary_result = run_harness(args, model_name, mlperf_model_name)
             benchmark_results.append(summary_result)
+            
+            spans = parse_trace_output(trace_file)
+            span_info = extract_span_info(spans)
+            tracer_results.append(single_run_insights(span_info))
+            if os.path.exists(trace_file):
+                os.remove(trace_file)
+
+    generate_tables_and_plots(tracer_results, args.model_names)
+    # process_benchmark_results(benchmark_results)
+
     
-    process_benchmark_results(benchmark_results)
+    # Replace with your actual output file path
 
 if __name__ == "__main__":
     main()
