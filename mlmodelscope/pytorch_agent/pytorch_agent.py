@@ -82,7 +82,8 @@ class PyTorch_Agent:
             self.tracer.inject_context(curr_ctx)
             self.all_spans[layer_name] = (span, prev_ctx)
             if layer_name.startswith('0-0__'):
-                self.input_shape = input[0].shape
+                if input:
+                    self.input_shape = input[0].shape
         return hook
 
     def _hook(self, layer_name):
