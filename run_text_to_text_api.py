@@ -37,11 +37,13 @@ class ModelServer:
             error_message = "No model provided!" if not data.model else "No messages provided!"
             raise HTTPException(status_code=400, detail={"error": error_message})
         
+        # Create input data for the model
+        input_data = [data.messages.pop(-1).get('content', '')]
+
         # Load the model (agent)
         self.mlms.load_agent("text_to_text", self.agent, data.model, False, data.model_dump(), "default")
         
-        # Create input data for the model
-        input_data = [data.messages[-1].get('content', '')]
+        # Load the dataset
         self.mlms.load_dataset_api(input_data, batch_size=1, task='text_to_text', security_check=False)
 
         # Perform prediction
