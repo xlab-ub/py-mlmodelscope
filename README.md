@@ -34,8 +34,403 @@ To achieve this, MLModelScope:
 
 MLModelScope can be used as an application with a command line, API or web interface, or can be compiled into a standalone library. We also provide an online hub of continuously updated assets, evaluation results, and access to hardware resources — allowing users to discover and evaluate models without installing or configuring systems.
 
-# Bare Minimum Installation
+# Quick Start Guide 
 
+## Prerequisites
+
+- Docker 
+
+## Running PyTorch Agent 
+
+### CPU 
+
+```bash
+docker run --rm -it xlabub/pytorch-agent:standalone-cpu-pytorch2.0.1-latest
+```
+
+### GPU 
+
+```bash
+docker run --rm -it --gpus all xlabub/pytorch-agent:standalone-gpu-pytorch2.0.1-cuda11.7-latest
+```
+
+If you want the agent not to download huggingface models every time, you can use the following command:
+
+```bash
+docker run --rm -it -e HUGGINGFACE_HUB_CACHE=/root/.cache/huggingface \
+    --gpus all -v ~/.cache/huggingface:/root/.cache/huggingface xlabub/pytorch-agent:standalone-gpu-pytorch2.0.1-cuda11.7-latest
+```
+
+## Running Tensorflow Agent
+
+### CPU 
+
+```bash
+docker run --rm -it xlabub/standalone-cpu-tensorflow2.10.1-latest
+```
+
+### GPU 
+
+```bash
+docker run --rm -it --gpus all xlabub/standalone-gpu-tensorflow2.10.1-cuda11.2-latest
+```
+
+## Running ONNXRuntime Agent
+
+### CPU 
+
+```bash
+docker run --rm -it xlabub/standalone-cpu-onnxruntime1.19.2-latest
+```
+
+### GPU 
+
+```bash
+docker run --rm -it --gpus all xlabub/standalone-gpu-onnxruntime1.19.2-cuda11.8-latest
+```
+
+## Running MXNet Agent
+
+### CPU 
+
+```bash
+docker run --rm -it xlabub/standalone-cpu-mxnet1.9.1-latest
+```
+
+## Running JAX Agent
+
+### CPU 
+
+```bash
+docker run --rm -it xlabub/standalone-cpu-jax0.4.30-latest
+```
+
+# Deployment for Development
+
+## CUPTI Library Preparation (required only for GPU profiling)
+
+If you are planning to use the GPU profiling capabilities of the agent, you will need to install the CUPTI library. Otherwise, you can skip this step. 
+
+### The CUDA Library
+
+Please refer to Nvidia CUDA library installation on this. Find the localation of your local CUDA installation, which is typically at `/usr/local/cuda/`, and setup the path to the `libcublas.so` library. 
+
+### The CUPTI Library
+
+Please refer to Nvidia CUPTI library installation on this. Find the localation of your local CUPTI installation, which is typically at `/usr/local/cuda/extras/CUPTI`, and setup the path to the `libcupti.so` library. 
+
+Also, please install Pre-requsite Dynamic Library. 
+
+**On Linux**
+
+```bash
+cd pycupti/csrc 
+export PATH="/usr/local/cuda/bin:$PATH" 
+nvcc -O3 --shared -Xcompiler -fPIC utils.cpp -o libutils.so -lcuda -lcudart -lcupti -lnvperf_host -lnvperf_target -I /usr/local/cuda/extras/CUPTI/include -L /usr/local/cuda/extras/CUPTI/lib64 
+```
+
+**On Windows**
+
+```console
+cd pycupti/csrc 
+nvcc -O3 --shared utils.cpp -o utils.dll -I"%CUDA_PATH%/include" -I"%CUDA_PATH%/extras/CUPTI/include" -L"%CUDA_PATH%"/extras/CUPTI/lib64 -L"%CUDA_PATH%"/lib/x64 -lcuda -lcudart -lcupti -lnvperf_host -lnvperf_target -Xcompiler "/EHsc /GL /Gy /O2 /Zc:inline /fp:precise /D "_WINDLL" /Zc:forScope /Oi /MD" && del utils.lib utils.exp 
+```
+
+After running above commands, please check whether  `libutils.so` on Linux or `utils.dll` on Windows is in `pycupti/csrc` directory. 
+
+## Starting Trace Server
+
+This service is required to collect traces from the agent. 
+
+```bash 
+docker run -d --name jaeger -e COLLECTOR_ZIPKIN_HOST_PORT=:9411 -e COLLECTOR_OTLP_ENABLED=true -p 6831:6831/udp -p 6832:6832/udp -p 5778:5778 -p 16686:16686 -p 4317:4317 -p 4318:4318 -p 14250:14250 -p 14268:14268 -p 14269:14269 -p 9411:9411 jaegertracing/all-in-one:1.44 
+``` 
+
+The trace server runs on http://localhost:16686
+
+## Preparing the Environment for PyTorch Agent
+
+It is recommended to set up a virtual environment using Conda for the PyTorch agent. Below are the steps to prepare the environment, referring to the `Dockerfile.standalone_cpu_pytorch2.0.1` and `Dockerfile.standalone_gpu_pytorch2.0.1_cuda11.7`:
+
+### Prerequisites
+Ensure you have the following installed on your system:
+- Python >= 3.8
+- Conda (for virtual environment management)
+- CUDA (if using GPU)
+- cuDNN (if using GPU)
+
+### Steps for Setting Up the Environment
+
+#### 1. Create a Conda Environment
+
+For CPU-only:
+```bash
+conda create -n pytorch_cpu_env python=3.8
+conda activate pytorch_cpu_env
+```
+
+For GPU-enabled:
+```bash
+conda create -n pytorch_gpu_env python=3.8
+conda activate pytorch_gpu_env
+```
+
+#### 2. Install Required Python Packages
+
+For CPU-only:
+```bash
+pip install --upgrade pip
+pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cpu
+pip install transformers diffusers sentencepiece opentelemetry-api opentelemetry-sdk \
+    opentelemetry-exporter-otlp-proto-grpc grpcio opentelemetry-exporter-otlp-proto-http \
+    httpio aenum requests tqdm scipy chardet psycopg "psycopg[binary]" Pika opencv-contrib-python
+```
+
+For GPU-enabled:
+```bash
+pip install --upgrade pip
+pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2
+pip install transformers diffusers sentencepiece opentelemetry-api opentelemetry-sdk \
+    opentelemetry-exporter-otlp-proto-grpc grpcio opentelemetry-exporter-otlp-proto-http \
+    httpio aenum requests tqdm scipy chardet psycopg "psycopg[binary]" Pika opencv-contrib-python
+```
+
+#### 3. Clone the Repository
+
+```bash
+git clone https://github.com/xlab-ub/py-mlmodelscope.git
+cd py-mlmodelscope
+```
+
+#### 4. Run the PyTorch Agent
+
+For CPU-only:
+```bash
+python run_mlmodelscope.py --standalone true --agent pytorch --architecture cpu
+```
+
+For GPU-enabled:
+```bash
+python run_mlmodelscope.py --standalone true --agent pytorch --architecture gpu
+```
+
+## Preparing the Environment for TensorFlow Agent
+
+It is recommended to set up a virtual environment using Conda for the TensorFlow agent. Below are the steps to prepare the environment, referring to the `Dockerfile.standalone_cpu_tensorflow2.10.1` and `Dockerfile.standalone_gpu_tensorflow2.10.1_cuda11.2`:
+
+### Prerequisites
+Ensure you have the following installed on your system:
+- Python >= 3.7
+- Conda (for virtual environment management)
+- CUDA (if using GPU)
+- cuDNN (if using GPU)
+
+### Steps for Setting Up the Environment
+
+#### 1. Create a Conda Environment
+
+For CPU-only:
+```bash
+conda create -n tensorflow_cpu_env python=3.7
+conda activate tensorflow_cpu_env
+```
+
+For GPU-enabled:
+```bash
+conda create -n tensorflow_gpu_env python=3.7
+conda activate tensorflow_gpu_env
+```
+
+#### 2. Install Required Python Packages
+
+For CPU-only:
+```bash
+pip install --upgrade pip
+pip install tensorflow-cpu==2.10.1 tensorflow-hub
+pip install transformers sentencepiece opentelemetry-api opentelemetry-sdk \
+    opentelemetry-exporter-otlp-proto-grpc grpcio opentelemetry-exporter-otlp-proto-http \
+    httpio aenum requests tqdm scipy chardet psycopg "psycopg[binary]" Pika opencv-contrib-python \
+    protobuf==3.20.* Pillow
+```
+
+For GPU-enabled:
+```bash
+pip install --upgrade pip
+pip install tensorflow==2.10.1 tensorflow-hub
+pip install transformers sentencepiece opentelemetry-api opentelemetry-sdk \
+    opentelemetry-exporter-otlp-proto-grpc grpcio opentelemetry-exporter-otlp-proto-http \
+    httpio aenum requests tqdm scipy chardet psycopg "psycopg[binary]" Pika opencv-contrib-python \
+    protobuf==3.20.* Pillow
+```
+
+#### 3. Clone the Repository
+
+```bash
+git clone https://github.com/xlab-ub/py-mlmodelscope.git
+cd py-mlmodelscope
+```
+
+#### 4. Run the TensorFlow Agent
+
+For CPU-only:
+```bash
+python run_mlmodelscope.py --standalone true --agent tensorflow --architecture cpu --model_name resnet50_keras
+```
+
+For GPU-enabled:
+```bash
+python run_mlmodelscope.py --standalone true --agent tensorflow --architecture gpu --model_name resnet50_keras
+```
+
+## Preparing the Environment for ONNXRuntime Agent
+
+It is recommended to set up a virtual environment using Conda for the ONNXRuntime agent. Below are the steps to prepare the environment, referring to the `Dockerfile.standalone_cpu_onnxruntime1.19.2` and `Dockerfile.standalone_gpu_onnxruntime1.19.2_cuda11.8`:
+
+### Prerequisites
+Ensure you have the following installed on your system:
+- Python >= 3.8
+- Conda (for virtual environment management)
+- CUDA (if using GPU)
+- cuDNN (if using GPU)
+
+### Steps for Setting Up the Environment
+
+#### 1. Create a Conda Environment
+
+For CPU-only:
+```bash
+conda create -n onnxruntime_cpu_env python=3.8
+conda activate onnxruntime_cpu_env
+```
+
+For GPU-enabled:
+```bash
+conda create -n onnxruntime_gpu_env python=3.8
+conda activate onnxruntime_gpu_env
+```
+
+#### 2. Install Required Python Packages
+
+For CPU-only:
+```bash
+pip install --upgrade pip
+pip install onnxruntime==1.19.2 optimum[onnxruntime] onnxruntime-training
+pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc \
+    grpcio opentelemetry-exporter-otlp-proto-http httpio aenum requests tqdm torchvision \
+    scipy chardet psycopg "psycopg[binary]" Pika opencv-contrib-python
+```
+
+For GPU-enabled:
+```bash
+pip install --upgrade pip
+pip install onnxruntime-gpu==1.19.2 optimum[onnxruntime-gpu] onnxruntime-training
+pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc \
+    grpcio opentelemetry-exporter-otlp-proto-http httpio aenum requests tqdm torchvision \
+    scipy chardet psycopg "psycopg[binary]" Pika opencv-contrib-python
+```
+
+#### 3. Clone the Repository
+
+```bash
+git clone https://github.com/xlab-ub/py-mlmodelscope.git
+cd py-mlmodelscope
+```
+
+#### 4. Run the ONNXRuntime Agent
+
+For CPU-only:
+```bash
+python run_mlmodelscope.py --standalone true --agent onnxruntime --architecture cpu
+```
+
+For GPU-enabled:
+```bash
+python run_mlmodelscope.py --standalone true --agent onnxruntime --architecture gpu
+```
+
+## Preparing the Environment for MXNet Agent
+
+It is recommended to set up a virtual environment using Conda for the MXNet agent. Below are the steps to prepare the environment, referring to the `Dockerfile.standalone_cpu_mxnet1.9.1`.
+
+### Prerequisites
+Ensure you have the following installed on your system:
+- Python >= 3.8
+- Conda (for virtual environment management)
+
+### Steps for Setting Up the Environment
+
+#### 1. Create a Conda Environment
+
+```bash
+conda create -n mxnet_cpu_env python=3.8
+conda activate mxnet_cpu_env
+```
+
+#### 2. Install Required Python Packages
+
+```bash
+pip install --upgrade pip
+pip install mxnet==1.9.1 numpy==1.23.1 torchvision==0.9.0
+pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc \
+    grpcio opentelemetry-exporter-otlp-proto-http httpio aenum requests tqdm scipy \
+    chardet psycopg "psycopg[binary]" Pika opencv-contrib-python
+```
+
+#### 3. Clone the Repository
+
+```bash
+git clone https://github.com/xlab-ub/py-mlmodelscope.git
+cd py-mlmodelscope
+```
+
+#### 4. Run the MXNet Agent
+
+```bash
+python run_mlmodelscope.py --standalone true --agent mxnet --architecture cpu --model_name alexnet
+```
+
+## Preparing the Environment for JAX Agent
+
+It is recommended to set up a virtual environment using Conda for the JAX agent. Below are the steps to prepare the environment, referring to the `Dockerfile.standalone_cpu_jax0.4.30`.
+
+### Prerequisites
+Ensure you have the following installed on your system:
+- Python >= 3.9
+- Conda (for virtual environment management)
+
+### Steps for Setting Up the Environment
+
+#### 1. Create a Conda Environment
+
+```bash
+conda create -n jax_cpu_env python=3.9
+conda activate jax_cpu_env
+```
+
+#### 2. Install Required Python Packages
+
+```bash
+pip install --upgrade pip
+pip install jax==0.4.30 flax
+pip install transformers sentencepiece opentelemetry-api opentelemetry-sdk \
+    opentelemetry-exporter-otlp-proto-grpc grpcio opentelemetry-exporter-otlp-proto-http \
+    httpio aenum requests tqdm scipy chardet psycopg "psycopg[binary]" Pika \
+    opencv-contrib-python Pillow
+```
+
+#### 3. Clone the Repository
+
+```bash
+git clone https://github.com/xlab-ub/py-mlmodelscope.git
+cd py-mlmodelscope
+```
+
+#### 4. Run the JAX Agent
+
+```bash
+python run_mlmodelscope.py --standalone true --agent jax --architecture cpu --model_name resnet_50
+```
+<!--
 ## Requirements 
 
 ``` 
@@ -508,7 +903,7 @@ pip install grpcio
 
 ### Starting Trace Server
 
-This service is required.
+This service is required to collect traces from the agent. 
 
 ```bash 
 docker run -d --name jaeger -e COLLECTOR_ZIPKIN_HOST_PORT=:9411 -e COLLECTOR_OTLP_ENABLED=true -p 6831:6831/udp -p 6832:6832/udp -p 5778:5778 -p 16686:16686 -p 4317:4317 -p 4318:4318 -p 14250:14250 -p 14268:14268 -p 14269:14269 -p 9411:9411 jaegertracing/all-in-one:1.44 
@@ -523,7 +918,8 @@ An example run is
 ```bash 
 python run_image_classification.py --task image_classification --agent pytorch --model_name alexnet --architecture gpu --num_warmup 2 --dataset_name test --dataset_path ./test_data --batch_size 2
 ```
-
+-->
+<!--
 ## Image Classification 
 
 ```bash 
@@ -559,15 +955,17 @@ python run_image_instance_segmentation.py --task image_instance_segmentation --a
 ```bash 
 python run_image_instance_segmentation_raw.py --task image_instance_segmentation_raw --agent tensorflow --model_name mask_rcnn_inception_v2_coco_raw --architecture cpu --num_warmup 2 --dataset_name test_cv2 --batch_size 1 --gpu_trace false 
 ```
-
+-->
 # References 
 
 <a id="1">[1]</a> c3sr, “GitHub - c3sr/mlmodelscope: MLModelScope is an open source, extensible, and customizable platform to facilitate evaluation and measurement of ML models within AI pipelines.,” GitHub. 
 
-<a id="2">[2]</a> c3sr, “GitHub - c3sr/go-pytorch,” GitHub, Oct. 25, 2021. https://github.com/c3sr/go-pytorch
+<a id="2">[2]</a> c3sr, “GitHub - c3sr/mlmodelscope-api: API to support MLModelscope frontend,” GitHub. 
 
-<a id="3">[3]</a> “PyTorch,” PyTorch. https://www.pytorch.org
+<a id="3">[3]</a> c3sr, “GitHub - c3sr/go-pytorch,” GitHub, Oct. 25, 2021. https://github.com/c3sr/go-pytorch
 
-<a id="4">[4]</a> “OpenTelemetry,” OpenTelemetry. https://opentelemetry.io/ 
+<a id="4">[4]</a> “PyTorch,” PyTorch. https://www.pytorch.org
 
-<a id="5">[5]</a> “Jaeger: open source, end-to-end distributed tracing,” Jaeger: open source, end-to-end distributed tracing, May 30, 2022. https://www.jaegertracing.io/ 
+<a id="5">[5]</a> “OpenTelemetry,” OpenTelemetry. https://opentelemetry.io/ 
+
+<a id="6">[6]</a> “Jaeger: open source, end-to-end distributed tracing,” Jaeger: open source, end-to-end distributed tracing, May 30, 2022. https://www.jaegertracing.io/ 
