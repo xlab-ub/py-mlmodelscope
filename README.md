@@ -57,7 +57,7 @@ docker run --rm -it --gpus all xlabub/pytorch-agent:standalone-gpu-pytorch2.0.1-
 If you want the agent not to download huggingface models every time, you can use the following command:
 
 ```bash
-docker run --rm -it -e HUGGINGFACE_HUB_CACHE=/root/.cache/huggingface \
+docker run --rm -it -e HF_HOME=/root/.cache/huggingface \
     --gpus all -v ~/.cache/huggingface:/root/.cache/huggingface xlabub/pytorch-agent:standalone-gpu-pytorch2.0.1-cuda11.7-latest
 ```
 
