@@ -29,7 +29,6 @@ class PyTorch_Transformers_DeepSeek_R1_Distill_Llama_8B(PyTorchAbstractClass):
       formatted_messages.append({"role": role, "content": content})
     formatted_messages.append({"role": "user", "content": input_texts[0]})
     encoded = self.tokenizer.apply_chat_template(formatted_messages, return_dict=True, return_tensors="pt", add_generation_prompt=True)
-    print(f"encoded: {encoded}")
     self.input_ids_shape = encoded['input_ids'].shape
     return encoded
 
