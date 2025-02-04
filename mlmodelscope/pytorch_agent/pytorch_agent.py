@@ -82,7 +82,7 @@ class PyTorch_Agent:
             self.tracer.inject_context(curr_ctx)
             self.all_spans[layer_name] = (span, prev_ctx)
             if layer_name.startswith('0-0__'):
-                if input:
+                if input and hasattr(input[0], 'shape'):
                     self.input_shape = input[0].shape
         return hook
 
@@ -91,7 +91,7 @@ class PyTorch_Agent:
             span, prev_ctx = self.all_spans.pop(layer_name)
             span.set_attribute("layer_sequence_index", layer_name.split('__')[0])
             span.set_attribute("module", f"{type(module).__module__}.{type(module).__name__}")
-            if input:
+            if input and hasattr(input[0], 'shape'):
                 span.set_attribute("input_shape", str(input[0].shape))
             else:
                 span.set_attribute("input_shape", str(self.input_shape) if layer_name.startswith('0__') else "None")
