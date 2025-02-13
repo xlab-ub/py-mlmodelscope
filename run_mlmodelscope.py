@@ -143,7 +143,8 @@ def process_message(db_conn: DatabaseConnection, body: bytes, properties, agent:
         gpu_trace = False
         print("GPU trace disabled for CPU architecture")
 
-    model_name = received_message['ModelName'][:-4].lower().replace('.', '_')
+    # model_name = received_message['ModelName'][:-4].lower().replace('.', '_')
+    model_name = received_message['ModelName'].lower().replace('.', '_')
     num_warmup = received_message.get('NumWarmup', 0)
     dataset_name = received_message['InputFiles']
     batch_size = received_message.get('BatchSize', 1)
