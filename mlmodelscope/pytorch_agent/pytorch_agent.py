@@ -31,7 +31,14 @@ class PyTorch_Agent:
             self.model.to(self.device)
             self.model.eval()
 
-        if hasattr(self.model, 'model') and not hasattr(self.model.model, "isScriptModule") and hasattr(self.model.model, "named_modules"):
+        if (
+            hasattr(self.model, 'model') 
+            and not any([
+                hasattr(self.model.model, "isScriptModule"),
+                'ScriptModule' in type(self.model.model).__name__
+            ])
+            and hasattr(self.model.model, "named_modules")
+        ):
             self._register_hooks(self.model.model)
 
     def _register_hooks(self, model):
@@ -65,6 +72,11 @@ class PyTorch_Agent:
             if (0, parts[0]) not in counters:
                 counters[(0, parts[0])] = 0
             return str(0), counters
+        
+        for i in range(len(parts)):
+            key = (i, separator.join(parts[:i+1]))
+            if key not in counters:
+                counters[key] = 0
 
         if (len(parts) - 2, separator.join(parts[:-1])) in counters:
             if (len(parts) - 1, separator.join(parts[:-1])) not in counters:
