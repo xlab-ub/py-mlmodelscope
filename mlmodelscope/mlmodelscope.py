@@ -107,7 +107,8 @@ class MLModelScope:
       'tensorflow': 'TensorFlow_Agent',
       'onnxruntime': 'ONNXRuntime_Agent',
       'mxnet': 'MXNet_Agent',
-      'jax': 'JAX_Agent'
+      'jax': 'JAX_Agent',
+      'max': 'MAX_Agent'
     }
 
     if agent not in agent_classes:
