@@ -1,0 +1,98 @@
+# -----------------------------------------------
+# Dockerfile: PyTorch GPU + MLModelScope + CUPTI
+# -----------------------------------------------
+    FROM nvidia/cuda:12.4.0-devel-ubuntu22.04
+
+    LABEL maintainer="Changjae Lee <changjae@buffalo.edu>"
+    
+    # 1. Environment variables to avoid interactive prompts
+    ENV LANG=C.UTF-8 \
+        LC_ALL=C.UTF-8 \
+        DEBIAN_FRONTEND=noninteractive \
+        DATA_DIR=/datasets/imagenet-2012-val
+    
+    # 2. Install system dependencies
+    RUN apt-get update && \
+        apt-get install -y --no-install-recommends \
+            git \
+            build-essential \
+            software-properties-common \
+            ca-certificates \
+            wget \
+            curl \
+            gnupg2 \
+            apt-transport-https \
+            libopenblas-dev \
+        && rm -rf /var/lib/apt/lists/*
+    
+    # 3. Install Python 3.10
+    RUN add-apt-repository ppa:deadsnakes/ppa && \
+        apt-get update && \
+        apt-get install -y --no-install-recommends \
+            python3.10 \
+            python3.10-dev \
+            python3.10-distutils \
+        && rm -rf /var/lib/apt/lists/* \
+        && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10 \
+        && update-alternatives --install /usr/bin/python python /usr/bin/python3.10 1 \
+        && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
+    
+    # 4. Install NVIDIA Nsight Systems and Nsight Compute
+    RUN wget -qO - https://developer.download.nvidia.com/devtools/repos/ubuntu2204/amd64/nvidia.pub | apt-key add - && \
+        echo "deb https://developer.download.nvidia.com/devtools/repos/ubuntu2204/amd64/ /" > /etc/apt/sources.list.d/nvidia-devtools.list && \
+        apt-get update && \
+        apt-get install -y --no-install-recommends \
+            nsight-systems-2023.2 \
+            nsight-compute-2023.2 \
+        && rm -rf /var/lib/apt/lists/*
+    
+    # 5. Upgrade pip
+    RUN pip3 install --no-cache-dir --upgrade pip
+    
+    # 6. Install PyTorch (CUDA 12.4) + essential Python packages
+    RUN pip3 install --no-cache-dir \
+        torch==2.2.1+cu124 \
+        torchvision==0.17.1+cu124 \
+        torchaudio==2.2.1+cu124 \
+        --index-url https://download.pytorch.org/whl/cu124
+    
+    RUN pip3 install --no-cache-dir \
+        transformers \
+        diffusers \
+        sentencepiece \
+        opentelemetry-api \
+        opentelemetry-sdk \
+        opentelemetry-exporter-otlp-proto-grpc \
+        grpcio \
+        opentelemetry-exporter-otlp-proto-http \
+        httpio \
+        aenum \
+        requests \
+        tqdm \
+        scipy \
+        chardet \
+        psycopg \
+        "psycopg[binary]" \
+        pika \
+        opencv-python-headless \
+        fastapi \
+        uvicorn \
+        absl-py \
+        cpp-demangle \
+        tabulate \
+        matplotlib \
+        pandas 
+    
+    # 7. Clone the py-mlmodelscope repository (only if empty/not present)
+    RUN git clone --recursive https://github.com/xlab-ub/py-mlmodelscope.git /py-mlmodelscope
+    
+    # 8. CUPTI & NVPERF libraries for GPU profiling
+    ENV CUDA_HOME=/usr/local/cuda
+    ENV CUPTI_HOME=/usr/local/cuda/extras/CUPTI
+    ENV PATH="$CUDA_HOME/bin:${PATH}"
+    ENV LD_LIBRARY_PATH="$CUDA_HOME/lib64:$CUPTI_HOME/lib64:${LD_LIBRARY_PATH}"
+    
+    # 9. Build the CUPTI-based libutils.so from pycupti/csrc
+    RUN cd /py-mlmodelscope/pycupti/csrc && \
+        nvcc -O3 --shared -Xcompiler -fPIC utils.cpp -o libutils.so \
+             -lcuda -lcudart -lcupti -lnvperf_host -lnvperf_target
