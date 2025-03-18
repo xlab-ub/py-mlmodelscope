@@ -7,7 +7,7 @@ from torchvision import transforms
 from PIL import Image 
 import numpy as np 
 
-class PyTorch_SRGAN(PyTorchAbstractClass): 
+class PyTorch_SRGAN_v1_0(PyTorchAbstractClass): 
   def __init__(self):
     if torch.__version__[:5] != "1.8.1": 
       raise RuntimeError("This model needs pytorch v1.8.1") 
