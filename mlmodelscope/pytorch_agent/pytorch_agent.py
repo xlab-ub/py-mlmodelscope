@@ -13,11 +13,13 @@ logger = logging.getLogger(__name__)
 class PyTorch_Agent:
     def __init__(self, task, model_name, architecture, tracer, context, security_check=True, config=None, user='default', c=None):
         self.tracer = tracer
+        self.enable_tracer = True
         self.all_spans = {}
         self.span, self.ctx = self.tracer.start_span_from_context(name="pytorch-agent", context=context, trace_level="APPLICATION_TRACE")
         self.device = 'cuda' if (architecture == "gpu" and torch.cuda.is_available()) else 'cpu'
         self.load_model(task, model_name, security_check, config, user)
         self.c = c
+
 
     def load_model(self, task, model_name, security_check=True, config=None, user='default'):
         self.task = task

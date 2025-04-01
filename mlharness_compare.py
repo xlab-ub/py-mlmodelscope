@@ -50,10 +50,12 @@ SCENARIO_MAP = {
     "Offline": lg.TestScenario.Offline,
 }
 
-SAMPLER_TYPE = ( "PARENT_BASED",     # Uses ParentBased with TraceIdRatioBased
-                "TRACE_ID_RATIO",   # Uses only TraceIdRatioBased 
+SAMPLER_TYPE = ( "PARENT_BASED",    # Uses ParentBased with TraceIdRatioBased, Trace level Sampling
+                 "TRACE_ID_RATIO",  #  Trace level Sampling
                 "ALWAYS_ON",        # defualt sampler used by opentelemetry
-                "ALWAYS_OFF")       # drops all traces 
+                "ALWAYS_OFF",       # drops all traces 
+                "QUERY_SAMPLER",    # 
+               )      
 
 TRACE_LEVEL = (
     "NO_TRACE",
@@ -716,46 +718,46 @@ def main():
             summary_result = run_harness(args, model_name, scenario_name, mlperf_model_name)
             benchmark_results.append(summary_result)
 
-            with open(trace_result_path, "r") as f:
-                trace_result_raw_text = f.read()
-                trace_result = [
-                    json.loads(obj)
-                    for obj in trace_result_raw_text.split("\n\n")
-                    if obj
-                ]
+            # with open(trace_result_path, "r") as f:
+            #     trace_result_raw_text = f.read()
+            #     trace_result = [
+            #         json.loads(obj)
+            #         for obj in trace_result_raw_text.split("\n\n")
+            #         if obj
+            #     ]
 
-            spans = trace_result
+            # spans = trace_result
 
-            print(len(spans), "len of spans")
+            # print(len(spans), "len of spans")
 
-            if args.compare_trace == "true":
-                tracer_results.append(
-                    analyze_trace_results(
-                        request_data=spans,
-                        top_k_avg_time_consuming_kernels=args.top_k_avg_time_consuming_kernels,
-                        top_k_total_time_consuming_kernels=args.top_k_total_time_consuming_kernels,
-                        top_k_total_time_consuming_kernels_with_count=args.top_k_total_time_consuming_kernels_with_count,
-                        average_time_for_kernel=args.average_time_for_kernel,
-                        time_consuming_layers_by_depth=args.time_consuming_layers_by_depth,
-                        average_time_for_layer=args.average_time_for_layer,
-                        find_kernels_to_optimize=args.find_kernels_to_optimize,
-                        layerwise_kernel=args.layerwise_kernel,
-                    )
-                )
+            # if args.compare_trace == "true":
+            #     tracer_results.append(
+            #         analyze_trace_results(
+            #             request_data=spans,
+            #             top_k_avg_time_consuming_kernels=args.top_k_avg_time_consuming_kernels,
+            #             top_k_total_time_consuming_kernels=args.top_k_total_time_consuming_kernels,
+            #             top_k_total_time_consuming_kernels_with_count=args.top_k_total_time_consuming_kernels_with_count,
+            #             average_time_for_kernel=args.average_time_for_kernel,
+            #             time_consuming_layers_by_depth=args.time_consuming_layers_by_depth,
+            #             average_time_for_layer=args.average_time_for_layer,
+            #             find_kernels_to_optimize=args.find_kernels_to_optimize,
+            #             layerwise_kernel=args.layerwise_kernel,
+            #         )
+            #     )
 
 
-    comparison_results, scenario_results = compare_loadgen_results(benchmark_results, args.model_names)
+    # comparison_results, scenario_results = compare_loadgen_results(benchmark_results, args.model_names)
 
     
-    if args.save_plots == "true":
-        visualize_latency_model_comparison(scenario_results)
+    # if args.save_plots == "true":
+    #     visualize_latency_model_comparison(scenario_results)
 
-    if args.compare_trace == "true":
-        compare_trace_res = compare_analysis_results(
-            tracer_results,
-            args.model_names,
-        )
-        display_comparison_results(compare_trace_res)
+    # if args.compare_trace == "true":
+    #     compare_trace_res = compare_analysis_results(
+    #         tracer_results,
+    #         args.model_names,
+    #     )
+    #     display_comparison_results(compare_trace_res)
 
 
     # Replace with your actual output file path

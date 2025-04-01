@@ -131,7 +131,7 @@ class CUPTI:
 
         self.activities =   [
                             #  "CUPTI_ACTIVITY_KIND_DEVICE", 
-                            #  "CUPTI_ACTIVITY_KIND_MEMCPY", 
+                             "CUPTI_ACTIVITY_KIND_MEMCPY", 
                             #  "CUPTI_ACTIVITY_KIND_MEMSET",
                              "CUPTI_ACTIVITY_KIND_KERNEL", 
                             #  "CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL", # not enabled with CUPIT_ACTIVITY_KIND_KERNEL 
@@ -144,14 +144,15 @@ class CUPTI:
                             ] 
         self.callbacks  =   [
                              "CUPTI_DRIVER_TRACE_CBID_cuLaunchKernel",                      #  CUPTI_ACTIVITY_KIND_KERNEL, CUPTI_ACTIVITY_KIND_CDP_KERNEL
-                            #  "CUPTI_DRIVER_TRACE_CBID_cuLaunchCooperativeKernel",         #  CUPTI_ACTIVITY_KIND_KERNEL, CUPTI_ACTIVITY_KIND_CDP_KERNEL
+                             "CUPTI_DRIVER_TRACE_CBID_cuLaunchCooperativeKernel",         #  CUPTI_ACTIVITY_KIND_KERNEL, CUPTI_ACTIVITY_KIND_CDP_KERNEL
 
-                            #  "CUPTI_DRIVER_TRACE_CBID_cuMemcpyDtoH_v2",                   #  CUPTI_ACTIVITY_KIND_MEMCPY
-                            #  "CUPTI_DRIVER_TRACE_CBID_cuMemcpyDtoHAsync_v2",              #  CUPTI_ACTIVITY_KIND_MEMCPY
-                            #  "CUPTI_DRIVER_TRACE_CBID_cuMemcpyHtoD_v2",                   #  CUPTI_ACTIVITY_KIND_MEMCPY
-                            #  "CUPTI_DRIVER_TRACE_CBID_cuMemcpyHtoDAsync_v2",              #  CUPTI_ACTIVITY_KIND_MEMCPY
-                            #  "CUPTI_DRIVER_TRACE_CBID_cuMemcpyDtoD_v2",                   #  CUPTI_ACTIVITY_KIND_MEMCPY
-                            #  "CUPTI_DRIVER_TRACE_CBID_cuMemcpyDtoDAsync_v2",              #  CUPTI_ACTIVITY_KIND_MEMCPY
+                             "CUPTI_DRIVER_TRACE_CBID_cuMemcpyDtoH_v2",                   #  CUPTI_ACTIVITY_KIND_MEMCPY
+                             "CUPTI_DRIVER_TRACE_CBID_cuMemcpyDtoHAsync_v2",              #  CUPTI_ACTIVITY_KIND_MEMCPY
+                             "CUPTI_DRIVER_TRACE_CBID_cuMemcpyHtoD_v2",                   #  CUPTI_ACTIVITY_KIND_MEMCPY
+                             "CUPTI_DRIVER_TRACE_CBID_cuMemcpyHtoDAsync_v2",              #  CUPTI_ACTIVITY_KIND_MEMCPY
+                             "CUPTI_DRIVER_TRACE_CBID_cuMemcpyDtoD_v2",                   #  CUPTI_ACTIVITY_KIND_MEMCPY
+                             "CUPTI_DRIVER_TRACE_CBID_cuMemcpyDtoDAsync_v2",              #  CUPTI_ACTIVITY_KIND_MEMCPY
+
 
                             #  "CUPTI_RUNTIME_TRACE_CBID_cudaDeviceSynchronize_v3020",
 
@@ -167,8 +168,8 @@ class CUPTI:
                              "CUPTI_RUNTIME_TRACE_CBID_cudaLaunch_v3020",                   #  CUPTI_ACTIVITY_KIND_KERNEL, CUPTI_ACTIVITY_KIND_CDP_KERNEL
                              "CUPTI_RUNTIME_TRACE_CBID_cudaLaunchKernel_v7000",             #  CUPTI_ACTIVITY_KIND_KERNEL, CUPTI_ACTIVITY_KIND_CDP_KERNEL
                             
-                            #  "CUPTI_RUNTIME_TRACE_CBID_cudaMemcpy_v3020",                 #  CUPTI_ACTIVITY_KIND_MEMCPY
-                            #  "CUPTI_RUNTIME_TRACE_CBID_cudaMemcpyAsync_v3020",            #  CUPTI_ACTIVITY_KIND_MEMCPY
+                             "CUPTI_RUNTIME_TRACE_CBID_cudaMemcpy_v3020",                 #  CUPTI_ACTIVITY_KIND_MEMCPY
+                             "CUPTI_RUNTIME_TRACE_CBID_cudaMemcpyAsync_v3020",            #  CUPTI_ACTIVITY_KIND_MEMCPY
 
                             #  "CUPTI_RUNTIME_TRACE_CBID_cudaMemset_v3020",                 #  CUPTI_ACTIVITY_KIND_MEMSET
                             #  "CUPTI_RUNTIME_TRACE_CBID_cudaMemsetAsync_v3020",            #  CUPTI_ACTIVITY_KIND_MEMSET
@@ -279,6 +280,7 @@ class CUPTI:
     def Close(self): 
         self.Unsubscribe() 
 
+      
         if self.profilingAPI: 
             ptr, flattenedLength = self.endProfiling() 
             if flattenedLength != 0: 
@@ -329,6 +331,7 @@ class CUPTI:
         return None 
 
     def startActivities(self): 
+
         for activityName in self.activities: 
             activity, err = CUpti_ActivityKindString(activityName) 
             if err is not None: 
@@ -337,6 +340,7 @@ class CUPTI:
             if err is not None: 
                 logger.error("unable to enable activity", exc_info=err, extra={"activity": activityName, "activity_enum": int(activity)}) 
                 return RuntimeError(f"unable to enable activitiy {activityName}").with_traceback(err.__traceback__) 
+
                 
         err = self.cuptiActivityRegisterCallbacks() 
         if err is not None: 
@@ -540,6 +544,7 @@ class CUPTI:
             span.end(end_time=endTime) 
             return None 
         elif kind == CUPTI_ACTIVITY_KIND_KERNEL or kind == CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL: 
+
             activity = ctypes.cast(record, ctypes.POINTER(CUpti_ActivityKernel7)).contents 
             startTime = CUPTI.beginTime + (activity.start - CUPTI.startTimeStamp) 
             endTime = CUPTI.beginTime + (activity.end - CUPTI.startTimeStamp) 
@@ -705,21 +710,26 @@ class CUPTI:
 
     @classmethod 
     def activityBufferCompleted(cls, ctx, streamId, buffer, size, validSize): 
+
         if validSize <= 0: 
             return 
         
         record = ctypes.POINTER(CUpti_Activity)() 
+        activity_kinds_found = []
+
 
         while True: 
             err = cls.cuptiActivityGetNextRecord(buffer, validSize, ctypes.byref(record)) 
             if err is None: 
                 if record is None: 
                     break 
+                activity_kinds_found.append(record.contents.kind)
                 cls.processActivity(record) 
                 continue 
             if err.code == CUPTI_ERROR_MAX_LIMIT_REACHED: 
                 break 
             logger.error("failed to get cupti cuptiActivityGetNextRecord", exc_info=err) 
+
 
         dropped = ctypes.c_size_t(0) 
 
@@ -776,6 +786,14 @@ class CUPTI:
             return None 
         else: 
             return self.CUPTIError(r) 
+        
+    def flushActivities(self):
+        """Explicitly flush CUPTI activity buffers."""
+        print("Explicitly flushing CUPTI activities...")
+        err = self.cuptiActivityFlushAll(CUPTI_ACTIVITY_FLAG_FLUSH_FORCED)
+        if err is not None:
+            print(f"Error flushing activities: {err}")
+        return err
 
     def cuptiActivityFlushAll(self, flag): 
         # CUptiResult cuptiActivityFlushAll ( uint32_t flag ) 
@@ -811,6 +829,8 @@ class CUPTI:
         _cuptiActivityGetNextRecord.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t, ctypes.POINTER(ctypes.POINTER(CUpti_Activity))]
 
         r = _cuptiActivityGetNextRecord(buffer, validSize, record) 
+
+
 
         if r == CUPTI_SUCCESS: 
             return None 
@@ -1729,7 +1749,7 @@ class CUPTI:
             return onCULaunchKernelExit(cbInfo) 
         else: 
             return RuntimeError(f'invalid callback site {CUpti_ApiCallbackSite_(cbInfo.callbackSite).name}') 
-        
+
     def onCULaunchCooperativeKernel(self, domain, cbid, cbInfo):
         def onCULaunchCooperativeKernelEnter(domain, cbid, cbInfo): 
             functionName = cbInfo.functionName.decode() 

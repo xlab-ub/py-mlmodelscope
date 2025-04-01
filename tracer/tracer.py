@@ -2,7 +2,7 @@ import os
 from contextlib import contextmanager
 
 from opentelemetry import trace  
-from opentelemetry.trace import set_span_in_context 
+from opentelemetry.trace import set_span_in_context
 from opentelemetry.trace import NoOpTracer 
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator 
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource 
@@ -10,20 +10,38 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor 
 from opentelemetry.sdk.trace.export import Span, SpanExportResult
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter 
-from typing import Sequence 
+from opentelemetry.sdk.trace.sampling import TraceIdRatioBased, ParentBasedTraceIdRatio, ALWAYS_ON, ALWAYS_OFF
+from typing import Sequence, Dict, Optional, Sequence
+
+from .samplers import QueryTraceSampler
+
 
 class CustomOTLPSpanExporter(OTLPSpanExporter):
     def __init__(self, filename=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.filename = filename
+        self.total_spans_seen = 0
+        self.total_spans_exported = 0
         if filename and os.path.exists(filename):
             os.remove(filename)  # Remove existing file 
-
+            
     def export(self, spans: Sequence[Span]) -> SpanExportResult:
-        with open(self.filename, "a") as file:  # Open file in append mode
-            span_data = [span.to_json() for span in spans]
-            file.write('\n\n'.join(span_data) + "\n\n")
-        return super().export(spans)
+        # First attempt the normal OTLP export
+        result = super().export(spans)
+        
+        # Count spans
+        self.total_spans_exported += len(spans)
+        
+        if self.filename:
+            print(f"Exporting spans to file: {self.filename} (total exported so far: {self.total_spans_exported})")
+            try:
+                with open(self.filename, "a") as file:  # Open file in append mode
+                    span_data = [span.to_json() for span in spans]
+                    file.write('\n\n'.join(span_data) + "\n\n")
+            except Exception as e:
+                print(f"Error exporting spans to file: {e}")
+        
+        return result
 
 class Tracer:
     TRACE_LEVEL = ( "NO_TRACE",
@@ -35,33 +53,71 @@ class Tracer:
                 "HARDWARE_TRACE",       # perf, papi, ...
                 "FULL_TRACE")           # includes all of the above)
     
-    def __init__(self, name="mlms", trace_level="NO_TRACE", endpoint='http://localhost:4318/v1/traces', max_queue_size=4096, save_trace_result_path=None):
-        resource = Resource(attributes={SERVICE_NAME: name})
-        trace.set_tracer_provider(TracerProvider(resource=resource))
+    SAMPLER_TYPE = ( "PARENT_BASED",     # Uses ParentBased with TraceIdRatioBased
+                     "TRACE_ID_RATIO",   # Uses only TraceIdRatioBased 
+                     "ALWAYS_ON",        # defualt sampler used by opentelemetry
+                     "ALWAYS_OFF",       # drops all traces 
+                     "QUERY_SAMPLER")      
+    
+    _initialized = False
+    
 
-        if "tracer_HOST" in os.environ and "tracer_PORT" in os.environ:
-            endpoint = f"{os.environ['tracer_HOST']}:{os.environ['tracer_PORT']}"
-        # https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html
-        if save_trace_result_path is None:
-            span_processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint), max_queue_size=max_queue_size)
-        else: 
-            span_processor = BatchSpanProcessor(CustomOTLPSpanExporter(filename=save_trace_result_path, endpoint=endpoint), max_queue_size=max_queue_size)
-        trace.get_tracer_provider().add_span_processor(span_processor)
+    def __init__(self, name="mlms", trace_level="NO_TRACE", endpoint='http://localhost:4318/v1/traces', max_queue_size=4096, save_trace_result_path=None, sampling_ratio=1.0, sampler_type="ALWAYS_ON"):
+        if not Tracer._initialized:
+            resource = Resource(attributes={SERVICE_NAME: name})
+            
+            if not (0.0 < sampling_ratio <= 1.0):
+                print(f"Invalid sampling ratio: {sampling_ratio}, using default (1.0)")
+            
+            #Sampling
+            if sampler_type not in self.SAMPLER_TYPE:
+                print(f"Invalid sampler type: {sampler_type}, using default ({self.SAMPLER_TYPE[0]})")
+                sampler_type = self.SAMPLER_TYPE[0]
+            print("Sampler type:", sampler_type)
+            if sampler_type == "ALWAYS_ON":
+                sampler = ALWAYS_ON
+            elif sampler_type == "ALWAYS_OFF":
+                sampler =  ALWAYS_OFF
+            elif sampler_type == "TRACE_ID_RATIO":
+                trace_id_ratio_sampler = TraceIdRatioBased(sampling_ratio)
+                sampler = trace_id_ratio_sampler
+            elif sampler_type == "PARENT_BASED":
+                sampler = ParentBasedTraceIdRatio(sampling_ratio)
+            elif sampler_type == "QUERY_SAMPLER":
+                sampler = QueryTraceSampler(sampling_ratio)
+            
+            trace.set_tracer_provider(TracerProvider(resource=resource, sampler=sampler))
 
-        self.trace_level = trace_level 
-        self.trace_level_int = self.trace_level_to_int(trace_level) 
+            if "tracer_HOST" in os.environ and "tracer_PORT" in os.environ:
+                endpoint = f"{os.environ['tracer_HOST']}:{os.environ['tracer_PORT']}"
+            # https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html
+            if save_trace_result_path is None:
 
-        self.tracer = trace.get_tracer(__name__)
-        self.noop = NoOpTracer() # for when we don't want to trace
+                span_processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint), max_queue_size=max_queue_size)
+            else: 
+                print("exporting")
+                span_processor = BatchSpanProcessor(CustomOTLPSpanExporter(filename=save_trace_result_path, endpoint=endpoint), max_queue_size=max_queue_size)
+            trace.get_tracer_provider().add_span_processor(span_processor)
+            Tracer._initialized = True
 
-        self.prop = TraceContextTextMapPropagator() 
-        self.carrier = {} 
+            self.trace_level = trace_level 
+            self.trace_level_int = self.trace_level_to_int(trace_level) 
+
+            self.sampler_type = sampler_type
+            self.sampler_type_int = self.sampler_type_to_int(sampler_type)  
+            self.sampling_ratio = sampling_ratio
+
+            self.tracer = trace.get_tracer(__name__)
+            self.noop = NoOpTracer() # for when we don't want to trace
+
+            self.prop = TraceContextTextMapPropagator() 
+            self.carrier = {} 
 
         return
 
     @classmethod
-    def create(cls, name="mlms", trace_level="NO_TRACE", endpoint='http://localhost:4318/v1/traces', max_queue_size=32768, save_trace_result_path=None):
-        tracer = cls(name=name, trace_level=trace_level, endpoint=endpoint, max_queue_size=max_queue_size, save_trace_result_path=save_trace_result_path) 
+    def create(cls, name="mlms", trace_level="NO_TRACE", endpoint='http://localhost:4318/v1/traces', max_queue_size=32768, save_trace_result_path=None, sampling_ratio=1.0, sampler_type="ALWAYS_ON"):
+        tracer = cls(name=name, trace_level=trace_level, endpoint=endpoint, max_queue_size=max_queue_size, save_trace_result_path=save_trace_result_path, sampling_ratio=sampling_ratio, sampler_type=sampler_type) 
 
         span, ctx = tracer.start_span_from_context(name="mlmodelscope", trace_level="APPLICATION_TRACE") 
 
@@ -91,9 +147,31 @@ class Tracer:
             level = "NO_TRACE"
         
         return level 
+
+    def sampler_type_to_int(self, sampler_type):
+        try:
+            sampler_type = self.SAMPLER_TYPE.index(sampler_type.upper())
+        except ValueError:
+            print(f"Invalid sampler type string: {sampler_type}")
+            sampler_type = 0
+        
+        return sampler_type 
+
+    def sampler_type_to_str(self, index):
+        try: 
+            sampler_type = self.SAMPLER_TYPE[index]
+        except IndexError:
+            print("Invalid sampler type integer")
+            sampler_type = self.SAMPLER_TYPE[0]
+        
+        return sampler_type
+
+    def get_sampler_type(self):
+        return self.sampler_type
     
     def start_span_from_context(self, name, context=None, trace_level="NO_TRACE", attributes=None, start_time=None):
         trace_level_int = self.trace_level_to_int(trace_level)
+        
 
         if attributes is None:
             attributes = {"trace_level": trace_level}
@@ -153,3 +231,5 @@ class Tracer:
         self.trace_level = trace_level
         self.trace_level_int = self.trace_level_to_int(trace_level)
         return
+    
+
