@@ -21,6 +21,9 @@ class PyTorch_Agent:
 
     def load_model(self, task, model_name, security_check=True, config=None, user='default'):
         self.task = task
+        if task == 'audio_to_text':
+            task = 'automatic_speech_recognition'
+
         model_path = f'{pathlib.Path(__file__).parent.resolve()}/models/{user}/{task}/{model_name}/model.py'
         if not os.path.exists(model_path):
             raise NotImplementedError(f"'{model_name}' model not found for '{task}' task and user '{user}'.")

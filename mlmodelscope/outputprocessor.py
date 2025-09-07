@@ -36,7 +36,7 @@ class OutputProcessor:
         if ((model_features is None) 
             and (modality not in ['image_enhancement', 'image_generation', 'image_synthesis', 'image_editing', 
                                   'speech_synthesis', 'audio_generation', 
-                                  'text_to_code', 'text_to_text', 'automatic_speech_recognition', 'visual_question_answering'])): 
+                                  'text_to_code', 'text_to_text', 'automatic_speech_recognition', 'audio_to_text', 'visual_question_answering'])): 
             raise ValueError(f"model_features is required for {modality} modality") 
         
         serialized_outputs = []
@@ -80,7 +80,7 @@ class OutputProcessor:
 
             serialized_outputs.append({"duration":None,"duration_for_inference":None,"responses":[{"features":features,"id":None}]})
         
-        elif modality in ['text_to_code', 'text_to_text', 'automatic_speech_recognition', 'visual_question_answering']: 
+        elif modality in ['text_to_code', 'text_to_text', 'automatic_speech_recognition', 'audio_to_text', 'visual_question_answering']: 
             for idx, output in enumerate(final_outputs): 
                 features = [{"text":output,"type":"TEXT"}] 
 
