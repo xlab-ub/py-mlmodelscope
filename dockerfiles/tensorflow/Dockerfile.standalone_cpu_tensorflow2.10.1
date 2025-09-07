@@ -25,7 +25,7 @@ RUN apt-get update && \
 # Install Python packages
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir tensorflow-cpu==2.10.1 tensorflow-hub && \
-    pip install --no-cache-dir transformers sentencepiece opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc grpcio opentelemetry-exporter-otlp-proto-http httpio aenum requests tqdm scipy chardet psycopg "psycopg[binary]" Pika opencv-python-headless && \
+    pip install --no-cache-dir transformers sentencepiece opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc grpcio opentelemetry-exporter-otlp-proto-http httpio aenum requests tqdm scipy chardet psycopg "psycopg[binary]" Pika opencv-python-headless librosa && \
     pip install --no-cache-dir protobuf==3.20.* Pillow
 
 # Clone py-mlmodelscope repository
