@@ -58,12 +58,38 @@ class MLModelScope:
     return 
 
   def load_dataset(self, dataset_name, batch_size, task=None, security_check=True):
-    url = (isinstance(dataset_name, list) and (dataset_name[0]["src"].startswith('http') or dataset_name[0].startswith('http'))) or (isinstance(dataset_name, str) and dataset_name.startswith('http'))
+    # Check if dataset_name is a URL or contains URL data
+    url = False
+    if isinstance(dataset_name, list) and len(dataset_name) > 0 and isinstance(dataset_name[0], dict) and "src" in dataset_name[0]:
+      # Check if it's actually a URL or just structured text data
+      src_value = dataset_name[0]["src"]
+      url = isinstance(src_value, str) and (src_value.startswith('http://') or src_value.startswith('https://'))
+    elif isinstance(dataset_name, str):
+      url = dataset_name.startswith('http://') or dataset_name.startswith('https://')
     
+    # Handle structured text data (list of dicts with 'src' and 'inputType')
+    if isinstance(dataset_name, list) and len(dataset_name) > 0 and isinstance(dataset_name[0], dict):
+      if "src" in dataset_name[0] and "inputType" in dataset_name[0]:
+        # Extract text content from structured format
+        if dataset_name[0]["inputType"] == "TEXT":
+          # Convert structured format to simple text list for text-to-text tasks
+          extracted_dataset = [item["src"] for item in dataset_name if "src" in item]
+          url = True  # Use URL processing path for structured data
+          name = 'structured_text'
+          with self.tracer.start_as_current_span_from_context(f'{name} dataset load', context=self.ctx, trace_level="APPLICATION_TRACE"):
+            self.dataset = extracted_dataset  # Use extracted text directly
+            self.batch_size = batch_size 
+            self.dataloader = DataLoader(self.dataset, self.batch_size)
+          return
+    
+    # If it's not a URL and no task is specified, check if it's a local dataset
     if not url and task is None:
       dataset_list = [dataset[:-3] for dataset in os.listdir('./pydldataset/datasets/') if dataset.endswith('.py') and dataset != 'url_data.py']
-      if dataset_name not in dataset_list:
+      if isinstance(dataset_name, str) and dataset_name not in dataset_list:
         raise NotImplementedError(f"{dataset_name} dataset is not supported. Available datasets: {', '.join(dataset_list)}")
+      elif isinstance(dataset_name, list):
+        # For other list datasets that aren't URLs, we assume it's data to be processed with the specified task
+        url = True  # Treat it as URL-like data for processing
     
     name = 'url' if url else (dataset_name if task is None else task)
     with self.tracer.start_as_current_span_from_context(f'{name} dataset load', context=self.ctx, trace_level="APPLICATION_TRACE"):
@@ -84,20 +110,47 @@ class MLModelScope:
   
   def load_dataset_for_train(self, train_dataset_name, val_dataset_name, test_dataset_name, batch_size, task=None, security_check=True):
     def check_dataset(dataset_name):
-      url = isinstance(dataset_name, list) and dataset_name[0].startswith('http') or isinstance(dataset_name, str) and dataset_name.startswith('http')
+      # Check if dataset_name is a URL or contains URL data
+      url = False
+      if isinstance(dataset_name, list) and len(dataset_name) > 0 and isinstance(dataset_name[0], dict) and "src" in dataset_name[0]:
+        # Check if it's actually a URL or just structured text data
+        src_value = dataset_name[0]["src"]
+        url = isinstance(src_value, str) and (src_value.startswith('http://') or src_value.startswith('https://'))
+      elif isinstance(dataset_name, str):
+        url = dataset_name.startswith('http://') or dataset_name.startswith('https://')
+      
+      # Handle structured text data (list of dicts with 'src' and 'inputType')
+      if isinstance(dataset_name, list) and len(dataset_name) > 0 and isinstance(dataset_name[0], dict):
+        if "src" in dataset_name[0] and "inputType" in dataset_name[0]:
+          # Extract text content from structured format
+          if dataset_name[0]["inputType"] == "TEXT":
+            # Convert structured format to simple text list for text-to-text tasks
+            extracted_dataset = [item["src"] for item in dataset_name if "src" in item]
+            return 'structured_text', True, extracted_dataset
+      
+      # If it's not a URL and no task is specified, check if it's a local dataset
       if not url and task is None:
         dataset_list = [dataset[:-3] for dataset in os.listdir('./pydldataset/datasets/') if dataset.endswith('.py') and dataset != 'url_data.py']
-        if dataset_name not in dataset_list:
+        if isinstance(dataset_name, str) and dataset_name not in dataset_list:
           raise NotImplementedError(f"{dataset_name} dataset is not supported. Available datasets: {', '.join(dataset_list)}")
-      return 'url' if url else (dataset_name if task is None else task), url
+        elif isinstance(dataset_name, list):
+          # For other list datasets that aren't URLs, we assume it's data to be processed with the specified task
+          url = True  # Treat it as URL-like data for processing
+      
+      return ('url' if url else (dataset_name if task is None else task)), url, None
 
     self.batch_size = batch_size
     datasets = [('train', train_dataset_name), ('val', val_dataset_name), ('test', test_dataset_name)]
 
     for dataset_type, dataset_name in datasets:
-      name, url = check_dataset(dataset_name)
+      name, url, extracted_data = check_dataset(dataset_name)
       with self.tracer.start_as_current_span_from_context(f'{name} {dataset_type} dataset load', context=self.ctx, trace_level="APPLICATION_TRACE"):
-        dataset = pydldataset.load(dataset_name, url, task=task, security_check=security_check)
+        if extracted_data is not None:
+          # Use extracted text data directly
+          dataset = extracted_data
+        else:
+          # Use pydldataset.load for regular datasets
+          dataset = pydldataset.load(dataset_name, url, task=task, security_check=security_check)
         setattr(self, f'{dataset_type}_dataset', dataset)
         setattr(self, f'{dataset_type}_dataloader', DataLoader(dataset, self.batch_size))
 
