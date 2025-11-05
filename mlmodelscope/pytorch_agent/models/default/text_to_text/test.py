@@ -166,8 +166,8 @@ def run_model_test(model_name, dataset_name_str, test_dir_path):
         # Check the return code
         if completed_process.returncode == 0:
             print(f"--- [SUCCESS] Test for: {model_name} ---")
-            print("Output (first 10 lines):")
-            print("\n".join(completed_process.stdout.splitlines()[:10]))
+            print("Output (last 10 lines):")
+            print("\n".join(completed_process.stdout.splitlines()[-10:]))
             return {
                 "status": "Success",
                 "model": model_name,
@@ -208,7 +208,7 @@ def run_model_test(model_name, dataset_name_str, test_dir_path):
 
 def main():
     # --- Define the Test Directory ---
-    TEST_DIR_STR = "mlmodelscope/pytorch_agent/models/default/text_to_text/test"
+    TEST_DIR_STR = f"mlmodelscope/pytorch_agent/models/default/text_to_text/test/{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     TEST_DIR = Path(TEST_DIR_STR)
     MAX_TRIES_PER_MODEL = 5
 
@@ -320,14 +320,8 @@ def main():
         print(f"--- [FINISHED] Test for: {model} ---\n")
 
     # Save full summary JSON results to the TEST_DIR
-    results_filename = (
-        TEST_DIR
-        / f"model_test_results_{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.json"
-    )
-    bigger_than_GPU_File = (
-        TEST_DIR
-        / f"GPU_overload_models_{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.txt"
-    )
+    results_filename = TEST_DIR / f"model_test_results.json"
+    bigger_than_GPU_File = TEST_DIR / f"GPU_overload_models.txt"
     try:
         with open(results_filename, "w", encoding="utf-8") as f:
             json.dump(all_results, f, indent=2)
