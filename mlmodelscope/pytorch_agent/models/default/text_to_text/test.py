@@ -288,6 +288,8 @@ def main():
     for model in models_to_test:
         tries = 0
         while tries < MAX_TRIES_PER_MODEL:
+            if tries != 0:
+                print(f"Going for try {tries+1}")
             start_time = time.time()
             readable_start = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             result = run_model_test(
@@ -303,9 +305,9 @@ def main():
                 models_need_more_GPU.append(model)
                 break
             elif "pip install" in result["error"]:
-                if pip_error := install_packages_in_conda(
-                    extract_pip_modules(result["error"])
-                ):
+                models_to_install = extract_pip_modules(result["error"])
+                print("Trying to install", models_to_install)
+                if pip_error := install_packages_in_conda(models_to_install):
                     result["error"] += "\n" + pip_error
                     break
 
