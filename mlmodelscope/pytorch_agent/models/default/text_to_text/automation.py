@@ -224,6 +224,7 @@ Based on the examples AND the context above, generate the config for the model: 
             ),
         ]
     )
+    modelCounter = 0
 
     # --- LLM Setup ---
     load_dotenv()
@@ -232,6 +233,7 @@ Based on the examples AND the context above, generate the config for the model: 
 
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-pro",
+        model_kwargs={"thinkingBudget": -1},
         temperature=0,
         convert_system_message_to_human=True,
     )
@@ -241,12 +243,21 @@ Based on the examples AND the context above, generate the config for the model: 
 
     # --- 4. Main Generation Loop ---
     BASE_DIR = "mlmodelscope/pytorch_agent/models/default/text_to_text"
+    ERROR_DIR = "mlmodelscope/pytorch_agent/models/default/text_to_text/errors"
+    if not os.path.exists(ERROR_DIR):
+        os.makedirs(ERROR_DIR)
+        print(f"Created error directory: '{ERROR_DIR}'")
+    failed_models = []
+    login_req_models = []
     if not os.path.exists(BASE_DIR):
         os.makedirs(BASE_DIR)
         print(f"Created base directory: '{BASE_DIR}'")
         # raise FileNotFoundError(f"Base directory '{BASE_DIR}' does not exist.")
 
     for model_name in models_to_add:
+        if modelCounter == 50:
+            print("Added top 50 models. Achieved the goal for now.")
+            break
         print(f"\n--- Processing model: {model_name} ---")
 
         model_folder_name = (
@@ -257,130 +268,183 @@ Based on the examples AND the context above, generate the config for the model: 
         if os.path.exists(model_py_path):
             print(f"Model '{model_folder_name}' already exists. Skipping.")
             continue
+        error_log = ""
 
         try:
-            # --- 1. Fetch Context from Hugging Face ---
-            url = f"https://huggingface.co/{model_name}"
-            print(f"Fetching context from {url}...")
-            response = requests.get(url)
-            response.raise_for_status()
-
-            soup = BeautifulSoup(response.text, "html.parser")
-            main_content = (
-                soup.find("model-card-content")
-                or soup.find("main")
-                or soup.find("body")
+            check_python_file_syntax_issue = lambda fileName: os.system(
+                f"python -m py_compile {fileName}"
             )
+            error = False
+            while not os.path.exists(model_py_path) or (
+                error := check_python_file_syntax_issue(model_py_path)
+            ):
+                if error:
+                    print(
+                        f"Syntax error detected in generated file '{model_py_path}'. Regenerating..."
+                    )
+                    error_log += (
+                        f"Syntax error detected in generated file '{model_py_path}'. Regenerating...\n"
+                        + error
+                    )
 
-            if not main_content:
-                print("Could not find main content on page, skipping.")
-                continue
+                # --- 1. Fetch Context from Hugging Face ---
+                url = f"https://huggingface.co/{model_name}"
+                print(f"Fetching context from {url}...")
+                response = requests.get(url)
+                response.raise_for_status()
 
-            context_text = main_content.get_text(separator=" ", strip=True)
-            max_length = 15000
-            if len(context_text) > max_length:
-                context_text = context_text[:max_length] + "\n... (content truncated)"
-            print("Context fetched successfully.")
-
-            # --- 2. Invoke LLM with Context ---
-            print("Invoking LLM to generate config...")
-            model_config_dict = chain.invoke(
-                {
-                    "model_identifier": model_name,
-                    "model_page_context": context_text,
-                }
-            )
-            print("--- LLM Output (Parsed) ---")
-            print(model_config_dict)
-            print("----------------------------")
-
-            # --- 3. Format trust_remote_code ---
-            if model_config_dict.get("trust_remote_code"):
-                trust_comment = "# trust_remote_code=True is required for this model"
-                tokenizer_trust = ", 'trust_remote_code': True"
-                model_trust = "'trust_remote_code': True"
-            else:
-                trust_comment = "# trust_remote_code=False"
-                tokenizer_trust = ""
-                model_trust = ""
-
-            # --- 4. Conditionally build chat-related code ---
-            print(f"Model is_chat_model: {model_config_dict.get('is_chat_model')}")
-            if model_config_dict.get("is_chat_model"):
-
-                # It's a chat model. Fill in the chat methods.
-                preprocess_chat_str = (
-                    model_config_dict.get("preprocess_chat_logic")
-                    or "pass # AI did not provide logic"
-                )
-                postprocess_chat_str = (
-                    model_config_dict.get("postprocess_chat_logic")
-                    or "pass # AI did not provide logic"
+                soup = BeautifulSoup(response.text, "html.parser")
+                main_content = (
+                    soup.find("model-card-content")
+                    or soup.find("main")
+                    or soup.find("body")
                 )
 
-                chat_methods_fill = CHAT_METHODS_TEMPLATE.format(
-                    preprocess_chat_logic=preprocess_chat_str.replace(
-                        "\n", "\n" + "    " * 2
+                if not main_content:
+                    print("Could not find main content on page, skipping.")
+                    break
+
+                login_link = main_content.find(
+                    "a", href=lambda h: h and h.startswith("/login?next=")
+                )
+                if login_link:
+                    print("Login required, skipping page.")
+                    login_req_models.append(model_name)
+                    break
+                context_text = main_content.get_text(separator=" ", strip=True)
+                max_length = 15000
+                if len(context_text) > max_length:
+                    context_text = (
+                        context_text[:max_length] + "\n... (content truncated)"
+                    )
+                print("Context fetched successfully.")
+
+                # --- 2. Invoke LLM with Context ---
+                print("Invoking LLM to generate config...")
+                model_config_dict = chain.invoke(
+                    {
+                        "model_identifier": model_name,
+                        "model_page_context": context_text,
+                    }
+                )
+                print("--- LLM Output (Parsed) ---")
+                print(model_config_dict)
+                print("----------------------------")
+
+                # --- 3. Format trust_remote_code ---
+                if model_config_dict.get("trust_remote_code"):
+                    trust_comment = (
+                        "# trust_remote_code=True is required for this model"
+                    )
+                    tokenizer_trust = ", 'trust_remote_code': True"
+                    model_trust = "'trust_remote_code': True"
+                else:
+                    trust_comment = "# trust_remote_code=False"
+                    tokenizer_trust = ""
+                    model_trust = ""
+
+                # --- 4. Conditionally build chat-related code ---
+                print(f"Model is_chat_model: {model_config_dict.get('is_chat_model')}")
+                if model_config_dict.get("is_chat_model"):
+
+                    # It's a chat model. Fill in the chat methods.
+                    preprocess_chat_str = (
+                        model_config_dict.get("preprocess_chat_logic")
+                        or "pass # AI did not provide logic"
+                    )
+                    postprocess_chat_str = (
+                        model_config_dict.get("postprocess_chat_logic")
+                        or "pass # AI did not provide logic"
+                    )
+
+                    chat_methods_fill = CHAT_METHODS_TEMPLATE.format(
+                        preprocess_chat_logic=preprocess_chat_str.replace(
+                            "\n", "\n" + "    " * 2
+                        ),
+                        postprocess_chat_logic=postprocess_chat_str.replace(
+                            "\n", "\n" + "    " * 2
+                        ),
+                    )
+
+                    runtime_switch_fill = RUNTIME_SWITCH_TEMPLATE
+                    print("Identified as CHAT model. Adding chat methods.")
+
+                else:
+                    # It's a base model. Leave chat methods and switch empty.
+                    chat_methods_fill = (
+                        "# This is a base model. No chat methods are defined."
+                    )
+                    runtime_switch_fill = (
+                        "# This is a base model. No runtime switch is needed."
+                    )
+                    print("Identified as BASE model. Omitting chat methods.")
+
+                # --- 5. Fill Main Template ---
+                filled_template = MODEL_TEMPLATE.format(
+                    tokenizer_class=model_config_dict.get(
+                        "tokenizer_class", "AutoTokenizer"
                     ),
-                    postprocess_chat_logic=postprocess_chat_str.replace(
-                        "\n", "\n" + "    " * 2
+                    model_class=model_config_dict.get(
+                        "model_class", "AutoModelForCausalLM"
                     ),
+                    class_name="PyTorch_Transformers_"
+                    + "_".join(
+                        part.capitalize() for part in model_folder_name.split("_")
+                    ),
+                    hugging_face_model_id=model_name,
+                    trust_remote_code_comment=trust_comment,
+                    tokenizer_trust_remote=tokenizer_trust,
+                    model_trust_remote=model_trust,
+                    max_new_tokens=model_config_dict.get("max_new_tokens", 32),
+                    pad_token_str=model_config_dict.get("pad_token_str", "pass"),
+                    pad_token_id_val=model_config_dict.get(
+                        "pad_token_id_val", "self.tokenizer.eos_token_id"
+                    ),
+                    runtime_switch=runtime_switch_fill,
+                    chat_methods=chat_methods_fill,
                 )
 
-                runtime_switch_fill = RUNTIME_SWITCH_TEMPLATE
-                print("Identified as CHAT model. Adding chat methods.")
+                # --- 6. Create directory and write file ---
+                model_dir = os.path.join(BASE_DIR, model_folder_name)
+                os.makedirs(model_dir, exist_ok=True)
 
+                with open(model_py_path, "w") as f:
+                    f.write(filled_template)
             else:
-                # It's a base model. Leave chat methods and switch empty.
-                chat_methods_fill = (
-                    "# This is a base model. No chat methods are defined."
-                )
-                runtime_switch_fill = (
-                    "# This is a base model. No runtime switch is needed."
-                )
-                print("Identified as BASE model. Omitting chat methods.")
-
-            # --- 5. Fill Main Template ---
-            filled_template = MODEL_TEMPLATE.format(
-                tokenizer_class=model_config_dict.get(
-                    "tokenizer_class", "AutoTokenizer"
-                ),
-                model_class=model_config_dict.get(
-                    "model_class", "AutoModelForCausalLM"
-                ),
-                class_name="PyTorch_Transformers_"
-                + "_".join(part.capitalize() for part in model_folder_name.split("_")),
-                hugging_face_model_id=model_name,
-                trust_remote_code_comment=trust_comment,
-                tokenizer_trust_remote=tokenizer_trust,
-                model_trust_remote=model_trust,
-                max_new_tokens=model_config_dict.get("max_new_tokens", 32),
-                pad_token_str=model_config_dict.get("pad_token_str", "pass"),
-                pad_token_id_val=model_config_dict.get(
-                    "pad_token_id_val", "self.tokenizer.eos_token_id"
-                ),
-                runtime_switch=runtime_switch_fill,
-                chat_methods=chat_methods_fill,
-            )
-
-            # --- 6. Create directory and write file ---
-            model_dir = os.path.join(BASE_DIR, model_folder_name)
-            os.makedirs(model_dir, exist_ok=True)
-
-            with open(model_py_path, "w") as f:
-                f.write(filled_template)
-
-            print(f"Successfully generated {model_py_path}")
-            print(f"--- Generated content for {model_folder_name}/model.py: ---")
+                print(f"Successfully generated {model_py_path}")
+                print(f"--- Generated content for {model_folder_name}/model.py: ---")
+                modelCounter += 1
 
         except Exception as e:
             print(f"Failed to generate code for {model_folder_name}: {e}")
             import traceback
 
+            error_log += f"Exception: {e}\n"
             traceback.print_exc()  # Print full error stack
+            with open(
+                os.path.join(ERROR_DIR, f"{model_folder_name}_error.log"), "w"
+            ) as error_file:
+                error_file.write(error_log)
+            failed_models.append(model_name)
+            continue
 
     print(f"\n--- Automation complete. ---")
     print(f"Check the '{BASE_DIR}' folder for new model files.")
+    with open(os.path.join(ERROR_DIR, "failed_models.log"), "w") as f:
+        for failed_model in failed_models:
+            f.write(f"{failed_model}\n")
+    with open(os.path.join(ERROR_DIR, "login_req_models.log"), "w") as f:
+        for failed_model in login_req_models:
+            f.write(f"{failed_model}\n")
+    if failed_models:
+        print(f"Some models failed. See '{ERROR_DIR}/failed_models.log' for details.")
+    if login_req_models:
+        print(
+            f"Some models needed login. See '{ERROR_DIR}/login_req_models.log' for details."
+        )
+
+    else:
+        print("All models processed successfully.")
 
 
 if __name__ == "__main__":
