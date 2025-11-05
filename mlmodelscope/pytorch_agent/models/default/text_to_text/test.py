@@ -11,37 +11,42 @@ import os
 
 # ! This script installs depencies by itself which could be a security risk !
 
+
 def install_packages_in_conda(package_names):
     """
-    Installs a list of Python packages using the pip associated with the 
+    Installs a list of Python packages using the pip associated with the
     current Python executable (expected to be within a Conda environment).
-    
+
     Args:
         package_names (list or str): A string for a single package,
                                      or a list of strings for multiple packages.
     """
-    
+
     # Ensure package_names is always a list for consistent handling
     if isinstance(package_names, str):
         package_names = [package_names]
-        
+
     # --- Environment Check (for context and clarity) ---
-    conda_env = os.environ.get('CONDA_DEFAULT_ENV', "py-mlmodelscope")
+    conda_env = os.environ.get("CONDA_DEFAULT_ENV", "py-mlmodelscope")
     if conda_env:
         print(f"📦 Running in Conda environment: **{conda_env}**")
-        if conda_env != 'py-mlmodelscope':
-             print(f"⚠️ Warning: This is not the 'py-mlmodelscope' environment. Proceeding anyway.")
+        if conda_env != "py-mlmodelscope":
+            print(
+                f"⚠️ Warning: This is not the 'py-mlmodelscope' environment. Proceeding anyway."
+            )
     else:
-        print("⚠️ Warning: No active Conda environment detected. Installing globally or in the current virtual environment.")
+        print(
+            "⚠️ Warning: No active Conda environment detected. Installing globally or in the current virtual environment."
+        )
     print("-" * 40)
-        
+
     # Build the full command
     # This correctly passes each package name as a separate argument to pip
     base_command = [sys.executable, "-m", "pip", "install"]
-    full_command = base_command + package_names 
+    full_command = base_command + package_names
 
     print(f"Attempting to install: **{', '.join(package_names)}**")
-    
+
     try:
         # check_call will raise CalledProcessError if the command fails
         subprocess.check_call(full_command, stderr=subprocess.STDOUT)
@@ -52,14 +57,19 @@ def install_packages_in_conda(package_names):
         # Catches failures like 'package not found' or build errors
         print("\n❌ Installation Failed!")
         print(f"**Command:** `{' '.join(full_command)}`")
-        print(f"**Error Details:**\n{e.output.decode()}") # Decode output for clean error message
+        print(
+            f"**Error Details:**\n{e.output.decode()}"
+        )  # Decode output for clean error message
         return e.output.decode()
-        
+
     except FileNotFoundError:
         # Catches if the Python executable itself (sys.executable) is somehow broken/missing
         print(f"\n😱 Critical Error: Python executable not found at {sys.executable}.")
         print("Please ensure your Python and Conda paths are correctly configured.")
-        return f"\n😱 Critical Error: Python executable not found at {sys.executable}."+"Please ensure your Python and Conda paths are correctly configured."
+        return (
+            f"\n😱 Critical Error: Python executable not found at {sys.executable}."
+            + "Please ensure your Python and Conda paths are correctly configured."
+        )
 
 
 def extract_pip_modules(text):
@@ -67,27 +77,24 @@ def extract_pip_modules(text):
     Finds 'pip install [package]' strings and extracts a clean list
     of package names.
     """
-    
+
     # This regex is still the same: finds 'pip install' and captures
     # the following block of non-space characters.
-    matches = re.findall(r'\bpip install\s+([^\s]+)', text)
-    
+    matches = re.findall(r"\bpip install\s+([^\s]+)", text)
+
     cleaned = []
     for pkg in matches:
         # --- THIS IS THE FIX ---
         # Strip a much wider set of common trailing punctuation and quotes
         # that might get accidentally captured by the regex.
-        cleaned_pkg = pkg.strip("'\"`).,()") 
-        
+        cleaned_pkg = pkg.strip("'\"`).,()")
+
         # Only add if it's not an empty string after stripping
         if cleaned_pkg:
             cleaned.append(cleaned_pkg)
-        
+
     return list(set(cleaned))
-    
-    
-    
-    
+
 
 def run_model_test(model_name, dataset_name_str, test_dir_path):
     """
@@ -141,7 +148,7 @@ def run_model_test(model_name, dataset_name_str, test_dir_path):
 
         try:
             # Write stdout log
-            if(completed_process.stdout):
+            if completed_process.stdout:
                 with open(log_file, "w", encoding="utf-8") as f:
                     f.write(completed_process.stdout)
                 print(f"Saved stdout log to: {log_file}")
@@ -280,11 +287,13 @@ def main():
 
     for model in models_to_test:
         tries = 0
-        while tries<MAX_TRIES_PER_MODEL:
+        while tries < MAX_TRIES_PER_MODEL:
             start_time = time.time()
             readable_start = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             result = run_model_test(
-                model_name=model, dataset_name_str=dataset_name_str, test_dir_path=TEST_DIR
+                model_name=model,
+                dataset_name_str=dataset_name_str,
+                test_dir_path=TEST_DIR,
             )
             end_time = time.time()
             duration = round(end_time - start_time, 2)
@@ -294,13 +303,15 @@ def main():
                 models_need_more_GPU.append(model)
                 break
             elif "pip install" in result["error"]:
-                if (pip_error:=install_packages_in_conda(extract_pip_modules(result["error"]))):
-                    result["error"] += "\n"+pip_error
+                if pip_error := install_packages_in_conda(
+                    extract_pip_modules(result["error"])
+                ):
+                    result["error"] += "\n" + pip_error
                     break
-                
+
             else:
                 break
-            tries+=1
+            tries += 1
         all_results.setdefault(model, []).append(result)
         if result["status"] == "Success":
             success_count += 1
@@ -309,8 +320,14 @@ def main():
         print(f"--- [FINISHED] Test for: {model} ---\n")
 
     # Save full summary JSON results to the TEST_DIR
-    results_filename = TEST_DIR / f"model_test_results_{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.json"
-    bigger_than_GPU_File = TEST_DIR / f"GPU_overload_models_{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.txt"
+    results_filename = (
+        TEST_DIR
+        / f"model_test_results_{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.json"
+    )
+    bigger_than_GPU_File = (
+        TEST_DIR
+        / f"GPU_overload_models_{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.txt"
+    )
     try:
         with open(results_filename, "w", encoding="utf-8") as f:
             json.dump(all_results, f, indent=2)
@@ -335,12 +352,14 @@ def main():
     print("\nDetailed Summary:")
     for model_name, results_list in all_results.items():
         # Get the final result from the list (it's the last one)
-        final_result = results_list[-1] 
+        final_result = results_list[-1]
         print(f"  - {final_result['model']}: {final_result['status']}")
         if final_result["status"] != "Success":
             error_preview = final_result.get("error", "No error message.").splitlines()
             error_snippet = f": {error_preview[0]}" if error_preview else ""
-            print(f"    - Details: Return Code {final_result.get('returncode', 'N/A')}{error_snippet}")
+            print(
+                f"    - Details: Return Code {final_result.get('returncode', 'N/A')}{error_snippet}"
+            )
 
 
 if __name__ == "__main__":
