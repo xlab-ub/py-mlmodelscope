@@ -314,7 +314,7 @@ def load_configs(args):
         }
         mq_config = {
             # 'name': f'agent-{args.agent}-amd64',
-            'name': f'agent-{os.environ['MQ_USER']}-{os.environ['AGENT_VERSION']}-{os.environ["ARCHITECTURE"]}',
+            'name': f"agent-{os.environ['MQ_USER']}-{os.environ['AGENT_VERSION']}-{os.environ['ARCHITECTURE']}",
             'host': os.environ['MQ_HOST'],
             'port': os.environ['MQ_PORT'],
             'user': os.environ['MQ_USER'],
