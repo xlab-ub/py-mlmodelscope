@@ -174,3 +174,8 @@ cython_debug/
 
 # OS files
 .DS_Store
+
+# Testing
+*.err
+model_test_results.json
+GPU_overload_models.txt

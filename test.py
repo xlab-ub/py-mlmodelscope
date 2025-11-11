@@ -1,17 +1,65 @@
-import subprocess
-import json
-import shlex
+import re, subprocess, sys, os, shutil, json, time, shlex
 from pathlib import Path
-import time
 from datetime import datetime
-import re
-import subprocess
-import sys
-import os
 
 # ! This script installs depencies by itself which could be a security risk !
 
 TASK = "image_classification"
+DATASET_NAME_SRC = '[{"src":"https://cdn.pixabay.com/photo/2025/10/17/09/29/nature-9899712_1280.jpg","inputType":"IMAGE"}]'
+MODELS_TO_TEST = [
+    "ai_image_detector_dev_deploy",
+    "beit_base_patch16_224_pt22k_ft22k",
+    "chart_recognizer",
+    "convnext_base_clip_laion2b_augreg_ft_in12k_in1k",
+    "convnext_femto_d1_in1k",
+    "convnext_large_fb_in22k_ft_in1k",
+    "convnext_tiny_in12k_ft_in1k",
+    "convnextv2_nano_fcmae_ft_in22k_in1k",
+    "convnextv2_tiny_fcmae_ft_in1k",
+    "deit_small_patch16_224_fb_in1k",
+    "deit_tiny_patch16_224_fb_in1k",
+    "edgenext_small_usi_in1k",
+    "efficientnet_b0_imagenet",
+    "efficientnet_b0_ra_in1k",
+    "fairface_age_image_detection",
+    "gender_classification",
+    "gender_classification_2",
+    "inception_v3_tv_in1k",
+    "mit_b2",
+    "mit_b3",
+    "mobilenetv3_large_100_ra_in1k",
+    "mobilenetv3_small_100_lamb_in1k",
+    "mobilevit_small",
+    "nsfw_image_detection",
+    "nsfw_image_detector",
+    "pokemon_classifier_gen9_1025",
+    "regnety_032_ra_in1k",
+    "resnet18_a1_in1k",
+    "resnet34_a1_in1k",
+    "resnet50_a1_in1k",
+    "resnet50_fb_swsl_ig1b_ft_in1k",
+    "resnet50_ram_in1k",
+    "resnet_18",
+    "resnet_50",
+    "rexnet_150_nav_in1k",
+    "rorshark_vit_base",
+    "swinv2_tiny_patch4_window16_256",
+    "test.p",
+    "test",
+    "vgg19_tv_in1k",
+    "vit_age_classifier",
+    "vit_base_nsfw_detector",
+    "vit_base_patch16_224",
+    "vit_base_patch16_224_augreg2_in21k_ft_in1k",
+    "vit_base_patch16_224_augreg_in21k",
+    "vit_base_patch16_384",
+    "vit_base_patch32_384_augreg_in21k_ft_in1k",
+    "vit_face_expression",
+    "vit_hybrid_base_bit_384",
+    "vit_small_patch16_224_augreg_in21k_ft_in1k",
+    "vit_tiny_patch16_224_augreg_in21k_ft_in1k",
+    "wide_resnet50_2_racm_in1k",
+]
 
 
 def install_packages_in_conda(package_names):
@@ -118,7 +166,7 @@ def extract_missing_module_name(error_message):
     return None
 
 
-def run_model_test(model_name, dataset_name_str, test_dir_path):
+def run_model_test(model_name, dataset_name_str, test_dir_path, task):
     """
     Runs the mlmodelscope script for a single model in a conda env and captures the result.
     Saves individual .log and .err files to test_dir_path.
@@ -140,7 +188,7 @@ def run_model_test(model_name, dataset_name_str, test_dir_path):
         "--architecture",
         "gpu",
         "--task",
-        TASK,
+        task,
         "--batch_size",
         "1",
         "--model_name",
@@ -228,9 +276,9 @@ def run_model_test(model_name, dataset_name_str, test_dir_path):
         return {"status": "Unexpected Error", "model": model_name, "error": str(e)}
 
 
-def main():
+def main(task, dataset_name_src, models_to_test):
     # --- Define the Test Directory ---
-    TEST_DIR_STR = f"mlmodelscope/pytorch_agent/models/default/{TASK}/test/{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    TEST_DIR_STR = f"mlmodelscope/pytorch_agent/models/default/{task}/test/{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     TEST_DIR = Path(TEST_DIR_STR)
     MAX_TRIES_PER_MODEL = 5
 
@@ -245,64 +293,9 @@ def main():
 
     # --- EDIT THIS LIST ---
     # Add all the model names you want to test here
-    models_to_test = [
-        "ai_image_detector_dev_deploy",
-        "beit_base_patch16_224_pt22k_ft22k",
-        "chart_recognizer",
-        "convnext_base_clip_laion2b_augreg_ft_in12k_in1k",
-        "convnext_femto_d1_in1k",
-        "convnext_large_fb_in22k_ft_in1k",
-        "convnext_tiny_in12k_ft_in1k",
-        "convnextv2_nano_fcmae_ft_in22k_in1k",
-        "convnextv2_tiny_fcmae_ft_in1k",
-        "deit_small_patch16_224_fb_in1k",
-        "deit_tiny_patch16_224_fb_in1k",
-        "edgenext_small_usi_in1k",
-        "efficientnet_b0_imagenet",
-        "efficientnet_b0_ra_in1k",
-        "fairface_age_image_detection",
-        "gender_classification",
-        "gender_classification_2",
-        "inception_v3_tv_in1k",
-        "mit_b2",
-        "mit_b3",
-        "mobilenetv3_large_100_ra_in1k",
-        "mobilenetv3_small_100_lamb_in1k",
-        "mobilevit_small",
-        "nsfw_image_detection",
-        "nsfw_image_detector",
-        "pokemon_classifier_gen9_1025",
-        "regnety_032_ra_in1k",
-        "resnet18_a1_in1k",
-        "resnet34_a1_in1k",
-        "resnet50_a1_in1k",
-        "resnet50_fb_swsl_ig1b_ft_in1k",
-        "resnet50_ram_in1k",
-        "resnet_18",
-        "resnet_50",
-        "rexnet_150_nav_in1k",
-        "rorshark_vit_base",
-        "swinv2_tiny_patch4_window16_256",
-        "test.p",
-        "test",
-        "vgg19_tv_in1k",
-        "vit_age_classifier",
-        "vit_base_nsfw_detector",
-        "vit_base_patch16_224",
-        "vit_base_patch16_224_augreg2_in21k_ft_in1k",
-        "vit_base_patch16_224_augreg_in21k",
-        "vit_base_patch16_384",
-        "vit_base_patch32_384_augreg_in21k_ft_in1k",
-        "vit_face_expression",
-        "vit_hybrid_base_bit_384",
-        "vit_small_patch16_224_augreg_in21k_ft_in1k",
-        "vit_tiny_patch16_224_augreg_in21k_ft_in1k",
-        "wide_resnet50_2_racm_in1k",
-    ]
     # --- END EDIT ---
 
     # This is the --dataset_name argument from your command
-    dataset_name_str = '[{"src":"https://cdn.pixabay.com/photo/2025/10/17/09/29/nature-9899712_1280.jpg","inputType":"IMAGE"}]'
 
     all_results = {}
     success_count = 0
@@ -318,8 +311,9 @@ def main():
             readable_start = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             result = run_model_test(
                 model_name=model,
-                dataset_name_str=dataset_name_str,
+                dataset_name_str=dataset_name_src,
                 test_dir_path=TEST_DIR,
+                task=task,
             )
             end_time = time.time()
             duration = round(end_time - start_time, 2)
@@ -331,6 +325,7 @@ def main():
             elif "pip install" in result["error"]:
                 models_to_install = extract_pip_modules(result["error"])
                 print("Trying to install", models_to_install)
+                # !TODO: Log model name and their package dependencies, check for version conflicts
                 if pip_error := install_packages_in_conda(models_to_install):
                     result["error"] += "\n" + pip_error
                     break
@@ -350,6 +345,9 @@ def main():
         else:
             failure_count += 1
         print(f"--- [FINISHED] Test for: {model} ---\n")
+        cache_dir = os.path.expanduser("~/.cache/huggingface/")
+        shutil.rmtree(cache_dir, ignore_errors=True)
+        print(f"--- Deleted ~/.cache/huggingface/ ---\n")
 
     # Save full summary JSON results to the TEST_DIR
     results_filename = TEST_DIR / f"model_test_results.json"
@@ -389,4 +387,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(task=TASK, dataset_name_src=DATASET_NAME_SRC, models_to_test=MODELS_TO_TEST)
