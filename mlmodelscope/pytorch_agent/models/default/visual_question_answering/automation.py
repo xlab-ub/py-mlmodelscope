@@ -106,7 +106,7 @@ You are an expert in PyTorch visual question answering models. Generate complete
    - Open images: `[Image.open(item[0]).convert('RGB') for item in input_image_and_questions]`
    - Extract questions: `[item[1] for item in input_image_and_questions]`
    - For BLIP: `self.processor(images, questions, return_tensors="pt")`
-   - For LLaVA: Format prompts with `[INST] <image>\\n{{question}} [/INST]`, use processor with padding/truncation
+   - For LLaVA: Format prompts with `[INST] <image>\\n{{{{question}}}} [/INST]`, use processor with padding/truncation
 
 5. **Predict Method:**
    - BLIP: `return self.model.generate(**model_input, max_new_tokens=self.max_new_tokens)`
@@ -135,7 +135,7 @@ Example 2: LLaVA Model (Complex with Multi-GPU)
     "class_name": "PyTorch_Transformers_LLaVA_v1_6_Mistral_7B_HF",
     "init_config": ", config=None",
     "init_body": "warnings.warn(\\"Currently, this model does not support batched forward with multiple images of different sizes.\\")\\n        self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        model_id = \\"llava-hf/llava-v1.6-mistral-7b-hf\\"\\n        self.processor = LlavaNextProcessor.from_pretrained(model_id)\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = LlavaNextForConditionalGeneration.from_pretrained(model_id, device_map=\\"auto\\", torch_dtype=torch.float16)\\n        else:\\n            self.model = LlavaNextForConditionalGeneration.from_pretrained(model_id, torch_dtype=torch.float16)\\n\\n        self.processor.tokenizer.pad_token = self.processor.tokenizer.eos_token\\n\\n        self.max_new_tokens = self.config.get('max_new_tokens', 100)",
-    "preprocess_body": "images = [Image.open(input_image_and_question[0]) for input_image_and_question in input_image_and_questions]\\n        prompts = [f\\"[INST] <image>\\\\n{{input_image_and_question[1]}} [/INST]\\" for input_image_and_question in input_image_and_questions]\\n        return self.processor(text=prompts, images=images, return_tensors=\\"pt\\", padding=\\"max_length\\", max_length=4096, truncation=True)",
+    "preprocess_body": "images = [Image.open(input_image_and_question[0]) for input_image_and_question in input_image_and_questions]\\n        prompts = [f\\"[INST] <image>\\\\n{{{{input_image_and_question[1]}}}} [/INST]\\" for input_image_and_question in input_image_and_questions]\\n        return self.processor(text=prompts, images=images, return_tensors=\\"pt\\", padding=\\"max_length\\", max_length=4096, truncation=True)",
     "predict_body": "return self.model.generate(**model_input, pad_token_id=self.processor.tokenizer.eos_token_id, max_new_tokens=self.max_new_tokens)",
     "postprocess_body": "return [output.split('[/INST]')[1].strip() for output in self.processor.batch_decode(model_output, skip_special_tokens=True)]"
 }}}}
