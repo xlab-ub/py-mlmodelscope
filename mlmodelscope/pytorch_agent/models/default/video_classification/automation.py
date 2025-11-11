@@ -84,8 +84,20 @@ You are an expert in PyTorch video classification models. Your task is to genera
    - For video reading: `import av`, `import numpy as np`
 
 3. **Init Method:**
-   - Initialize config
-   - Load processor and model from_pretrained
+   - Initialize config: `self.config = config if config else dict()`
+   - **ALWAYS extract device and multi_gpu settings:**
+     ```
+     device = self.config.pop("_device", "cpu")
+     multi_gpu = self.config.pop("_multi_gpu", False)
+     ```
+   - Load processor from_pretrained
+   - **Load model with multi-GPU support:**
+     ```
+     if multi_gpu and device == "cuda":
+         self.model = VideoMAEForVideoClassification.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+     else:
+         self.model = VideoMAEForVideoClassification.from_pretrained(model_id)
+     ```
    - Extract labels: `self.features = [v for k, v in sorted(self.model.config.text_config['id2label'].items())]` or similar
 
 4. **Preprocess Method:**
@@ -105,7 +117,7 @@ You are an expert in PyTorch video classification models. Your task is to genera
     "imports": "import torch\\nfrom transformers import AutoProcessor, VideoMAEForVideoClassification\\nimport av\\nimport numpy as np",
     "class_name": "PyTorch_Transformers_XCLIP_Base_Patch32",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        self.processor = AutoProcessor.from_pretrained(\\"microsoft/xclip-base-patch32\\")\\n        self.model = VideoMAEForVideoClassification.from_pretrained(\\"microsoft/xclip-base-patch32\\")\\n\\n        self.features = [v for k, v in sorted(self.model.config.text_config['id2label'].items())]",
+    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        model_id = \\"microsoft/xclip-base-patch32\\"\\n        self.processor = AutoProcessor.from_pretrained(model_id)\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = VideoMAEForVideoClassification.from_pretrained(model_id, device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = VideoMAEForVideoClassification.from_pretrained(model_id)\\n\\n        self.features = [v for k, v in sorted(self.model.config.text_config['id2label'].items())]",
     "preprocess_body": "container = av.open(input_videos[0])\\n        indices = self.sample_frame_indices(clip_len=16, frame_sample_rate=1, seg_len=container.streams.video[0].frames)\\n        video = self.read_video_pyav(container, indices)\\n        pixel_values = self.processor(videos=list(video), return_tensors=\\"pt\\").pixel_values\\n        return pixel_values",
     "predict_body": "return self.model(model_input)",
     "postprocess_body": "probabilities = torch.nn.functional.softmax(model_output.logits, dim=1)\\n        return probabilities.tolist()"

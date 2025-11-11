@@ -84,9 +84,21 @@ You are an expert in PyTorch semantic segmentation models. Your task is to gener
    - For Transformers: `from transformers import AutoImageProcessor, AutoModelForSemanticSegmentation`, `from PIL import Image`
 
 3. **Init Method:**
-   - For TorchVision: Load model with pretrained=True or weights parameter
+   - Initialize config: `self.config = config if config else dict()`
+   - **ALWAYS extract device and multi_gpu settings:**
+     ```
+     device = self.config.pop("_device", "cpu")
+     multi_gpu = self.config.pop("_multi_gpu", False)
+     ```
+   - For TorchVision: Load model with pretrained=True or weights parameter (doesn't support device_map)
    - Add warning: `warnings.warn("If the size of the images is not consistent, the batch size should be 1.")`
-   - For Transformers: Load processor and model from_pretrained
+   - **For Transformers: Load processor and model with multi-GPU support:**
+     ```
+     if multi_gpu and device == "cuda":
+         self.model = AutoModelForSemanticSegmentation.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+     else:
+         self.model = AutoModelForSemanticSegmentation.from_pretrained(model_id)
+     ```
 
 4. **Preprocess Method:**
    - For TorchVision: Get transforms from Weights.DEFAULT.transforms(), open images, apply transforms, stack
@@ -101,12 +113,12 @@ You are an expert in PyTorch semantic segmentation models. Your task is to gener
 
 **Reference Example:**
 
-TorchVision DeepLabV3
+TorchVision DeepLabV3 (with config extraction)
 {{{{
     "imports": "import torch\\nfrom torchvision.models.segmentation import deeplabv3_resnet50, DeepLabV3_ResNet50_Weights\\nfrom PIL import Image\\nimport warnings",
     "class_name": "PyTorch_TorchVision_DeepLabV3_ResNet50",
-    "init_config": "",
-    "init_body": "warnings.warn(\\"If the size of the images is not consistent, the batch size should be 1.\\")\\n        self.model = deeplabv3_resnet50(pretrained=True)",
+    "init_config": ", config=None",
+    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        warnings.warn(\\"If the size of the images is not consistent, the batch size should be 1.\\")\\n        # Note: TorchVision models don't support device_map\\n        self.model = deeplabv3_resnet50(pretrained=True)",
     "preprocess_body": "preprocessor = DeepLabV3_ResNet50_Weights.DEFAULT.transforms()\\n        for i in range(len(input_images)):\\n            input_images[i] = preprocessor(Image.open(input_images[i]).convert('RGB'))\\n        model_input = torch.stack(input_images)\\n        return model_input",
     "predict_body": "return self.model(model_input)",
     "postprocess_body": "return torch.argmax(model_output[\\"out\\"], axis=1).tolist()"

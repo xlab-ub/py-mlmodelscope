@@ -83,7 +83,20 @@ You are an expert in PyTorch question answering models. Your task is to generate
    - May need: `import torch`
 
 3. **Init Method:**
-   - Load tokenizer and model from_pretrained
+   - Initialize config: `self.config = config if config else dict()`
+   - **ALWAYS extract device and multi_gpu settings:**
+     ```
+     device = self.config.pop("_device", "cpu")
+     multi_gpu = self.config.pop("_multi_gpu", False)
+     ```
+   - Load tokenizer from_pretrained
+   - **Load model with multi-GPU support:**
+     ```
+     if multi_gpu and device == "cuda":
+         self.model = AutoModelForQuestionAnswering.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+     else:
+         self.model = AutoModelForQuestionAnswering.from_pretrained(model_id)
+     ```
 
 4. **Preprocess Method:**
    - Input: list of (question, context) or similar
@@ -103,7 +116,7 @@ You are an expert in PyTorch question answering models. Your task is to generate
     "imports": "import torch\\nfrom transformers import AutoTokenizer, AutoModelForQuestionAnswering",
     "class_name": "PyTorch_Transformers_BERT_QA",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        self.tokenizer = AutoTokenizer.from_pretrained(\\"bert-large-uncased-whole-word-masking-finetuned-squad\\")\\n        self.model = AutoModelForQuestionAnswering.from_pretrained(\\"bert-large-uncased-whole-word-masking-finetuned-squad\\")",
+    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        model_id = \\"bert-large-uncased-whole-word-masking-finetuned-squad\\"\\n        self.tokenizer = AutoTokenizer.from_pretrained(model_id)\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = AutoModelForQuestionAnswering.from_pretrained(model_id, device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = AutoModelForQuestionAnswering.from_pretrained(model_id)",
     "preprocess_body": "return self.tokenizer(input_texts, return_tensors=\\"pt\\", padding=True)",
     "predict_body": "return self.model(**model_input)",
     "postprocess_body": "start_positions = torch.argmax(model_output.start_logits, dim=1)\\n        end_positions = torch.argmax(model_output.end_logits, dim=1)\\n        answers = []\\n        for i in range(len(start_positions)):\\n            tokens = model_input['input_ids'][i][start_positions[i]:end_positions[i]+1]\\n            answer = self.tokenizer.decode(tokens)\\n            answers.append(answer)\\n        return answers"

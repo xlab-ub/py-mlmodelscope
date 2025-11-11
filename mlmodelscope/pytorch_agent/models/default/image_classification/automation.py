@@ -114,10 +114,21 @@ You must generate the complete model configuration based *primarily* on the prov
    - Include the framework/library prefix
 
 4. **Init Method:**
-   - For torchvision_hub: Use `torch.hub.load(repo, model_name, pretrained=True)`
-   - For transformers: Load processor and model from_pretrained
+   - Initialize config: `self.config = config if config else dict()`
+   - **ALWAYS extract device and multi_gpu settings:**
+     ```
+     device = self.config.pop("_device", "cpu")
+     multi_gpu = self.config.pop("_multi_gpu", False)
+     ```
+   - For torchvision_hub: Use `torch.hub.load(repo, model_name, pretrained=True)` (doesn't support device_map)
+   - **For transformers: Load processor and model with multi-GPU support:**
+     ```
+     if multi_gpu and device == "cuda":
+         self.model = AutoModelForImageClassification.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+     else:
+         self.model = AutoModelForImageClassification.from_pretrained(model_id)
+     ```
    - Optionally download features file (synset.txt) if using ImageNet classes
-   - Handle config parameter if needed for model configuration
    - Set model to eval mode if necessary
 
 5. **Preprocess Method:**
@@ -152,13 +163,13 @@ Example 1: TorchVision ResNet50 (torchvision_hub)
     "postprocess_body": "probabilities = torch.nn.functional.softmax(model_output, dim=1)\\n        return probabilities.tolist()"
 }}}}
 
-Example 2: HuggingFace ViT (transformers)
+Example 2: HuggingFace ViT (transformers with Multi-GPU)
 {{{{
     "model_type": "transformers",
     "imports": "from transformers import AutoImageProcessor, AutoModelForImageClassification\\nfrom PIL import Image\\nimport torch",
     "class_name": "PyTorch_Transformers_ViT_Base_Patch16_224",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        model_id = \\"google/vit-base-patch16-224\\"\\n        \\n        self.processor = AutoImageProcessor.from_pretrained(model_id)\\n        self.model = AutoModelForImageClassification.from_pretrained(model_id)\\n        self.model.eval()",
+    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n        \\n        model_id = \\"google/vit-base-patch16-224\\"\\n        self.processor = AutoImageProcessor.from_pretrained(model_id)\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = AutoModelForImageClassification.from_pretrained(model_id, device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = AutoModelForImageClassification.from_pretrained(model_id)\\n            self.model.eval()",
     "preprocess_body": "processed_images = [\\n            Image.open(image_path).convert('RGB')\\n            for image_path in input_images\\n        ]\\n        model_input = self.processor(processed_images, return_tensors=\\"pt\\")\\n        return model_input",
     "predict_body": "return self.model(**model_input)",
     "postprocess_body": "probabilities = torch.nn.functional.softmax(model_output.logits, dim=1)\\n        return probabilities.tolist()"

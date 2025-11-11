@@ -83,7 +83,20 @@ You are an expert in PyTorch document VQA models. Your task is to generate a com
    - For Donut: `from transformers import DonutProcessor, VisionEncoderDecoderModel`, `from PIL import Image`, `import re`
 
 3. **Init Method:**
-   - Load processor and model from_pretrained
+   - Initialize config: `self.config = config if config else dict()`
+   - **ALWAYS extract device and multi_gpu settings:**
+     ```
+     device = self.config.pop("_device", "cpu")
+     multi_gpu = self.config.pop("_multi_gpu", False)
+     ```
+   - Load processor from_pretrained
+   - **Load model with multi-GPU support:**
+     ```
+     if multi_gpu and device == "cuda":
+         self.model = VisionEncoderDecoderModel.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+     else:
+         self.model = VisionEncoderDecoderModel.from_pretrained(model_id)
+     ```
 
 4. **Preprocess Method:**
    - Input: list of (image_path, question) tuples
@@ -105,7 +118,7 @@ You are an expert in PyTorch document VQA models. Your task is to generate a com
     "imports": "from transformers import DonutProcessor, VisionEncoderDecoderModel\\nfrom PIL import Image\\nimport re",
     "class_name": "PyTorch_Transformers_Donut_Base_finetuned_DocVQA",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        model_id = \\"naver-clova-ix/donut-base-finetuned-docvqa\\"\\n        self.processor = DonutProcessor.from_pretrained(model_id)\\n        self.model = VisionEncoderDecoderModel.from_pretrained(model_id)",
+    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        model_id = \\"naver-clova-ix/donut-base-finetuned-docvqa\\"\\n        self.processor = DonutProcessor.from_pretrained(model_id)\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = VisionEncoderDecoderModel.from_pretrained(model_id, device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = VisionEncoderDecoderModel.from_pretrained(model_id)",
     "preprocess_body": "images, questions = [], []\\n        for input_image, question in input_document_images_and_questions:\\n            images.append(Image.open(input_image).convert('RGB'))\\n            questions.append(f\\"<s_docvqa><s_question>{{question}}</s_question><s_answer>\\")\\n        return self.processor(images=images, text=questions, add_special_tokens=False, padding=True, return_tensors=\\"pt\\")",
     "predict_body": "return self.model.generate(model_input['pixel_values'], decoder_input_ids=model_input['labels'], max_length=self.model.decoder.config.max_position_embeddings, pad_token_id=self.processor.tokenizer.pad_token_id, eos_token_id=self.processor.tokenizer.eos_token_id, use_cache=True, bad_words_ids=[[self.processor.tokenizer.unk_token_id]], return_dict_in_generate=True)",
     "postprocess_body": "sequences = self.processor.batch_decode(model_output.sequences)\\n        answers = []\\n        for sequence in sequences:\\n            sequence = sequence.replace(self.processor.tokenizer.eos_token, \\"\\").replace(self.processor.tokenizer.pad_token, \\"\\")\\n            sequence = re.sub(r\\"<.*?>\\", \\"\\", sequence, count=1).strip()\\n            answer = self.processor.token2json(sequence)['answer']\\n            answers.append(answer)\\n        return answers"

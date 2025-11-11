@@ -62,6 +62,10 @@ from transformers import {tokenizer_class}, {model_class}
 class {class_name}(PyTorchAbstractClass):
     def __init__(self, config=None):
         self.config = config if config else {{}}
+        
+        # Extract device and multi_gpu settings for multi-GPU support
+        device = self.config.pop("_device", "cpu")
+        multi_gpu = self.config.pop("_multi_gpu", False)
 
         model_id = "{hugging_face_model_id}"
 
@@ -69,6 +73,11 @@ class {class_name}(PyTorchAbstractClass):
         {trust_remote_code_comment}
         tokenizer_args = {{'padding_side': 'left'{tokenizer_trust_remote}}}
         model_args = {{{model_trust_remote}}}
+        
+        # Add multi-GPU support to model_args if enabled
+        if multi_gpu and device == "cuda":
+            model_args['device_map'] = "auto"
+            model_args['torch_dtype'] = "auto"
 
         self.tokenizer = {tokenizer_class}.from_pretrained(model_id, **tokenizer_args)
         self.model = {model_class}.from_pretrained(model_id, **model_args)
@@ -162,6 +171,12 @@ First, determine if the model is a 'base' model (for text completion) or a 'chat
 1.  Set the `is_chat_model` boolean field accordingly.
 2.  If `is_chat_model` is `True`, you **MUST** provide the `preprocess_chat_logic` and `postprocess_chat_logic`.
 3.  If `is_chat_model` is `False`, you **MUST** set `preprocess_chat_logic` and `postprocess_chat_logic` to `null`.
+
+**MULTI-GPU SUPPORT:**
+All generated models automatically support multi-GPU via config parameters:
+- `_device`: Device to use (default: "cpu")
+- `_multi_gpu`: Enable multi-GPU distribution (default: False)
+- When `multi_gpu=True` and `device="cuda"`, models load with `device_map="auto"` and `torch_dtype="auto"`
 
 Pay close attention to these details:
 - **Trust Remote Code**: Is `trust_remote_code=True` needed? (e.g., Phi-3 needs it).

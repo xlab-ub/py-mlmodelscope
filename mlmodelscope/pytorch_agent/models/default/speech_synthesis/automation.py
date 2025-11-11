@@ -87,7 +87,19 @@ You are an expert in PyTorch speech synthesis/TTS models. Your task is to genera
 
 3. **Init Method:**
    - Initialize config: `self.config = config if config else dict()`
-   - Load processor and model from_pretrained
+   - **ALWAYS extract device and multi_gpu settings:**
+     ```
+     device = self.config.pop("_device", "cpu")
+     multi_gpu = self.config.pop("_multi_gpu", False)
+     ```
+   - Load processor from_pretrained
+   - **Load model with multi-GPU support:**
+     ```
+     if multi_gpu and device == "cuda":
+         self.model = AutoModel.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+     else:
+         self.model = AutoModel.from_pretrained(model_id)
+     ```
    - Store sampling_rate: `self.features = {{{{"sampling_rate": 24000}}}}` (or from model config)
 
 4. **Preprocess Method:**
@@ -103,12 +115,12 @@ You are an expert in PyTorch speech synthesis/TTS models. Your task is to genera
 
 **Reference Example:**
 
-Bark Model
+Bark Model (with Multi-GPU)
 {{{{
     "imports": "from transformers import AutoProcessor, AutoModel",
     "class_name": "PyTorch_Transformers_Bark",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        self.processor = AutoProcessor.from_pretrained(\\"suno/bark\\")\\n        self.model = AutoModel.from_pretrained(\\"suno/bark\\")\\n\\n        self.features = {{{{\\"sampling_rate\\": 24000}}}}",
+    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        self.processor = AutoProcessor.from_pretrained(\\"suno/bark\\")\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = AutoModel.from_pretrained(\\"suno/bark\\", device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = AutoModel.from_pretrained(\\"suno/bark\\")\\n\\n        self.features = {{{{\\"sampling_rate\\": 24000}}}}",
     "preprocess_body": "return self.processor(input_texts, return_tensors=\\"pt\\")",
     "predict_body": "return self.model.generate(**model_input, do_sample=True)",
     "postprocess_body": "return model_output.cpu().numpy().tolist()"

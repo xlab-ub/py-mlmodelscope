@@ -94,19 +94,26 @@ You are an expert in PyTorch text-to-image models (Stable Diffusion, DDPM, etc.)
 Generate complete model configurations for: text-to-image, text-to-video, unconditional generation, controlnet.
 
 **Key Guidelines:**
-- Stable Diffusion: Use pipeline with prompt inputs
+- **Multi-GPU Support**: ALWAYS extract device and multi_gpu from config:
+  ```
+  device = self.config.pop("_device", "cpu")
+  multi_gpu = self.config.pop("_multi_gpu", False)
+  ```
+- Stable Diffusion: Use pipeline with prompt inputs. For multi-GPU: pipeline.to(device) or use device_map
 - DDPM: Use scheduler + UNet2DModel, initialize noise from prompts (batch size)
 - ControlNet: Additional conditioning inputs
 - Text-to-video: Similar to text-to-image with video pipeline
+- For pipelines: Extract device/multi_gpu but pipelines use .to(device) method
+- For component-based models: Can use device_map="auto" with individual components
 
 **Examples:**
 
-Stable Diffusion Pipeline:
+Stable Diffusion Pipeline (with Multi-GPU support):
 {{{{
     "model_type": "stable_diffusion",
     "imports": "import torch\\nfrom diffusers import StableDiffusionPipeline",
     "class_name": "PyTorch_Diffusers_StableDiffusion_V1_4",
-    "init_body": "self.config = config if config else dict()\\n        self.pipeline = StableDiffusionPipeline.from_pretrained(\\"CompVis/stable-diffusion-v1-4\\")\\n        self.num_inference_steps = self.config.get('num_inference_steps', 50)",
+    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        if multi_gpu and device == \\"cuda\\":\\n            self.pipeline = StableDiffusionPipeline.from_pretrained(\\"CompVis/stable-diffusion-v1-4\\", torch_dtype=torch.float16)\\n        else:\\n            self.pipeline = StableDiffusionPipeline.from_pretrained(\\"CompVis/stable-diffusion-v1-4\\")\\n        self.num_inference_steps = self.config.get('num_inference_steps', 50)",
     "preprocess_body": "return input_prompts",
     "predict_body": "return self.pipeline(model_input, num_inference_steps=self.num_inference_steps).images",
     "postprocess_body": "import numpy as np\\n        return [np.array(img).tolist() for img in model_output]",
@@ -114,12 +121,12 @@ Stable Diffusion Pipeline:
     "eval_body": "pass"
 }}}}
 
-DDPM Unconditional:
+DDPM Unconditional (with Multi-GPU support):
 {{{{
     "model_type": "ddpm",
     "imports": "import torch\\nfrom diffusers import DDPMScheduler, UNet2DModel",
     "class_name": "PyTorch_Diffusers_DDPM_Cat",
-    "init_body": "self.scheduler = DDPMScheduler.from_pretrained(\\"google/ddpm-cat-256\\")\\n        self.model = UNet2DModel.from_pretrained(\\"google/ddpm-cat-256\\")\\n        self.num_inference_steps = 50",
+    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        self.scheduler = DDPMScheduler.from_pretrained(\\"google/ddpm-cat-256\\")\\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = UNet2DModel.from_pretrained(\\"google/ddpm-cat-256\\", torch_dtype=torch.float16)\\n        else:\\n            self.model = UNet2DModel.from_pretrained(\\"google/ddpm-cat-256\\")\\n        self.num_inference_steps = 50",
     "preprocess_body": "batch_size = len(input_prompts)\\n        return torch.randn((batch_size, 3, 256, 256), device=self.device)",
     "predict_body": "sample = model_input\\n        self.scheduler.set_timesteps(self.num_inference_steps)\\n        for t in self.scheduler.timesteps:\\n            with torch.no_grad():\\n                residual = self.model(sample, t).sample\\n            sample = self.scheduler.step(residual, t, sample).prev_sample\\n        return sample",
     "postprocess_body": "images = (model_output / 2 + 0.5).clamp(0, 1) * 255\\n        return images.to(torch.uint8).permute(0,2,3,1).cpu().numpy().tolist()",

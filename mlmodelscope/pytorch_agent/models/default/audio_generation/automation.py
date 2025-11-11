@@ -101,7 +101,19 @@ You are an expert in PyTorch audio generation models. Your task is to generate a
 
 3. **Init Method:**
    - Initialize config: `self.config = config if config else dict()`
-   - Load processor and model from_pretrained
+   - **ALWAYS extract device and multi_gpu settings:**
+     ```
+     device = self.config.pop("_device", "cpu")
+     multi_gpu = self.config.pop("_multi_gpu", False)
+     ```
+   - Load processor from_pretrained
+   - **Load model with multi-GPU support:**
+     ```
+     if multi_gpu and device == "cuda":
+         self.model = MusicgenForConditionalGeneration.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+     else:
+         self.model = MusicgenForConditionalGeneration.from_pretrained(model_id)
+     ```
    - Set max_new_tokens from config (default 256 for MusicGen)
    - Store sampling_rate: `self.features = {{{{"sampling_rate": self.model.config.audio_encoder.sampling_rate}}}}`
 
@@ -116,12 +128,12 @@ You are an expert in PyTorch audio generation models. Your task is to generate a
 
 **Reference Example:**
 
-Example 1: MusicGen Model
+Example 1: MusicGen Model (with Multi-GPU)
 {{{{
     "imports": "from transformers import AutoProcessor, MusicgenForConditionalGeneration",
     "class_name": "PyTorch_Transformers_MusicGen_Small",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        self.processor = AutoProcessor.from_pretrained(\\"facebook/musicgen-small\\")\\n        self.model = MusicgenForConditionalGeneration.from_pretrained(\\"facebook/musicgen-small\\")\\n\\n        self.max_new_tokens = self.config.get('max_new_tokens', 256)\\n\\n        self.features = {{{{\\"sampling_rate\\": self.model.config.audio_encoder.sampling_rate}}}}",
+    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        self.processor = AutoProcessor.from_pretrained(\\"facebook/musicgen-small\\")\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = MusicgenForConditionalGeneration.from_pretrained(\\"facebook/musicgen-small\\", device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = MusicgenForConditionalGeneration.from_pretrained(\\"facebook/musicgen-small\\")\\n\\n        self.max_new_tokens = self.config.get('max_new_tokens', 256)\\n\\n        self.features = {{{{\\"sampling_rate\\": self.model.config.audio_encoder.sampling_rate}}}}",
     "preprocess_body": "return self.processor(text=input_texts, return_tensors=\\"pt\\", padding=True)",
     "predict_body": "return self.model.generate(**model_input, max_new_tokens=self.max_new_tokens)",
     "postprocess_body": "return model_output.cpu().numpy().squeeze(axis=1).tolist()"

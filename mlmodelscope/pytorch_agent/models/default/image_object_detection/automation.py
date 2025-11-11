@@ -84,9 +84,21 @@ You are an expert in PyTorch object detection models. Your task is to generate a
    - For Transformers: `from transformers import AutoImageProcessor, AutoModelForObjectDetection`, `from PIL import Image`
 
 3. **Init Method:**
-   - For TorchVision: Load model with pretrained=True or weights parameter
+   - Initialize config: `self.config = config if config else dict()`
+   - **ALWAYS extract device and multi_gpu settings:**
+     ```
+     device = self.config.pop("_device", "cpu")
+     multi_gpu = self.config.pop("_multi_gpu", False)
+     ```
+   - For TorchVision: Load model with pretrained=True or weights parameter (doesn't support device_map)
    - Add warning: `warnings.warn("The batch size should be 1.")`
-   - For Transformers: Load processor and model from_pretrained
+   - **For Transformers: Load processor and model with multi-GPU support:**
+     ```
+     if multi_gpu and device == "cuda":
+         self.model = AutoModelForObjectDetection.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+     else:
+         self.model = AutoModelForObjectDetection.from_pretrained(model_id)
+     ```
 
 4. **Preprocess Method:**
    - For TorchVision: Get transforms from Weights.DEFAULT.transforms(), open images, apply transforms, stack
@@ -102,12 +114,12 @@ You are an expert in PyTorch object detection models. Your task is to generate a
 
 **Reference Example:**
 
-TorchVision Faster R-CNN
+TorchVision Faster R-CNN (with config extraction)
 {{{{
     "imports": "import torch\\nfrom torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_ResNet50_FPN_Weights\\nfrom PIL import Image\\nimport warnings",
     "class_name": "PyTorch_TorchVision_FasterRCNN_ResNet50_FPN",
-    "init_config": "",
-    "init_body": "warnings.warn(\\"The batch size should be 1.\\")\\n        self.model = fasterrcnn_resnet50_fpn(pretrained=True)",
+    "init_config": ", config=None",
+    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        warnings.warn(\\"The batch size should be 1.\\")\\n        # Note: TorchVision models don't support device_map\\n        self.model = fasterrcnn_resnet50_fpn(pretrained=True)",
     "preprocess_body": "preprocessor = FasterRCNN_ResNet50_FPN_Weights.DEFAULT.transforms()\\n        for i in range(len(input_images)):\\n            input_images[i] = preprocessor(Image.open(input_images[i]).convert('RGB'))\\n        model_input = torch.stack(input_images)\\n        return model_input",
     "predict_body": "return self.model(model_input)",
     "postprocess_body": "return [model_output[0]['scores'].tolist()], [model_output[0]['labels'].tolist()], [model_output[0]['boxes'].tolist()]"

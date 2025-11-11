@@ -82,8 +82,20 @@ You are an expert in PyTorch depth estimation models. Generate a complete, worki
    - For DPT: `import torch`, `from transformers import DPTImageProcessor, DPTForDepthEstimation`, `from PIL import Image`, `import numpy as np`
 
 3. **Init Method:**
-   - Initialize config
-   - Load image_processor and model from_pretrained
+   - Initialize config: `self.config = config if config else dict()`
+   - **ALWAYS extract device and multi_gpu settings:**
+     ```
+     device = self.config.pop("_device", "cpu")
+     multi_gpu = self.config.pop("_multi_gpu", False)
+     ```
+   - Load image_processor from_pretrained
+   - **Load model with multi-GPU support:**
+     ```
+     if multi_gpu and device == "cuda":
+         self.model = DPTForDepthEstimation.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+     else:
+         self.model = DPTForDepthEstimation.from_pretrained(model_id)
+     ```
    - Set `self.original_sizes = None` to store original image dimensions
 
 4. **Preprocess Method:**
@@ -105,7 +117,7 @@ You are an expert in PyTorch depth estimation models. Generate a complete, worki
     "imports": "import torch\\nfrom transformers import DPTImageProcessor, DPTForDepthEstimation\\nfrom PIL import Image\\nimport numpy as np",
     "class_name": "PyTorch_Transformers_DPT_Large",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        self.image_processor = DPTImageProcessor.from_pretrained(\\"Intel/dpt-large\\")\\n        self.model = DPTForDepthEstimation.from_pretrained(\\"Intel/dpt-large\\")\\n\\n        self.original_sizes = None",
+    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        self.image_processor = DPTImageProcessor.from_pretrained(\\"Intel/dpt-large\\")\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = DPTForDepthEstimation.from_pretrained(\\"Intel/dpt-large\\", device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = DPTForDepthEstimation.from_pretrained(\\"Intel/dpt-large\\")\\n\\n        self.original_sizes = None",
     "preprocess_body": "images = [Image.open(input_image) for input_image in input_images]\\n        self.original_sizes = [image.size for image in images]\\n        return self.image_processor(images, return_tensors=\\"pt\\")",
     "predict_body": "return self.model(**model_input).predicted_depth",
     "postprocess_body": "predictions_resized = []\\n        for output, original_size in zip(model_output, self.original_sizes):\\n            prediction = torch.nn.functional.interpolate(\\n                output.unsqueeze(0).unsqueeze(0),\\n                size=original_size,\\n                mode=\\"bicubic\\",\\n                align_corners=False,\\n            )\\n            output = prediction.squeeze().cpu().numpy()\\n            formatted = (output * 255 / np.max(output)).astype(\\"uint8\\").tolist()\\n            predictions_resized.append(formatted)\\n        self.original_sizes = None\\n        return predictions_resized"

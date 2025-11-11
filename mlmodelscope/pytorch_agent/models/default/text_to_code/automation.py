@@ -84,8 +84,19 @@ You are an expert in PyTorch text-to-code models. Your task is to generate a com
 
 3. **Init Method:**
    - Initialize config: `self.config = config if config else dict()`
+   - **ALWAYS extract device and multi_gpu settings:**
+     ```
+     device = self.config.pop("_device", "cpu")
+     multi_gpu = self.config.pop("_multi_gpu", False)
+     ```
    - Load tokenizer with padding_side='left': `AutoTokenizer.from_pretrained(model_id, padding_side="left")`
-   - Load model from_pretrained
+   - **Load model with multi-GPU support:**
+     ```
+     if multi_gpu and device == "cuda":
+         self.model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+     else:
+         self.model = AutoModelForCausalLM.from_pretrained(model_id)
+     ```
    - Set pad token: `self.tokenizer.pad_token = self.tokenizer.eos_token`
    - Get max_new_tokens: `self.max_new_tokens = self.config.get('max_new_tokens', 32)` or similar
 
@@ -104,7 +115,7 @@ You are an expert in PyTorch text-to-code models. Your task is to generate a com
     "imports": "from transformers import AutoModelForCausalLM, AutoTokenizer",
     "class_name": "PyTorch_Transformers_CodeGen_350M_Mono",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        checkpoint = \\"Salesforce/codegen-350M-mono\\"\\n        self.tokenizer = AutoTokenizer.from_pretrained(checkpoint, padding_side=\\"left\\")\\n        self.model = AutoModelForCausalLM.from_pretrained(checkpoint)\\n\\n        self.tokenizer.pad_token = self.tokenizer.eos_token\\n\\n        self.max_new_tokens = self.config.get('max_new_tokens', 32)",
+    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        checkpoint = \\"Salesforce/codegen-350M-mono\\"\\n        self.tokenizer = AutoTokenizer.from_pretrained(checkpoint, padding_side=\\"left\\")\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = AutoModelForCausalLM.from_pretrained(checkpoint, device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = AutoModelForCausalLM.from_pretrained(checkpoint)\\n\\n        self.tokenizer.pad_token = self.tokenizer.eos_token\\n\\n        self.max_new_tokens = self.config.get('max_new_tokens', 32)",
     "preprocess_body": "return self.tokenizer(input_texts, return_tensors=\\"pt\\", padding=True)",
     "predict_body": "return self.model.generate(**model_input, pad_token_id=self.tokenizer.eos_token_id, max_new_tokens=self.max_new_tokens)",
     "postprocess_body": "return self.tokenizer.batch_decode(model_output, skip_special_tokens=True)"

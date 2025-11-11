@@ -123,9 +123,20 @@ You must generate the complete model configuration based *primarily* on the prov
 
 4. **Init Method:**
    - Initialize config: `self.config = config if config else dict()`
+   - **ALWAYS extract device and multi_gpu settings:**
+     ```
+     device = self.config.pop("_device", "cpu")
+     multi_gpu = self.config.pop("_multi_gpu", False)
+     ```
    - Load processor/feature_extractor from_pretrained
    - Load tokenizer from_pretrained
-   - Load model from_pretrained
+   - **Load model with multi-GPU support:**
+     ```
+     if multi_gpu and device == "cuda":
+         self.model = ModelClass.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+     else:
+         self.model = ModelClass.from_pretrained(model_id)
+     ```
    - Set generation parameters from config with defaults:
      - For VisionEncoderDecoderModel: max_length (default 16), num_beams (default 4)
      - For BLIP: max_new_tokens (default 32), text (optional, for conditional generation)
@@ -150,13 +161,13 @@ You must generate the complete model configuration based *primarily* on the prov
 
 **Reference Examples:**
 
-Example 1: VisionEncoderDecoderModel (ViT-GPT2)
+Example 1: VisionEncoderDecoderModel (ViT-GPT2 with Multi-GPU)
 {{{{
     "model_type": "vision_encoder_decoder",
     "imports": "from transformers import VisionEncoderDecoderModel, ViTImageProcessor, AutoTokenizer\\nfrom PIL import Image",
     "class_name": "PyTorch_Transformers_ViT_GPT2_Image_Captioning",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        self.model = VisionEncoderDecoderModel.from_pretrained(\\"nlpconnect/vit-gpt2-image-captioning\\")\\n        self.feature_extractor = ViTImageProcessor.from_pretrained(\\"nlpconnect/vit-gpt2-image-captioning\\")\\n        self.tokenizer = AutoTokenizer.from_pretrained(\\"nlpconnect/vit-gpt2-image-captioning\\")\\n        \\n        self.max_length = self.config.get('max_length', 16)\\n        self.num_beams = self.config.get('num_beams', 4)",
+    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        self.feature_extractor = ViTImageProcessor.from_pretrained(\\"nlpconnect/vit-gpt2-image-captioning\\")\\n        self.tokenizer = AutoTokenizer.from_pretrained(\\"nlpconnect/vit-gpt2-image-captioning\\")\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = VisionEncoderDecoderModel.from_pretrained(\\"nlpconnect/vit-gpt2-image-captioning\\", device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = VisionEncoderDecoderModel.from_pretrained(\\"nlpconnect/vit-gpt2-image-captioning\\")\\n        \\n        self.max_length = self.config.get('max_length', 16)\\n        self.num_beams = self.config.get('num_beams', 4)",
     "preprocess_body": "for i in range(len(input_images)):\\n            input_images[i] = Image.open(input_images[i]).convert('RGB')\\n        model_input = self.feature_extractor(input_images, return_tensors=\\"pt\\").pixel_values\\n        return model_input",
     "predict_body": "return self.model.generate(model_input, max_length=self.max_length, num_beams=self.num_beams)",
     "postprocess_body": "preds = self.tokenizer.batch_decode(model_output, skip_special_tokens=True)\\n        return [pred.strip() for pred in preds]"

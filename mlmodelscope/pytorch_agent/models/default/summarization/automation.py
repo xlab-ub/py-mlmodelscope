@@ -84,7 +84,20 @@ You are an expert in PyTorch summarization models. Your task is to generate a co
    - Standard: `from transformers import AutoTokenizer, AutoModelForSeq2SeqLM`
 
 3. **Init Method:**
-   - Load tokenizer and model from_pretrained
+   - Initialize config: `self.config = config if config else dict()`
+   - **ALWAYS extract device and multi_gpu settings:**
+     ```
+     device = self.config.pop("_device", "cpu")
+     multi_gpu = self.config.pop("_multi_gpu", False)
+     ```
+   - Load tokenizer from_pretrained
+   - **Load model with multi-GPU support:**
+     ```
+     if multi_gpu and device == "cuda":
+         self.model = AutoModelForSeq2SeqLM.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+     else:
+         self.model = AutoModelForSeq2SeqLM.from_pretrained(model_id)
+     ```
    - Set max_new_tokens: `self.max_new_tokens = self.config.get('max_new_tokens', 150)`
 
 4. **Preprocess Method:**
@@ -102,7 +115,7 @@ You are an expert in PyTorch summarization models. Your task is to generate a co
     "imports": "from transformers import AutoTokenizer, AutoModelForSeq2SeqLM",
     "class_name": "PyTorch_Transformers_BART_Large_CNN",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        self.tokenizer = AutoTokenizer.from_pretrained(\\"facebook/bart-large-cnn\\")\\n        self.model = AutoModelForSeq2SeqLM.from_pretrained(\\"facebook/bart-large-cnn\\")\\n\\n        self.max_new_tokens = self.config.get('max_new_tokens', 150)",
+    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        model_id = \\"facebook/bart-large-cnn\\"\\n        self.tokenizer = AutoTokenizer.from_pretrained(model_id)\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = AutoModelForSeq2SeqLM.from_pretrained(model_id, device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = AutoModelForSeq2SeqLM.from_pretrained(model_id)\\n\\n        self.max_new_tokens = self.config.get('max_new_tokens', 150)",
     "preprocess_body": "return self.tokenizer(input_texts, return_tensors=\\"pt\\", padding=True, truncation=True)",
     "predict_body": "return self.model.generate(**model_input, max_new_tokens=self.max_new_tokens)",
     "postprocess_body": "return self.tokenizer.batch_decode(model_output, skip_special_tokens=True)"

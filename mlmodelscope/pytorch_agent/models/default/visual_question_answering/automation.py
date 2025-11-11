@@ -84,8 +84,20 @@ You are an expert in PyTorch visual question answering models. Generate complete
    - LLaVA: `from transformers import LlavaNextProcessor, LlavaNextForConditionalGeneration`, `import torch`, `from PIL import Image`, optionally `import warnings`
 
 3. **Init Method:**
-   - Config initialization
-   - Load processor and model from_pretrained
+   - Config initialization: `self.config = config if config else dict()`
+   - **ALWAYS extract device and multi_gpu settings:**
+     ```
+     device = self.config.pop("_device", "cpu")
+     multi_gpu = self.config.pop("_multi_gpu", False)
+     ```
+   - Load processor from_pretrained
+   - **Load model with multi-GPU support:**
+     ```
+     if multi_gpu and device == "cuda":
+         self.model = BlipForQuestionAnswering.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+     else:
+         self.model = BlipForQuestionAnswering.from_pretrained(model_id)
+     ```
    - Set max_new_tokens from config (default 32 for BLIP, 100 for LLaVA)
    - For LLaVA: Set torch_dtype, configure pad_token, add warning about batch processing
 
@@ -106,23 +118,23 @@ You are an expert in PyTorch visual question answering models. Generate complete
 
 **Reference Examples:**
 
-Example 1: BLIP VQA Model
+Example 1: BLIP VQA Model (with Multi-GPU)
 {{{{
     "imports": "from transformers import BlipProcessor, BlipForQuestionAnswering\\nfrom PIL import Image",
     "class_name": "PyTorch_Transformers_BLIP_VQA_Base",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        self.processor = BlipProcessor.from_pretrained(\\"Salesforce/blip-vqa-base\\")\\n        self.model = BlipForQuestionAnswering.from_pretrained(\\"Salesforce/blip-vqa-base\\")\\n\\n        self.max_new_tokens = self.config.get('max_new_tokens', 32)",
+    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        model_id = \\"Salesforce/blip-vqa-base\\"\\n        self.processor = BlipProcessor.from_pretrained(model_id)\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = BlipForQuestionAnswering.from_pretrained(model_id, device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = BlipForQuestionAnswering.from_pretrained(model_id)\\n\\n        self.max_new_tokens = self.config.get('max_new_tokens', 32)",
     "preprocess_body": "images = [Image.open(input_image_and_question[0]).convert('RGB') for input_image_and_question in input_image_and_questions]\\n        questions = [input_image_and_question[1] for input_image_and_question in input_image_and_questions]\\n        return self.processor(images, questions, return_tensors=\\"pt\\")",
     "predict_body": "return self.model.generate(**model_input, max_new_tokens=self.max_new_tokens)",
     "postprocess_body": "return self.processor.batch_decode(model_output, skip_special_tokens=True)"
 }}}}
 
-Example 2: LLaVA Model (Complex)
+Example 2: LLaVA Model (Complex with Multi-GPU)
 {{{{
     "imports": "import warnings\\nimport torch\\nfrom transformers import LlavaNextProcessor, LlavaNextForConditionalGeneration\\nfrom PIL import Image",
     "class_name": "PyTorch_Transformers_LLaVA_v1_6_Mistral_7B_HF",
     "init_config": ", config=None",
-    "init_body": "warnings.warn(\\"Currently, this model does not support batched forward with multiple images of different sizes.\\")\\n        self.config = config if config else dict()\\n        model_id = \\"llava-hf/llava-v1.6-mistral-7b-hf\\"\\n        self.processor = LlavaNextProcessor.from_pretrained(model_id)\\n        self.model = LlavaNextForConditionalGeneration.from_pretrained(model_id, torch_dtype=torch.float16)\\n\\n        self.processor.tokenizer.pad_token = self.processor.tokenizer.eos_token\\n\\n        self.max_new_tokens = self.config.get('max_new_tokens', 100)",
+    "init_body": "warnings.warn(\\"Currently, this model does not support batched forward with multiple images of different sizes.\\")\\n        self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        model_id = \\"llava-hf/llava-v1.6-mistral-7b-hf\\"\\n        self.processor = LlavaNextProcessor.from_pretrained(model_id)\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = LlavaNextForConditionalGeneration.from_pretrained(model_id, device_map=\\"auto\\", torch_dtype=torch.float16)\\n        else:\\n            self.model = LlavaNextForConditionalGeneration.from_pretrained(model_id, torch_dtype=torch.float16)\\n\\n        self.processor.tokenizer.pad_token = self.processor.tokenizer.eos_token\\n\\n        self.max_new_tokens = self.config.get('max_new_tokens', 100)",
     "preprocess_body": "images = [Image.open(input_image_and_question[0]) for input_image_and_question in input_image_and_questions]\\n        prompts = [f\\"[INST] <image>\\\\n{{input_image_and_question[1]}} [/INST]\\" for input_image_and_question in input_image_and_questions]\\n        return self.processor(text=prompts, images=images, return_tensors=\\"pt\\", padding=\\"max_length\\", max_length=4096, truncation=True)",
     "predict_body": "return self.model.generate(**model_input, pad_token_id=self.processor.tokenizer.eos_token_id, max_new_tokens=self.max_new_tokens)",
     "postprocess_body": "return [output.split('[/INST]')[1].strip() for output in self.processor.batch_decode(model_output, skip_special_tokens=True)]"

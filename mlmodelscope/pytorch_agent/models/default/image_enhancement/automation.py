@@ -84,7 +84,20 @@ You are an expert in PyTorch image enhancement models. Your task is to generate 
    - May need torchvision transforms
 
 3. **Init Method:**
-   - Load model from pretrained or hub
+   - Initialize config: `self.config = config if config else dict()`
+   - **ALWAYS extract device and multi_gpu settings:**
+     ```
+     device = self.config.pop("_device", "cpu")
+     multi_gpu = self.config.pop("_multi_gpu", False)
+     ```
+   - **Load model with multi-GPU support (if transformers):**
+     ```
+     if multi_gpu and device == "cuda":
+         self.model = ModelClass.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+     else:
+         self.model = ModelClass.from_pretrained(model_id)
+     ```
+   - For torch.hub models: Use `torch.hub.load()` (doesn't support device_map)
    - Set scale factor if super-resolution
 
 4. **Preprocess Method:**
@@ -103,7 +116,7 @@ You are an expert in PyTorch image enhancement models. Your task is to generate 
     "imports": "import torch\\nfrom PIL import Image\\nimport numpy as np\\nimport torchvision.transforms as transforms",
     "class_name": "PyTorch_SRGAN_v1",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        self.model = torch.hub.load('url', 'model_name')\\n        self.scale_factor = 4",
+    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        # Note: torch.hub.load doesn't support device_map\\n        self.model = torch.hub.load('url', 'model_name')\\n        self.scale_factor = 4",
     "preprocess_body": "images = [Image.open(img_path).convert('RGB') for img_path in input_images]\\n        transform = transforms.ToTensor()\\n        tensors = [transform(img).unsqueeze(0) for img in images]\\n        return torch.cat(tensors, dim=0)",
     "predict_body": "with torch.no_grad():\\n            return self.model(model_input)",
     "postprocess_body": "output = model_output.clamp(0, 1)\\n        output = (output*255).to(torch.uint8).permute(0, 2, 3, 1).cpu().numpy()\\n        return [img.tolist() for img in output]"

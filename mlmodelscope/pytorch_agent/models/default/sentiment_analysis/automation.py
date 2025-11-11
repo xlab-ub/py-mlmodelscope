@@ -141,7 +141,19 @@ You must generate the complete model configuration based *primarily* on the prov
 
 3. **Init Method:**
    - Initialize config: `self.config = config if config else dict()`
-   - Load tokenizer and model from_pretrained
+   - **ALWAYS extract device and multi_gpu settings:**
+     ```
+     device = self.config.pop("_device", "cpu")
+     multi_gpu = self.config.pop("_multi_gpu", False)
+     ```
+   - Load tokenizer from_pretrained
+   - **Load model with multi-GPU support:**
+     ```
+     if multi_gpu and device == "cuda":
+         self.model = AutoModelForSequenceClassification.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+     else:
+         self.model = AutoModelForSequenceClassification.from_pretrained(model_id)
+     ```
    - Extract labels: `self.features = list(self.model.config.id2label.values())`
    - Check if trust_remote_code or problem_type (multilabel) is needed
 
@@ -165,13 +177,13 @@ You must generate the complete model configuration based *primarily* on the prov
 
 **Reference Examples:**
 
-Example 1: Sentiment Analysis (Binary Classification)
+Example 1: Sentiment Analysis (Binary Classification with Multi-GPU)
 {{{{
     "model_type": "sequence_classification",
     "imports": "from transformers import AutoTokenizer, AutoModelForSequenceClassification\\nfrom torch.nn.functional import softmax",
     "class_name": "PyTorch_Transformers_DistilBERT_Sentiment",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        self.tokenizer = AutoTokenizer.from_pretrained(\\"distilbert-base-uncased-finetuned-sst-2-english\\")\\n        self.model = AutoModelForSequenceClassification.from_pretrained(\\"distilbert-base-uncased-finetuned-sst-2-english\\")\\n\\n        self.features = list(self.model.config.id2label.values())",
+    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        self.tokenizer = AutoTokenizer.from_pretrained(\\"distilbert-base-uncased-finetuned-sst-2-english\\")\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = AutoModelForSequenceClassification.from_pretrained(\\"distilbert-base-uncased-finetuned-sst-2-english\\", device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = AutoModelForSequenceClassification.from_pretrained(\\"distilbert-base-uncased-finetuned-sst-2-english\\")\\n\\n        self.features = list(self.model.config.id2label.values())",
     "preprocess_body": "return self.tokenizer(input_texts, return_tensors=\\"pt\\", padding=True, truncation=True)",
     "predict_body": "return self.model(**model_input).logits",
     "postprocess_body": "return softmax(model_output, dim=1).tolist()"

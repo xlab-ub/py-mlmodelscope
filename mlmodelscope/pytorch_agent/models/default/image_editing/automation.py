@@ -151,9 +151,21 @@ You must generate the complete model configuration based *primarily* on the prov
    - Choose appropriate parameter name
 
 4. **Init Method:**
-   - Initialize config
-   - Load processor/model from_pretrained
-   - For diffusers components: load VAE, text_encoder, unet, scheduler, etc.
+   - Initialize config: `self.config = config if config else dict()`
+   - **ALWAYS extract device and multi_gpu settings:**
+     ```
+     device = self.config.pop("_device", "cpu")
+     multi_gpu = self.config.pop("_multi_gpu", False)
+     ```
+   - Load processor from_pretrained
+   - **Load model with multi-GPU support:**
+     ```
+     if multi_gpu and device == "cuda":
+         self.model = ModelClass.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+     else:
+         self.model = ModelClass.from_pretrained(model_id)
+     ```
+   - For diffusers components: load VAE, text_encoder, unet, scheduler, etc. (can also use device_map on individual components)
    - Set task-specific parameters
 
 5. **Preprocess Method:**
@@ -180,13 +192,13 @@ You must generate the complete model configuration based *primarily* on the prov
 
 **Reference Examples:**
 
-Example 1: Mask Generation / Semantic Segmentation (transformers_model)
+Example 1: Mask Generation / Semantic Segmentation (transformers_model with Multi-GPU)
 {{{{
     "model_type": "transformers_model",
     "imports": "import torch\\nfrom transformers import AutoImageProcessor, AutoModelForSemanticSegmentation\\nfrom PIL import Image\\nimport numpy as np",
     "class_name": "PyTorch_Transformers_SegFormer",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        model_id = \\"nvidia/segformer-b0-finetuned-ade-512-512\\"\\n        self.processor = AutoImageProcessor.from_pretrained(model_id)\\n        self.model = AutoModelForSemanticSegmentation.from_pretrained(model_id)",
+    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        model_id = \\"nvidia/segformer-b0-finetuned-ade-512-512\\"\\n        self.processor = AutoImageProcessor.from_pretrained(model_id)\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = AutoModelForSemanticSegmentation.from_pretrained(model_id, device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = AutoModelForSemanticSegmentation.from_pretrained(model_id)",
     "preprocess_input": "input_images",
     "preprocess_body": "images = [Image.open(img_path).convert('RGB') for img_path in input_images]\\n        return self.processor(images, return_tensors=\\"pt\\")",
     "predict_body": "return self.model(**model_input)",
@@ -194,13 +206,13 @@ Example 1: Mask Generation / Semantic Segmentation (transformers_model)
     "optional_methods": ""
 }}}}
 
-Example 2: SAM (Segment Anything Model)
+Example 2: SAM (Segment Anything Model with Multi-GPU)
 {{{{
     "model_type": "sam",
     "imports": "import torch\\nfrom transformers import SamModel, SamProcessor\\nfrom PIL import Image\\nimport numpy as np",
     "class_name": "PyTorch_Transformers_SAM",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        model_id = \\"facebook/sam-vit-base\\"\\n        self.processor = SamProcessor.from_pretrained(model_id)\\n        self.model = SamModel.from_pretrained(model_id)",
+    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        model_id = \\"facebook/sam-vit-base\\"\\n        self.processor = SamProcessor.from_pretrained(model_id)\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = SamModel.from_pretrained(model_id, device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = SamModel.from_pretrained(model_id)",
     "preprocess_input": "input_images",
     "preprocess_body": "# For automatic mask generation\\n        images = [Image.open(img_path).convert('RGB') for img_path in input_images]\\n        return self.processor(images, return_tensors=\\"pt\\")",
     "predict_body": "return self.model(**model_input)",
@@ -208,13 +220,13 @@ Example 2: SAM (Segment Anything Model)
     "optional_methods": ""
 }}}}
 
-Example 3: InstructPix2Pix (diffusers_components - complex)
+Example 3: InstructPix2Pix (diffusers_components with Multi-GPU)
 {{{{
     "model_type": "diffusers_components",
     "imports": "import torch\\nfrom transformers import CLIPTextModel, CLIPTokenizer\\nfrom diffusers import AutoencoderKL, UNet2DConditionModel, EulerAncestralDiscreteScheduler\\nfrom diffusers.image_processor import VaeImageProcessor\\nfrom PIL import Image",
     "class_name": "PyTorch_Diffusers_InstructPix2Pix",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        model_id = \\"timbrooks/instruct-pix2pix\\"\\n        self.vae = AutoencoderKL.from_pretrained(model_id, subfolder=\\"vae\\")\\n        self.text_encoder = CLIPTextModel.from_pretrained(model_id, subfolder=\\"text_encoder\\")\\n        self.tokenizer = CLIPTokenizer.from_pretrained(model_id, subfolder=\\"tokenizer\\")\\n        self.unet = UNet2DConditionModel.from_pretrained(model_id, subfolder=\\"unet\\")\\n        self.scheduler = EulerAncestralDiscreteScheduler.from_pretrained(model_id, subfolder=\\"scheduler\\")\\n        self.image_processor = VaeImageProcessor(vae_scale_factor=8)\\n        self.seed = self.config.get('seed', 0)",
+    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        model_id = \\"timbrooks/instruct-pix2pix\\"\\n        self.tokenizer = CLIPTokenizer.from_pretrained(model_id, subfolder=\\"tokenizer\\")\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.vae = AutoencoderKL.from_pretrained(model_id, subfolder=\\"vae\\", device_map=\\"auto\\", torch_dtype=torch.float16)\\n            self.text_encoder = CLIPTextModel.from_pretrained(model_id, subfolder=\\"text_encoder\\", device_map=\\"auto\\", torch_dtype=torch.float16)\\n            self.unet = UNet2DConditionModel.from_pretrained(model_id, subfolder=\\"unet\\", device_map=\\"auto\\", torch_dtype=torch.float16)\\n        else:\\n            self.vae = AutoencoderKL.from_pretrained(model_id, subfolder=\\"vae\\")\\n            self.text_encoder = CLIPTextModel.from_pretrained(model_id, subfolder=\\"text_encoder\\")\\n            self.unet = UNet2DConditionModel.from_pretrained(model_id, subfolder=\\"unet\\")\\n        \\n        self.scheduler = EulerAncestralDiscreteScheduler.from_pretrained(model_id, subfolder=\\"scheduler\\")\\n        self.image_processor = VaeImageProcessor(vae_scale_factor=8)\\n        self.seed = self.config.get('seed', 0)",
     "preprocess_input": "input_images_and_prompts",
     "preprocess_body": "# Process images and prompts for pix2pix\\n        # Complex implementation - see existing model",
     "predict_body": "# Run diffusion loop - see existing model",
