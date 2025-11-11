@@ -44,14 +44,17 @@ class PyTorchAbstractClass(ABC):
         '''
         pass
 
-    def to(self, device): 
+    def to(self, device, multi_gpu=False): 
         '''
         Move the model to the given device
 
         Args:
             device (str): The device
+            multi_gpu (bool): Whether to use multiple GPUs
         '''
-        self.model = self.model.to(device)
+        if (not multi_gpu) and hasattr(self, 'model'):
+            self.model = self.model.to(device)
+        self.device = device
 
     def eval(self):
         '''
