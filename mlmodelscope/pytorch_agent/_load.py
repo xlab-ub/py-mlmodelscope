@@ -41,7 +41,7 @@ def perform_syntax_and_security_check(file_name):
     except SyntaxError as e:
         raise Exception(f"Syntax Error in the file: {e}")
 
-def create_instance_from_model_manifest_file(task, model_name, security_check=True, config=None, user='default'):
+def create_instance_from_model_manifest_file(task, model_name, security_check=True, config=None, user='default', device='cpu', multi_gpu=False):
     '''
     Create an instance of a class from a file.
     '''
@@ -67,13 +67,16 @@ def create_instance_from_model_manifest_file(task, model_name, security_check=Tr
     target_class = next((cls for cls in classes if issubclass(cls, abstract_class) and cls != abstract_class), None)
 
     if target_class:
-        return target_class(*(config,) if config else ()) # Create an instance of the found class 
+        instance_config = config if config else {}
+        instance_config['_device'] = device
+        instance_config['_multi_gpu'] = multi_gpu
+        return target_class(instance_config) # Create an instance of the found class 
     else:
         raise ModuleNotFoundError("No subclass of PyTorchAbstractClass was found in the module.")
 
-def _load(task, model_name, security_check=True, config=None, user='default'):
+def _load(task, model_name, security_check=True, config=None, user='default', device='cpu', multi_gpu=False):
     model_file_dir = pathlib.Path(__file__).resolve().parent / f'models/{user}/{task}/{model_name}'
     sys.path.append(str(model_file_dir))
-    pytorch_abstract_class_instance = create_instance_from_model_manifest_file(task, model_name, security_check, config, user) 
+    pytorch_abstract_class_instance = create_instance_from_model_manifest_file(task, model_name, security_check, config, user, device, multi_gpu) 
     sys.path.remove(str(model_file_dir))
     return pytorch_abstract_class_instance

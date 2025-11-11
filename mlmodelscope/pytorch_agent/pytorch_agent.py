@@ -15,7 +15,13 @@ class PyTorch_Agent:
         self.tracer = tracer
         self.all_spans = {}
         self.span, self.ctx = self.tracer.start_span_from_context(name="pytorch-agent", context=context, trace_level="APPLICATION_TRACE")
-        self.device = 'cuda' if (architecture == "gpu" and torch.cuda.is_available()) else 'cpu'
+        self.architecture = architecture
+        if architecture == "gpu" and torch.cuda.is_available():
+            self.device = 'cuda'
+            self.multi_gpu = torch.cuda.device_count() > 1
+        else:
+            self.device = 'cpu'
+            self.multi_gpu = False
         self.load_model(task, model_name, security_check, config, user)
         self.c = c
 
@@ -30,8 +36,8 @@ class PyTorch_Agent:
         
         self.model_name = model_name
         with self.tracer.start_as_current_span_from_context(f'{self.model_name} model load', context=self.ctx, trace_level="APPLICATION_TRACE"):
-            self.model = _load(task=task, model_name=self.model_name, security_check=security_check, config=config, user=user)
-            self.model.to(self.device)
+            self.model = _load(task=task, model_name=self.model_name, security_check=security_check, config=config, user=user, device=self.device, multi_gpu=self.multi_gpu)
+            self.model.to(self.device, multi_gpu=self.multi_gpu)
             self.model.eval()
 
         if (
@@ -110,7 +116,15 @@ class PyTorch_Agent:
                 span.set_attribute("input_shape", str(input[0].shape))
             else:
                 span.set_attribute("input_shape", str(self.input_shape) if layer_name.startswith('0__') else "None")
-            span.set_attribute("output_shape", str(output.shape) if hasattr(output, 'shape') else str(output[0].shape))
+            
+            # Handle output shape more robustly
+            if hasattr(output, 'shape'):
+                span.set_attribute("output_shape", str(output.shape))
+            elif isinstance(output, (tuple, list)) and len(output) > 0 and hasattr(output[0], 'shape'):
+                span.set_attribute("output_shape", str(output[0].shape))
+            else:
+                span.set_attribute("output_shape", "Unknown")
+            
             span.end()
             self.tracer.inject_context(prev_ctx)
         return hook
