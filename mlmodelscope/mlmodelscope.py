@@ -60,6 +60,7 @@ class MLModelScope:
   def load_dataset(self, dataset_name, batch_size, task=None, security_check=True):
     # Check if dataset_name is a URL or contains URL data
     url = False
+    dataset_name = eval(dataset_name) if isinstance(dataset_name, str) and (dataset_name.startswith('[') or dataset_name.startswith('{')) else dataset_name
     if isinstance(dataset_name, list) and len(dataset_name) > 0 and isinstance(dataset_name[0], dict) and "src" in dataset_name[0]:
       # Check if it's actually a URL or just structured text data
       src_value = dataset_name[0]["src"]
