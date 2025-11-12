@@ -156,7 +156,9 @@ Use the exact model identifier '{model_identifier}' in the init_body.
     parser = JsonOutputParser(pydantic_object=ModelConfig)
     chain = prompt | llm | parser
 
-    BASE_DIR = "mlmodelscope/pytorch_agent/models/default/document_visual_question_answering"
+    BASE_DIR = (
+        "mlmodelscope/pytorch_agent/models/default/document_visual_question_answering"
+    )
     ERROR_DIR = f"{BASE_DIR}/errors"
     os.makedirs(ERROR_DIR, exist_ok=True)
     failed_models = []
@@ -180,9 +182,14 @@ Use the exact model identifier '{model_identifier}' in the init_body.
         try:
             check_syntax = lambda fn: os.system(f"python -m py_compile {fn}")
             error = False
+            MAX_TRIES_PER_MODEL = 5
+            try_count_my_model = 0
             while not os.path.exists(model_py_path) or (
                 error := check_syntax(model_py_path)
             ):
+                if try_count_my_model >= MAX_TRIES_PER_MODEL:
+                    break
+                try_count_my_model += 1
                 if error:
                     error_log += f"Syntax error, regenerating...\n"
 
@@ -274,4 +281,3 @@ if __name__ == "__main__":
     document_visual_question_answering_model_automation(
         models_to_add=["naver-clova-ix/donut-base-finetuned-docvqa"]
     )
-

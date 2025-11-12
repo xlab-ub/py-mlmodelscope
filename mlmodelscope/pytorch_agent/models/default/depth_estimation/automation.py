@@ -139,7 +139,12 @@ Use exact identifier '{model_identifier}' in code.
 
     modelCounter = 0
     load_dotenv()
-    llm = ChatGoogleGenerativeAI(model="gemini-2.5-pro", model_kwargs={"thinkingBudget": -1}, temperature=0, convert_system_message_to_human=True)
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-2.5-pro",
+        model_kwargs={"thinkingBudget": -1},
+        temperature=0,
+        convert_system_message_to_human=True,
+    )
     parser = JsonOutputParser(pydantic_object=ModelConfig)
     chain = prompt | llm | parser
 
@@ -152,7 +157,9 @@ Use exact identifier '{model_identifier}' in code.
     for model_name in models_to_add:
         if modelCounter == 50:
             break
-        model_folder_name = model_name.split("/")[-1].replace("-", "_").replace(".", "_").lower()
+        model_folder_name = (
+            model_name.split("/")[-1].replace("-", "_").replace(".", "_").lower()
+        )
         model_py_path = os.path.join(BASE_DIR, model_folder_name, "model.py")
 
         if os.path.exists(model_py_path):
@@ -161,30 +168,58 @@ Use exact identifier '{model_identifier}' in code.
         try:
             check_syntax = lambda fn: os.system(f"python -m py_compile {fn}")
             error = False
-            while not os.path.exists(model_py_path) or (error := check_syntax(model_py_path)):
+            MAX_TRIES_PER_MODEL = 5
+            try_count_my_model = 0
+            while not os.path.exists(model_py_path) or (
+                error := check_syntax(model_py_path)
+            ):
+                if try_count_my_model >= MAX_TRIES_PER_MODEL:
+                    break
+                try_count_my_model += 1
                 url = f"https://huggingface.co/{model_name}"
                 response = requests.get(url)
                 response.raise_for_status()
                 soup = BeautifulSoup(response.text, "html.parser")
-                main_content = soup.find("model-card-content") or soup.find("main") or soup.find("body")
+                main_content = (
+                    soup.find("model-card-content")
+                    or soup.find("main")
+                    or soup.find("body")
+                )
                 if not main_content:
                     break
-                if main_content.find("a", href=lambda h: h and h.startswith("/login?next=")):
+                if main_content.find(
+                    "a", href=lambda h: h and h.startswith("/login?next=")
+                ):
                     login_req_models.append(model_name)
                     break
 
                 context_text = main_content.get_text(separator=" ", strip=True)[:20000]
-                model_config_dict = chain.invoke({"model_identifier": model_name, "model_page_context": context_text})
-                
-                init_body = model_config_dict.get("init_body", "").replace("{hugging_face_model_id}", model_name)
+                model_config_dict = chain.invoke(
+                    {"model_identifier": model_name, "model_page_context": context_text}
+                )
+
+                init_body = model_config_dict.get("init_body", "").replace(
+                    "{hugging_face_model_id}", model_name
+                )
                 filled_template = MODEL_TEMPLATE.format(
-                    imports=model_config_dict.get("imports", "import torch\nfrom transformers import DPTImageProcessor, DPTForDepthEstimation\nfrom PIL import Image\nimport numpy as np"),
-                    class_name=model_config_dict.get("class_name", "PyTorch_Depth_Estimation_Model"),
+                    imports=model_config_dict.get(
+                        "imports",
+                        "import torch\nfrom transformers import DPTImageProcessor, DPTForDepthEstimation\nfrom PIL import Image\nimport numpy as np",
+                    ),
+                    class_name=model_config_dict.get(
+                        "class_name", "PyTorch_Depth_Estimation_Model"
+                    ),
                     init_config=model_config_dict.get("init_config", ", config=None"),
                     init_body=init_body.lstrip(" "),
-                    preprocess_body=model_config_dict.get("preprocess_body", "pass").lstrip(" "),
-                    predict_body=model_config_dict.get("predict_body", "return self.model(**model_input)").lstrip(" "),
-                    postprocess_body=model_config_dict.get("postprocess_body", "return model_output.tolist()").lstrip(" "),
+                    preprocess_body=model_config_dict.get(
+                        "preprocess_body", "pass"
+                    ).lstrip(" "),
+                    predict_body=model_config_dict.get(
+                        "predict_body", "return self.model(**model_input)"
+                    ).lstrip(" "),
+                    postprocess_body=model_config_dict.get(
+                        "postprocess_body", "return model_output.tolist()"
+                    ).lstrip(" "),
                 )
 
                 os.makedirs(os.path.join(BASE_DIR, model_folder_name), exist_ok=True)
@@ -194,6 +229,7 @@ Use exact identifier '{model_identifier}' in code.
                 modelCounter += 1
         except Exception as e:
             import traceback
+
             traceback.print_exc()
             failed_models.append(model_name)
 
@@ -204,7 +240,3 @@ Use exact identifier '{model_identifier}' in code.
 
 if __name__ == "__main__":
     depth_estimation_model_automation(models_to_add=["Intel/dpt-large"])
-
-
-
-

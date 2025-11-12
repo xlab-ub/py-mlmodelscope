@@ -286,13 +286,18 @@ Based on the examples AND the context above, generate the config for the model: 
         error_log = ""
 
         try:
-            check_python_file_syntax_issue = lambda fileName: os.system(
+            check_syntax = lambda fileName: os.system(
                 f"python -m py_compile {fileName}"
             )
             error = False
+            MAX_TRIES_PER_MODEL = 5
+            try_count_my_model = 0
             while not os.path.exists(model_py_path) or (
-                error := check_python_file_syntax_issue(model_py_path)
+                error := check_syntax(model_py_path)
             ):
+                if try_count_my_model >= MAX_TRIES_PER_MODEL:
+                    break
+                try_count_my_model += 1
                 if error:
                     print(
                         f"Syntax error detected in generated file '{model_py_path}'. Regenerating..."

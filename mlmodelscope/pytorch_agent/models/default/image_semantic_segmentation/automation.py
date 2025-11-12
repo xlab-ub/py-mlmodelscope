@@ -180,9 +180,14 @@ Use the exact model identifier '{model_identifier}' in the init_body.
         try:
             check_syntax = lambda fn: os.system(f"python -m py_compile {fn}")
             error = False
+            MAX_TRIES_PER_MODEL = 5
+            try_count_my_model = 0
             while not os.path.exists(model_py_path) or (
                 error := check_syntax(model_py_path)
             ):
+                if try_count_my_model >= MAX_TRIES_PER_MODEL:
+                    break
+                try_count_my_model += 1
                 if error:
                     error_log += f"Syntax error, regenerating...\n"
 
@@ -274,4 +279,3 @@ if __name__ == "__main__":
     image_semantic_segmentation_model_automation(
         models_to_add=["nvidia/segformer-b0-finetuned-ade-512-512"]
     )
-
