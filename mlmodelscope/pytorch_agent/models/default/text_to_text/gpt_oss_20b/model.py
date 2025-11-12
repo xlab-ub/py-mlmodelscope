@@ -5,25 +5,13 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 
 class PyTorch_Transformers_GPT_OSS_20B(PyTorchAbstractClass):
   def __init__(self, config=None):
-    self.config = config if config else {}
-    device = self.config.pop('_device', 'cpu')
-    multi_gpu = self.config.pop('_multi_gpu', False)
+    super().__init__(config)
 
     self.tokenizer = AutoTokenizer.from_pretrained("openai/gpt-oss-20b", padding_side='left')
-
-    if multi_gpu and device == 'cuda':
-      self.model = AutoModelForCausalLM.from_pretrained(
-        "openai/gpt-oss-20b",
-        device_map='auto',
-        torch_dtype='auto',
-        # low_cpu_mem_usage=True
-      )
-    else:
-      self.model = AutoModelForCausalLM.from_pretrained("openai/gpt-oss-20b")
-
+    self.model = self.load_hf_model(AutoModelForCausalLM, "openai/gpt-oss-20b")
     self.tokenizer.pad_token = self.tokenizer.eos_token 
 
-    self.max_new_tokens = self.config['max_new_tokens'] if 'max_new_tokens' in self.config else 32 
+    self.max_new_tokens = self.config.get('max_new_tokens', 32) 
 
     if 'messages' in self.config:
       self.messages = self.config['messages'] 
