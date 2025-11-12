@@ -120,7 +120,7 @@ You are an expert in PyTorch visual question answering models. Generate complete
 **Reference Examples:**
 
 Example 1: BLIP VQA Model (with Multi-GPU)
-{{
+{{{{
     "imports": "from transformers import BlipProcessor, BlipForQuestionAnswering\\nfrom PIL import Image",
     "class_name": "PyTorch_Transformers_BLIP_VQA_Base",
     "init_config": ", config=None",
@@ -128,10 +128,10 @@ Example 1: BLIP VQA Model (with Multi-GPU)
     "preprocess_body": "images = [Image.open(input_image_and_question[0]).convert('RGB') for input_image_and_question in input_image_and_questions]\\n        questions = [input_image_and_question[1] for input_image_and_question in input_image_and_questions]\\n        return self.processor(images, questions, return_tensors=\\"pt\\")",
     "predict_body": "return self.model.generate(**model_input, max_new_tokens=self.max_new_tokens)",
     "postprocess_body": "return self.processor.batch_decode(model_output, skip_special_tokens=True)"
-}}
+}}}}
 
 Example 2: LLaVA Model (Complex with Multi-GPU)
-{{
+{{{{
     "imports": "import warnings\\nimport torch\\nfrom transformers import LlavaNextProcessor, LlavaNextForConditionalGeneration\\nfrom PIL import Image",
     "class_name": "PyTorch_Transformers_LLaVA_v1_6_Mistral_7B_HF",
     "init_config": ", config=None",
@@ -139,7 +139,7 @@ Example 2: LLaVA Model (Complex with Multi-GPU)
     "preprocess_body": "images = [Image.open(input_image_and_question[0]) for input_image_and_question in input_image_and_questions]\\n        prompts = [f\\"[INST] <image>\\\\n{{{{input_image_and_question[1]}}}} [/INST]\\" for input_image_and_question in input_image_and_questions]\\n        return self.processor(text=prompts, images=images, return_tensors=\\"pt\\", padding=\\"max_length\\", max_length=4096, truncation=True)",
     "predict_body": "return self.model.generate(**model_input, pad_token_id=self.processor.tokenizer.eos_token_id, max_new_tokens=self.max_new_tokens)",
     "postprocess_body": "return [output.split('[/INST]')[1].strip() for output in self.processor.batch_decode(model_output, skip_special_tokens=True)]"
-}}
+}}}}
 
 Respond ONLY with JSON.
 """,
