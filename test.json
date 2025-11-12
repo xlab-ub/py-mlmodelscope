@@ -1,1 +1,58 @@
-{}
+{
+    "Image Classification": {
+        "dir": "image_classification"
+        
+    },
+    "Object detection": {
+        "dir": "image_object_detection"
+        
+    },
+    "Instance segmentation": {
+        "dir": "image_semantic_segmentation"
+        
+    },
+    "Style Transfer": {
+        "dir": "image_editing"
+        
+    },
+    "Mask Generation": {
+        "dir": "depth_estimation"
+        
+    },
+    "Text to Image": {
+        "dir": "image_generation"
+        
+    },
+    "Image to Text": {
+        "dir": "image_captioning"
+        
+    },
+    "Video Classification": {
+        "dir": "video_classification"
+        
+    },
+    "Text to Text": {
+        "dir": "text_to_text"
+        
+    },
+    "Text Classification": {
+        "dir": "sentiment_analysis"
+        
+    },
+    "Text to Audio": {
+        "dir": "audio_generation"
+        
+    },
+    "Audio to Text": {
+        "dir": "automatic_speech_recognition"
+        
+    },
+    "Visual Question Answering": {
+        "dir": "visual_question_answering"
+        
+    },
+    "Document Question Answering": {
+        "dir": "document_visual_question_answering"
+        
+    }
+}
