@@ -1,0 +1,318 @@
+{
+  "impira/layoutlm-document-qa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Sharka/CIVQA_Impira_QA_EasyOCR": {
+    "Image": 1,
+    "Text": 1
+  },
+  "tiennvcs/layoutlmv2-large-uncased-finetuned-infovqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Sayantan1993/layoutlmv2-base-uncased_finetuned_docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "TusharGoel/LiLT-Document-QA": {
+    "Image": 1,
+    "Text": 1
+  },
+  "YuukiAsuna/VieTable-donut-docvqa-demo": {
+    "Image": 1,
+    "Text": 1
+  },
+  "aslessor/layoutlm-invoices": {
+    "Image": 1,
+    "Text": 1
+  },
+  "faisalraza/layoutlm-invoices": {
+    "Image": 1,
+    "Text": 1
+  },
+  "sahil-everlign/layoutlmv2-base-uncased_finetuned_docvqa_on_1200": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Sharka/CIVQA_DVQA_Impira_QA": {
+    "Image": 1,
+    "Text": 1
+  },
+  "daniyalumerr/LayoutLM": {
+    "Image": 1,
+    "Text": 1
+  },
+  "AyushPremjith/layoutlmv2-base-uncased_finetuned_docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "rubentito/layoutlmv3-base-mpdocvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "hf-tiny-model-private/tiny-random-LayoutLMv3ForQuestionAnswering": {
+    "Image": 1,
+    "Text": 1
+  },
+  "PrplHrt/LayoutLMv2_hub": {
+    "Image": 1,
+    "Text": 1
+  },
+  "pooh/layoutlmv2-base-uncased_finetuned_docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "jonathanjordan21/donut_fine_tuning_food_composition_id": {
+    "Image": 1
+  },
+  "PrimWong/layoutlmv2-base-uncased_finetuned_docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Sharka/CIVQA_LayoutXLM_EasyOCR": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Mariya21/layoutlmv2-base-uncased_finetuned_docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Sharka/CIVQA_DVQA_LayoutLMv2": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Or4cl3-1/multimodal-fusion-optimized": {
+    "Image": 1,
+    "Text": 1
+  },
+  "TusharGoel/LayoutLMv2-finetuned-docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "jinhybr/OCR-DocVQA-Donut": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Mikhail1313/layoutlmv2-base-uncased_finetuned_docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Anise1006/layoutlmv2-base-uncased_finetuned_docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "am-infoweb/layoutlmv2-finetuned_docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "AprilLim/layoutlmv2-base-uncased-finetuned-test": {
+    "Image": 1,
+    "Text": 1
+  },
+  "optimum-intel-internal-testing/tiny-doc-qa-vision-encoder-decoder": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Oksana76B/document-question-answering": {
+    "Image": 1,
+    "Text": 1
+  },
+  "SObryadchikov/layoutlmv2-base-uncased_finetuned_docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "madiltalay/layoutlmv2-base-uncased_finetuned_docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "lakshya-rawat/document-qa-model": {
+    "Image": 1,
+    "Text": 1
+  },
+  "tiennvcs/layoutlmv2-base-uncased-finetuned-infovqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "magorshunov/layoutlm-document-qa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Dhineshk/DocumentQuestionAnsweringV2": {
+    "Image": 1,
+    "Text": 1
+  },
+  "MariaK/layoutlmv2-base-uncased_finetuned_docvqa_v2": {
+    "Image": 1,
+    "Text": 1
+  },
+  "AlinaKozyreva/AlinaKozyreva": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Sharka/CIVQA_Impira_I": {
+    "Image": 1,
+    "Text": 1
+  },
+  "liuliu96/layoutlmv2-base-uncased_finetuned_docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Shwetang270899/layoutlmv2-base-uncased_finetuned_docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "fimu-docproc-research/CIVQA_layoutXLM_model": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Sharka/CIVQA_LayoutLMv2_EasyOCR": {
+    "Image": 1,
+    "Text": 1
+  },
+  "tiennvcs/layoutlmv2-base-uncased-finetuned-vi-infovqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "2KKLabs/Kaleidoscope_small_v1": {
+    "Text": 2
+  },
+  "Sharka/CIVQA_DVQA_LayoutXLM": {
+    "Image": 1,
+    "Text": 1
+  },
+  "beneor/layoutlmv2-base-uncased_finetuned_docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "magorshunov/layoutlm-invoices": {
+    "Image": 1,
+    "Text": 1
+  },
+  "guo1006/layoutlmv2-base-uncased-finetuned-docvqa_1200_examples": {
+    "Image": 1,
+    "Text": 1
+  },
+  "am-infoweb/layoutlmv3-finetuned_docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "PrplHrt/LayoutLMv2_hub_500": {
+    "Image": 1,
+    "Text": 1
+  },
+  "zpm/Llama-3.1-PersianQA": {
+    "Text": 2
+  },
+  "naver-clova-ix/donut-base-finetuned-docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Dhineshk/TestDocumentQuestionAnswering": {
+    "Image": 1,
+    "Text": 1
+  },
+  "frizwankhan/entity-linking-model-final": {
+    "Image": 1,
+    "Text": 1
+  },
+  "fxmarty/tiny-doc-qa-vision-encoder-decoder": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Quantumhash/Quantum_Doc_QA": {
+    "Image": 1,
+    "Text": 1
+  },
+  "shashin/layoutlmv2-base-uncased_finetuned_docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "AlinaKozyreva/layoutlmv2-base-uncased_finetuned_docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "QmQasim/layoutlmv2-base-uncased_finetuned_docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "AlexSaz/layoutlmv2-base-uncased_finetuned_docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Sharka/CIVQA_LayoutLMv2": {
+    "Image": 1,
+    "Text": 1
+  },
+  "mghan3624/bart_qg_finetune_squad": {
+    "Text": 1
+  },
+  "Sharka/CIVQA_LayoutLMv3_EasyOCR": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Dhineshk/TekDocumentQuestionAnswering_V3": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Sharka/CIVQA_Impira_I_EasyOCR": {
+    "Image": 1,
+    "Text": 1
+  },
+  "dperales/layoutlmv2-base-uncased_finetuned_docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "apriliantono/layoutlmv2-base-uncased_finetuned_docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Sharka/CIVQA_LayoutLMv3": {
+    "Image": 1,
+    "Text": 1
+  },
+  "StKirill/layoutlmv2-base-uncased_finetuned_docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Sharka/CIVQA_DVQA_LayoutLMv3": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Xenova/donut-base-finetuned-docvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "nikravan/glm-4vq": {
+    "Image": 1,
+    "Text": 1
+  },
+  "PrimWong/layoutlm_qa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "xhyi/layoutlmv3_docvqa_t11c5000": {
+    "Image": 1,
+    "Text": 1
+  },
+  "hmnshudhmn24/docintel-ai-extractor": {
+    "Image": 1,
+    "Text": 1
+  },
+  "pardeepSF/layoutlm-vqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "impira/layoutlm-invoices": {
+    "Image": 1,
+    "Text": 1
+  },
+  "tiennvcs/layoutlmv2-large-uncased-finetuned-vi-infovqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "tiennvcs/layoutlmv2-base-uncased-finetuned-docvqa": {
+    "Image": 1,
+    "Text": 1
+  }
+}

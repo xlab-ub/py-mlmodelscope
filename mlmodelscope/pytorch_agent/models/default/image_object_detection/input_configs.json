@@ -1,0 +1,255 @@
+{
+  "ustc-community/dfine-small-coco": {
+    "Image": 1
+  },
+  "microsoft/table-transformer-structure-recognition-v1.1-pub": {
+    "Image": 1
+  },
+  "rathi2023/owlvit-base-patch32": {
+    "Image": 1,
+    "Text": 1
+  },
+  "microsoft/conditional-detr-resnet-50": {
+    "Image": 1
+  },
+  "ioquioweknaskjdykasqwe12/owlv2-large-patch14-ensemble-ONNX": {
+    "Image": 1,
+    "Text": 1
+  },
+  "qualcomm/MediaPipe-Hand-Detection": {
+    "Image": 1
+  },
+  "jameslahm/yoloe-11s-seg": {
+    "Image": 1,
+    "Text": 1
+  },
+  "tonyshark/grounding-dino-tiny": {
+    "Image": 1,
+    "Text": 1
+  },
+  "keremberke/yolov8m-blood-cell-detection": {
+    "Image": 1
+  },
+  "qualcomm/3D-Deep-BOX": {
+    "Image": 1
+  },
+  "mdefrance/yolos-small-signature-detection": {
+    "Image": 1
+  },
+  "Xenova/owlv2-base-patch16-finetuned": {
+    "Image": 1,
+    "Text": 1
+  },
+  "isalia99/detr-resnet-50-sku110k": {
+    "Image": 1
+  },
+  "kimchanyeong/furniture-ngpea_use_data_finetuning": {
+    "Image": 1
+  },
+  "mlfoundations/Gelato-30B-A3B": {
+    "Image": 1,
+    "Text": 1
+  },
+  "jameslahm/yoloe-v8s-seg": {
+    "Image": 1,
+    "Text": 1
+  },
+  "thoddnn/grounding-dino-base": {
+    "Image": 1,
+    "Text": 1
+  },
+  "onnx-community/owlvit-base-patch32-ONNX": {
+    "Image": 1,
+    "Text": 1
+  },
+  "yainage90/fashion-object-detection-yolos-tiny": {
+    "Image": 1
+  },
+  "openmmlab-community/mm_grounding_dino_base_all": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Aryn/deformable-detr-DocLayNet": {
+    "Image": 1
+  },
+  "facebook/deformable-detr-detic": {
+    "Image": 1
+  },
+  "HuggingPanda/docling-layout": {
+    "Image": 1
+  },
+  "jameslahm/yoloe-v8l-seg": {
+    "Image": 1,
+    "Text": 1
+  },
+  "AXERA-TECH/YOLO-World-V2": {
+    "Image": 1,
+    "Text": 1
+  },
+  "omlab/OmDet-Turbo_tiny_SWIN_T": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Thomasboosinger/owlv2-large-patch14-ensemble": {
+    "Image": 1,
+    "Text": 1
+  },
+  "keremberke/yolov5n-license-plate": {
+    "Image": 1
+  },
+  "atalaydenknalbant/Yolov13": {
+    "Image": 1
+  },
+  "google/owlvit-base-patch32": {
+    "Image": 1,
+    "Text": 1
+  },
+  "nickmuchi/yolos-small-finetuned-license-plate-detection": {
+    "Image": 1
+  },
+  "PekingU/rtdetr_r50vd_coco_o365": {
+    "Image": 1
+  },
+  "Xenova/owlv2-base-patch16-ensemble": {
+    "Image": 1,
+    "Text": 1
+  },
+  "morsetechlab/yolov11-license-plate-detection": {
+    "Image": 1
+  },
+  "chosungbeen/furniture_use_data_partial_finetuning": {
+    "Image": 1
+  },
+  "onnx-community/owlv2-base-patch16-ensemble-ONNX": {
+    "Image": 1,
+    "Text": 1
+  },
+  "onnx-community/grounding-dino-tiny-ONNX": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Xenova/owlvit-base-patch16": {
+    "Image": 1,
+    "Text": 1
+  },
+  "hf-tiny-model-private/tiny-random-OwlViTForObjectDetection": {
+    "Image": 1,
+    "Text": -1
+  },
+  "qubvel-hf/detr-resnet-50-finetuned-10k-cppe5": {
+    "Image": 1
+  },
+  "facebook/detr-resnet-50": {
+    "Image": 1
+  },
+  "ioquioweknaskjdykasqwe12/llmdet_swin_tiny_hf-bnb-4bit": {
+    "Image": 1,
+    "Text": 1
+  },
+  "zerosandones/owlv2-large-patch14-ensemble-ONNX": {
+    "Image": 1,
+    "Text": 1
+  },
+  "laonML/LaonA2_VL_3B": {
+    "Image": 1,
+    "Text": 1
+  },
+  "google/owlv2-base-patch16-finetuned": {
+    "Image": 1,
+    "Text": 1
+  },
+  "keremberke/yolov5s-license-plate": {
+    "Image": 1
+  },
+  "Blueway/inference-endpoint-for-omdet-turbo-swin-tiny-hf": {
+    "Image": 1,
+    "Text": 1
+  },
+  "iSEE-Laboratory/llmdet_large": {
+    "Image": 1,
+    "Text": 1
+  },
+  "vietnguyennn0705/highway-vehicle-detection-code": {
+    "Image": 1
+  },
+  "Thomasboosinger/owlv2-base-patch16-ensemble": {
+    "Image": 1,
+    "Text": 1
+  },
+  "openmmlab-community/mm_grounding_dino_tiny_o365v1_goldg_grit": {
+    "Image": 1,
+    "Text": 1
+  },
+  "IDEA-Research/grounding-dino-base": {
+    "Image": 1,
+    "Text": 1
+  },
+  "hustvl/yolos-tiny": {
+    "Image": 1
+  },
+  "keremberke/yolov8m-hard-hat-detection": {
+    "Image": 1
+  },
+  "AndreaPorri/Yolo12n_Eyes_Detection": {
+    "Image": 1
+  },
+  "google/owlv2-large-patch14-finetuned": {
+    "Image": 1,
+    "Text": 1
+  },
+  "mhwkorea/furniture_use_data_partial_finetuning": {
+    "Image": 1
+  },
+  "google/owlv2-large-patch14-ensemble": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Thomasboosinger/owlv2-large-patch14-finetuned": {
+    "Image": 1,
+    "Text": 1
+  },
+  "onnx-community/owlv2-large-patch14-ensemble-ONNX": {
+    "Image": 1,
+    "Text": 1
+  },
+  "google/owlv2-base-patch16-ensemble": {
+    "Image": 1,
+    "Text": 1
+  },
+  "tictag-io-demo/grounding-dino-base": {
+    "Image": 1,
+    "Text": 1
+  },
+  "google/owlvit-base-patch16": {
+    "Image": 1,
+    "Text": 1
+  },
+  "tech4humans/conditional-detr-50-signature-detector": {
+    "Image": 1
+  },
+  "Thomasboosinger/owlvit-base-patch32": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Xenova/owlvit-base-patch32": {
+    "Image": 1,
+    "Text": 1
+  },
+  "IDEA-Research/grounding-dino-tiny": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Gunulhona/owlvit-base-patch32-qint8": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Xenova/yolos-tiny": {
+    "Image": 1
+  },
+  "keremberke/yolov8m-protective-equipment-detection": {
+    "Image": 1
+  },
+  "Xenova/detr-resnet-50": {
+    "Image": 1
+  }
+}

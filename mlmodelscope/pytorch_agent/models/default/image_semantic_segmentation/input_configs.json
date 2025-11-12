@@ -1,0 +1,167 @@
+{
+  "Ricky06662/Seg-Zero-7B": {
+    "Image": 1,
+    "Text": 1
+  },
+  "facebook/mask2former-swin-large-cityscapes-semantic": {
+    "Image": 1
+  },
+  "facebook/mask2former-swin-large-mapillary-vistas-semantic": {
+    "Image": 1
+  },
+  "chendelong/DirectSAM-1800px-0424": {
+    "Image": 1
+  },
+  "ZhengPeng7/BiRefNet": {
+    "Image": 1
+  },
+  "tue-mps/ade20k_semantic_eomt_large_512": {
+    "Image": 1
+  },
+  "shi-labs/oneformer_coco_swin_large": {
+    "Image": 1,
+    "Text": 1
+  },
+  "ZhengPeng7/BiRefNet-HRSOD": {
+    "Image": 1
+  },
+  "nvidia/segformer-b5-finetuned-ade-640-640": {
+    "Image": 1
+  },
+  "facebook/maskformer-swin-small-coco": {
+    "Image": 1
+  },
+  "briaai/RMBG-1.4": {
+    "Image": 1
+  },
+  "pamixsun/segformer_for_optic_disc_cup_segmentation": {
+    "Image": 1
+  },
+  "nvidia/segformer-b3-finetuned-cityscapes-1024-1024": {
+    "Image": 1
+  },
+  "facebook/maskformer-swin-small-ade": {
+    "Image": 1
+  },
+  "openmmlab/upernet-convnext-large": {
+    "Image": 1
+  },
+  "facebook/mask2former-swin-tiny-cityscapes-semantic": {
+    "Image": 1
+  },
+  "facebook/maskformer-swin-base-coco": {
+    "Image": 1
+  },
+  "facebook/mask2former-swin-tiny-coco-instance": {
+    "Image": 1
+  },
+  "qubvel-hf/finetune-instance-segmentation-ade20k-mini-mask2former": {
+    "Image": 1
+  },
+  "facebook/mask2former-swin-base-ade-semantic": {
+    "Image": 1
+  },
+  "onnx-community/ormbg-ONNX": {
+    "Image": 1
+  },
+  "ZhengPeng7/BiRefNet_HR-matting": {
+    "Image": 1
+  },
+  "facebook/mask2former-swin-large-ade-panoptic": {
+    "Image": 1
+  },
+  "thang101020/upernet-segmenthomeai": {
+    "Image": 1
+  },
+  "bwittmann/vesselFM": {
+    "Image": 1
+  },
+  "microsoft/beit-large-finetuned-ade-640-640": {
+    "Image": 1
+  },
+  "facebook/mask2former-swin-small-ade-semantic": {
+    "Image": 1
+  },
+  "shi-labs/oneformer_ade20k_dinat_large": {
+    "Image": 1,
+    "Text": 1
+  },
+  "nvidia/segformer-b5-finetuned-cityscapes-1024-1024": {
+    "Image": 1
+  },
+  "nvidia/segformer-b0-finetuned-cityscapes-1024-1024": {
+    "Image": 1
+  },
+  "cocktailpeanut/rm": {
+    "Image": 1
+  },
+  "matei-dorian/segformer-b5-finetuned-human-parsing": {
+    "Image": 1
+  },
+  "openmmlab/upernet-convnext-small": {
+    "Image": 1
+  },
+  "facebook/mask2former-swin-tiny-coco-panoptic": {
+    "Image": 1
+  },
+  "keremberke/yolov8m-building-segmentation": {
+    "Image": 1
+  },
+  "openmmlab/upernet-swin-base": {
+    "Image": 1
+  },
+  "ZhengPeng7/BiRefNet-matting": {
+    "Image": 1
+  },
+  "shi-labs/oneformer_ade20k_swin_tiny": {
+    "Image": 1,
+    "Text": 1
+  },
+  "mcmonkey/clipseg-rd64-refined-fp16": {
+    "Image": 1,
+    "Text": 1
+  },
+  "CIDAS/clipseg-rd64-refined": {
+    "Image": 1,
+    "Text": 1
+  },
+  "facebook/mask2former-swin-large-coco-instance": {
+    "Image": 1
+  },
+  "sayeed99/segformer_b3_clothes": {
+    "Image": 1
+  },
+  "restor/tcd-segformer-mit-b0": {
+    "Image": 1
+  },
+  "shi-labs/oneformer_ade20k_swin_large": {
+    "Image": 1
+  },
+  "nvidia/segformer-b1-finetuned-cityscapes-1024-1024": {
+    "Image": 1
+  },
+  "jonathandinu/face-parsing": {
+    "Image": 1
+  },
+  "nvidia/segformer-b4-finetuned-cityscapes-1024-1024": {
+    "Image": 1
+  },
+  "nvidia/segformer-b0-finetuned-cityscapes-512-1024": {
+    "Image": 1
+  },
+  "yolo12138/segformer-b2-human-parse-24": {
+    "Image": 1
+  },
+  "facebook/detr-resnet-50-panoptic": {
+    "Image": 1
+  },
+  "ZhengPeng7/BiRefNet_lite": {
+    "Image": 1
+  },
+  "facebook/mask2former-swin-small-coco-panoptic": {
+    "Image": 1
+  },
+  "Intel/dpt-large-ade": {
+    "Image": 1
+  }
+}

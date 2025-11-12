@@ -1,0 +1,344 @@
+{
+  "cnicu/t5-small-booksum": {
+    "Text": 1
+  },
+  "Helsinki-NLP/opus-mt-it-en": {
+    "Text": 1
+  },
+  "ibm-granite/granite-embedding-reranker-english-r2": {
+    "Text": 2
+  },
+  "klue/roberta-large": {
+    "Text": 1
+  },
+  "cl-nagoya/ruri-base": {
+    "Text": 1
+  },
+  "hkunlp/instructor-xl": {
+    "Text": 2
+  },
+  "sentence-transformers/multi-qa-distilbert-cos-v1": {
+    "Text": -1
+  },
+  "microsoft/mdeberta-v3-base": {
+    "Text": 1
+  },
+  "Shushant/nepaliBERT": {
+    "Text": 1
+  },
+  "google-bert/bert-base-german-cased": {
+    "Text": 1
+  },
+  "sdadas/mmlw-retrieval-roberta-large": {
+    "Text": 1
+  },
+  "google/pegasus-large": {
+    "Text": 1
+  },
+  "thanathorn/mt5-cpe-kmutt-thai-sentence-sum": {
+    "Text": 1
+  },
+  "Snowflake/snowflake-arctic-embed-s": {
+    "Text": 1
+  },
+  "microsoft/deberta-v3-base": {
+    "Text": 1
+  },
+  "webis/set-encoder-base": {
+    "Text": -1
+  },
+  "Helsinki-NLP/opus-mt-en-uk": {
+    "Text": 1
+  },
+  "Helsinki-NLP/opus-mt-tc-big-ar-en": {
+    "Text": 1
+  },
+  "Helsinki-NLP/opus-mt-jap-en": {
+    "Text": 1
+  },
+  "cross-encoder/qnli-distilroberta-base": {
+    "Text": 2
+  },
+  "Helsinki-NLP/opus-mt-it-es": {
+    "Text": 1
+  },
+  "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2": {
+    "Text": 1
+  },
+  "sentence-transformers/paraphrase-albert-small-v2": {
+    "Text": 1
+  },
+  "Jacaranda/UlizaLlama": {
+    "Text": 1
+  },
+  "Qwen/Qwen2.5-1.5B-Instruct": {
+    "Text": 1
+  },
+  "Qwen/Qwen2.5-0.5B-Instruct": {
+    "Text": 1
+  },
+  "knkarthick/MEETING_SUMMARY": {
+    "Text": 1
+  },
+  "Intel/dynamic_tinybert": {
+    "Text": 2
+  },
+  "unsloth/gpt-oss-20b-BF16": {
+    "Text": 1
+  },
+  "valhalla/longformer-base-4096-finetuned-squadv1": {
+    "Text": 2
+  },
+  "sentence-transformers/paraphrase-MiniLM-L3-v2": {
+    "Text": 1
+  },
+  "sentence-transformers/paraphrase-mpnet-base-v2": {
+    "Text": 1
+  },
+  "human-centered-summarization/financial-summarization-pegasus": {
+    "Text": 1
+  },
+  "intfloat/e5-base-v2": {
+    "Text": 1
+  },
+  "google/bigbird-pegasus-large-pubmed": {
+    "Text": 1
+  },
+  "Felladrin/gguf-jina-reranker-v1-tiny-en": {
+    "Text": 2
+  },
+  "deutsche-telekom/mt5-small-sum-de-en-v1": {
+    "Text": 1
+  },
+  "bigscience/bloomz-560m": {
+    "Text": 1
+  },
+  "Qwen/Qwen2.5-1.5B": {
+    "Text": 1
+  },
+  "deepset/deberta-v3-large-squad2": {
+    "Text": 2
+  },
+  "sentence-transformers/all-MiniLM-L12-v2": {
+    "Text": 1
+  },
+  "dangvantuan/vietnamese-document-embedding": {
+    "Text": 1
+  },
+  "cross-encoder/qnli-electra-base": {
+    "Text": 2
+  },
+  "ibm-granite/granite-embedding-30m-english": {
+    "Text": 1
+  },
+  "nlpaueb/legal-bert-small-uncased": {
+    "Text": 1
+  },
+  "radlab/polish-cross-encoder": {
+    "Text": 2
+  },
+  "shibing624/text2vec-base-multilingual": {
+    "Text": 1
+  },
+  "ContextualAI/ctxl-rerank-v2-instruct-multilingual-1b": {
+    "Text": -1
+  },
+  "facebook/wmt19-ru-en": {
+    "Text": 1
+  },
+  "FlagAlpha/Llama2-Chinese-7b-Chat": {
+    "Text": 1
+  },
+  "airesearch/wangchanberta-base-wiki-20210520-spm-finetune-qa": {
+    "Text": 2
+  },
+  "csebuetnlp/mT5_multilingual_XLSum": {
+    "Text": 1
+  },
+  "FacebookAI/roberta-large": {
+    "Text": 1
+  },
+  "ARTeLab/mbart-summarization-mlsum": {
+    "Text": 1
+  },
+  "hfl/chinese-roberta-wwm-ext": {
+    "Text": 1
+  },
+  "unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit": {
+    "Text": 1
+  },
+  "Qwen/Qwen3-32B": {
+    "Text": 1
+  },
+  "Qwen/Qwen3-4B-Instruct-2507": {
+    "Text": 1
+  },
+  "Qwen/Qwen3-14B": {
+    "Text": 1
+  },
+  "microsoft/phi-2": {
+    "Text": 1
+  },
+  "Qwen/Qwen2.5-7B-Instruct-AWQ": {
+    "Text": 1
+  },
+  "dphn/dolphin-2.9.1-yi-1.5-34b": {
+    "Text": 1
+  },
+  "Helsinki-NLP/opus-mt-en-hu": {
+    "Text": 1
+  },
+  "petals-team/StableBeluga2": {
+    "Text": 1
+  },
+  "Qwen/Qwen3-0.6B-Base": {
+    "Text": 1
+  },
+  "Qwen/Qwen2.5-14B-Instruct": {
+    "Text": 1
+  },
+  "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B": {
+    "Text": 1
+  },
+  "mistralai/Mistral-7B-Instruct-v0.2": {
+    "Text": 1
+  },
+  "Qwen/Qwen3-1.7B": {
+    "Text": 1
+  },
+  "deepseek-ai/DeepSeek-R1-Distill-Llama-8B": {
+    "Text": 1
+  },
+  "KomeijiForce/bart-large-emojilm": {
+    "Text": 1
+  },
+  "context-labs/meta-llama-Llama-3.2-3B-Instruct-FP16": {
+    "Text": 1
+  },
+  "mistralai/Mistral-7B-v0.1": {
+    "Text": 1
+  },
+  "Qwen/Qwen3-Next-80B-A3B-Instruct": {
+    "Text": 1
+  },
+  "Qwen/Qwen2.5-7B-Instruct": {
+    "Text": 1
+  },
+  "inference-net/Schematron-3B": {
+    "Text": 1
+  },
+  "Qwen/Qwen2.5-7B": {
+    "Text": 1
+  },
+  "Qwen/Qwen3-0.6B": {
+    "Text": 1
+  },
+  "Gensyn/Qwen2.5-0.5B-Instruct": {
+    "Text": 1
+  },
+  "distilbert/distilgpt2": {
+    "Text": 1
+  },
+  "kaitchup/Phi-3-mini-4k-instruct-gptq-4bit": {
+    "Text": 1
+  },
+  "openai/gpt-oss-120b": {
+    "Text": 1
+  },
+  "deepseek-ai/DeepSeek-V3.1": {
+    "Text": 1
+  },
+  "allenai/OLMo-2-0425-1B": {
+    "Text": 1
+  },
+  "deepseek-ai/deepseek-coder-1.3b-instruct": {
+    "Text": 1
+  },
+  "microsoft/phi-4": {
+    "Text": 1
+  },
+  "mlx-community/gpt-oss-20b-MXFP4-Q8": {
+    "Text": 1
+  },
+  "Qwen/Qwen3-4B": {
+    "Text": 1
+  },
+  "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B": {
+    "Text": 1
+  },
+  "trl-internal-testing/tiny-Qwen2ForCausalLM-2.5": {
+    "Text": 1
+  },
+  "TinyLlama/TinyLlama-1.1B-Chat-v1.0": {
+    "Text": 1
+  },
+  "microsoft/Phi-3-mini-4k-instruct": {
+    "Text": 1
+  },
+  "Qwen/Qwen2.5-Coder-7B-Instruct-AWQ": {
+    "Text": 1
+  },
+  "openai/gpt-oss-20b": {
+    "Text": 1
+  },
+  "MiniMaxAI/MiniMax-M2": {
+    "Text": 1
+  },
+  "facebook/opt-125m": {
+    "Text": 1
+  },
+  "Qwen/Qwen2-0.5B": {
+    "Text": 1
+  },
+  "RedHatAI/Llama-3.3-70B-Instruct-FP8-dynamic": {
+    "Text": 1
+  },
+  "Qwen/Qwen2.5-0.5B": {
+    "Text": 1
+  },
+  "Qwen/Qwen2.5-3B-Instruct": {
+    "Text": 1
+  },
+  "deepseek-ai/DeepSeek-R1-0528": {
+    "Text": 1
+  },
+  "Qwen/Qwen2.5-32B-Instruct-AWQ": {
+    "Text": 1
+  },
+  "HuggingFaceTB/SmolLM2-135M": {
+    "Text": 1
+  },
+  "Qwen/Qwen3-8B": {
+    "Text": 1
+  },
+  "openai-community/gpt2-large": {
+    "Text": 1
+  },
+  "sdadas/polish-reranker-bge-v2": {
+    "Text": 1
+  },
+  "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B": {
+    "Text": 1
+  },
+  "microsoft/DialoGPT-medium": {
+    "Text": 1
+  },
+  "Qwen/Qwen3-30B-A3B-Instruct-2507": {
+    "Text": 1
+  },
+  "hfl/chinese-bert-wwm": {
+    "Text": 1
+  },
+  "mistralai/Mistral-7B-Instruct-v0.1": {
+    "Text": 1
+  },
+  "openai-community/gpt2": {
+    "Text": 1
+  },
+  "zai-org/GLM-4.6-FP8": {
+    "Text": 1
+  },
+  "Qwen/Qwen2.5-32B-Instruct": {
+    "Text": 1
+  }
+}

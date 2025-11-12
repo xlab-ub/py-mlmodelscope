@@ -1,0 +1,350 @@
+{
+  "Freepik/nsfw_image_detector": {
+    "Image": 1
+  },
+  "google/siglip2-large-patch16-384": {
+    "Image": 1,
+    "Text": 1
+  },
+  "timm/resnet50.a1_in1k": {
+    "Image": 1
+  },
+  "google/siglip2-base-patch16-224": {
+    "Image": 1,
+    "Text": 1
+  },
+  "timm/deit_tiny_patch16_224.fb_in1k": {
+    "Image": 1
+  },
+  "google/siglip2-base-patch16-512": {
+    "Image": 1,
+    "Text": 1
+  },
+  "timm/wide_resnet50_2.racm_in1k": {
+    "Image": 1
+  },
+  "nateraw/vit-age-classifier": {
+    "Image": 1
+  },
+  "timm/vit_large_patch16_384.augreg_in21k_ft_in1k": {
+    "Image": 1
+  },
+  "Ateeqq/ai-vs-human-image-detector": {
+    "Image": 1
+  },
+  "facebook/PE-Core-B16-224": {
+    "Image": 1,
+    "Text": 1
+  },
+  "q-future/one-align": {
+    "Image": 1
+  },
+  "timm/ViT-SO400M-16-SigLIP2-384": {
+    "Image": 1,
+    "Text": 1
+  },
+  "timm/convnext_nano.in12k_ft_in1k": {
+    "Image": 1
+  },
+  "timm/rexnet_150.nav_in1k": {
+    "Image": 1
+  },
+  "laion/CLIP-ViT-B-32-laion2B-s34B-b79K": {
+    "Image": 1,
+    "Text": 1
+  },
+  "nvidia/mit-b2": {
+    "Image": 1
+  },
+  "timm/eva02_enormous_patch14_plus_clip_224.laion2b_s9b_b144k": {
+    "Image": 1,
+    "Text": 1
+  },
+  "vinid/plip": {
+    "Image": 1,
+    "Text": 1
+  },
+  "timm/vit_small_patch16_224.augreg_in21k_ft_in1k": {
+    "Image": 1
+  },
+  "google/siglip-base-patch16-224": {
+    "Image": 1,
+    "Text": 1
+  },
+  "dima806/fairface_age_image_detection": {
+    "Image": 1
+  },
+  "apple/MobileCLIP-S2-OpenCLIP": {
+    "Image": 1,
+    "Text": 1
+  },
+  "StephanAkkerman/chart-recognizer": {
+    "Image": 1
+  },
+  "timm/vit_base_patch32_clip_224.laion400m_e32": {
+    "Image": 1,
+    "Text": 1
+  },
+  "timm/vit_base_patch8_224.augreg2_in21k_ft_in1k": {
+    "Image": 1
+  },
+  "microsoft/beit-base-patch16-224-pt22k-ft22k": {
+    "Image": 1
+  },
+  "Qdrant/clip-ViT-B-32-vision": {
+    "Image": -1
+  },
+  "Xenova/clip-vit-base-patch32": {
+    "Image": 1,
+    "Text": 1
+  },
+  "facebook/PE-Core-L14-336": {
+    "Image": 1,
+    "Text": 1
+  },
+  "timm/resnet34.a1_in1k": {
+    "Image": 1
+  },
+  "timm/resnet50.fb_swsl_ig1b_ft_in1k": {
+    "Image": 1
+  },
+  "rizvandwiki/gender-classification": {
+    "Image": 1
+  },
+  "laion/CLIP-ViT-B-32-256x256-DataComp-s34B-b86K": {
+    "Image": 1,
+    "Text": 1
+  },
+  "timm/eva02_large_patch14_clip_224.merged2b_s4b_b131k": {
+    "Image": 1,
+    "Text": 1
+  },
+  "nvidia/mit-b3": {
+    "Image": 1
+  },
+  "microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224": {
+    "Image": 1,
+    "Text": 1
+  },
+  "timm/resnet18.fb_swsl_ig1b_ft_in1k": {
+    "Image": 1
+  },
+  "timm/beitv2_base_patch16_224.in1k_ft_in22k": {
+    "Image": 1
+  },
+  "google/siglip2-so400m-patch16-512": {
+    "Image": 1,
+    "Text": 1
+  },
+  "prithivMLmods/open-deepfake-detection": {
+    "Image": 1
+  },
+  "timm/ViT-B-16-SigLIP-i18n-256": {
+    "Image": 1,
+    "Text": 1
+  },
+  "timm/ViT-SO400M-14-SigLIP2-378": {
+    "Image": 1,
+    "Text": 1
+  },
+  "laion/CLIP-ViT-B-16-DataComp.XL-s13B-b90K": {
+    "Image": 1,
+    "Text": 1
+  },
+  "timm/vit_large_patch14_clip_224.metaclip_2pt5b": {
+    "Image": 1
+  },
+  "google/siglip-large-patch16-256": {
+    "Image": 1,
+    "Text": 1
+  },
+  "amunchet/rorshark-vit-base": {
+    "Image": 1
+  },
+  "timm/ViT-L-16-SigLIP2-512": {
+    "Image": 1,
+    "Text": 1
+  },
+  "yuvalkirstain/PickScore_v1": {
+    "Image": 1,
+    "Text": 1
+  },
+  "WinKawaks/vit-small-patch16-224": {
+    "Image": 1
+  },
+  "timm/resnet101_clip.yfcc15m": {
+    "Image": 1
+  },
+  "smp-hub/efficientnet-b0.imagenet": {
+    "Image": 1
+  },
+  "microsoft/resnet-50": {
+    "Image": 1
+  },
+  "timm/eva02_large_patch14_448.mim_m38m_ft_in22k_in1k": {
+    "Image": 1
+  },
+  "openai/clip-vit-large-patch14": {
+    "Image": 1,
+    "Text": 1
+  },
+  "google/siglip2-so400m-patch16-384": {
+    "Image": 1,
+    "Text": 1
+  },
+  "timm/resnet50.ram_in1k": {
+    "Image": 1
+  },
+  "laion/CLIP-convnext_base_w-laion2B-s13B-b82K-augreg": {
+    "Image": 1,
+    "Text": 1
+  },
+  "skshmjn/Pokemon-classifier-gen9-1025": {
+    "Image": 1
+  },
+  "laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K": {
+    "Image": 1,
+    "Text": 1
+  },
+  "timm/convnext_large.fb_in22k_ft_in1k": {
+    "Image": 1
+  },
+  "timm/mobilenetv3_small_050.lamb_in1k": {
+    "Image": 1
+  },
+  "timm/densenet121.ra_in1k": {
+    "Image": 1
+  },
+  "facebook/metaclip-b32-400m": {
+    "Image": 1,
+    "Text": 1
+  },
+  "laion/CLIP-convnext_large_d_320.laion2B-s29B-b131K-ft-soup": {
+    "Image": 1,
+    "Text": 1
+  },
+  "timm/inception_v3.tf_adv_in1k": {
+    "Image": 1
+  },
+  "apple/mobilevit-small": {
+    "Image": 1
+  },
+  "timm/mobilenetv3_large_100.miil_in21k_ft_in1k": {
+    "Image": 1
+  },
+  "laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K": {
+    "Image": 1,
+    "Text": 1
+  },
+  "wkcn/TinyCLIP-ViT-8M-16-Text-3M-YFCC15M": {
+    "Image": 1,
+    "Text": 1
+  },
+  "timm/tf_mobilenetv3_large_minimal_100.in1k": {
+    "Image": 1
+  },
+  "LanguageBind/LanguageBind_Video_merge": {
+    "Video": 1,
+    "Text": 1
+  },
+  "google/siglip2-so400m-patch16-naflex": {
+    "Image": 1,
+    "Text": 1
+  },
+  "timm/vit_base_patch32_384.augreg_in21k_ft_in1k": {
+    "Image": 1
+  },
+  "Salesforce/blip2-itm-vit-g": {
+    "Image": 1,
+    "Text": 1
+  },
+  "google/vit-hybrid-base-bit-384": {
+    "Image": 1
+  },
+  "trpakov/vit-face-expression": {
+    "Image": 1
+  },
+  "timm/resnet18.a1_in1k": {
+    "Image": 1
+  },
+  "Marqo/marqo-fashionCLIP": {
+    "Image": 1,
+    "Text": 1
+  },
+  "timm/convnextv2_nano.fcmae_ft_in22k_in1k": {
+    "Image": 1
+  },
+  "timm/deit_small_patch16_224.fb_in1k": {
+    "Image": 1
+  },
+  "timm/vit_base_patch16_224.augreg2_in21k_ft_in1k": {
+    "Image": 1
+  },
+  "timm/efficientnet_b0.ra_in1k": {
+    "Image": 1
+  },
+  "timm/vit_base_patch16_224.augreg_in21k": {
+    "Image": 1
+  },
+  "openai/clip-vit-base-patch32": {
+    "Image": 1,
+    "Text": 1
+  },
+  "timm/regnety_032.ra_in1k": {
+    "Image": 1
+  },
+  "timm/mobilenetv3_large_100.ra_in1k": {
+    "Image": 1
+  },
+  "timm/edgenext_small.usi_in1k": {
+    "Image": 1
+  },
+  "google/vit-base-patch16-384": {
+    "Image": 1
+  },
+  "timm/mobilenetv3_small_100.lamb_in1k": {
+    "Image": 1
+  },
+  "timm/inception_v3.tv_in1k": {
+    "Image": 1
+  },
+  "timm/vgg19.tv_in1k": {
+    "Image": 1
+  },
+  "timm/convnext_base.clip_laion2b_augreg_ft_in12k_in1k": {
+    "Image": 1
+  },
+  "timm/vit_tiny_patch16_224.augreg_in21k_ft_in1k": {
+    "Image": 1
+  },
+  "haywoodsloan/ai-image-detector-dev-deploy": {
+    "Image": 1
+  },
+  "AdamCodd/vit-base-nsfw-detector": {
+    "Image": 1
+  },
+  "timm/convnext_tiny.in12k_ft_in1k": {
+    "Image": 1
+  },
+  "microsoft/resnet-18": {
+    "Image": 1
+  },
+  "google/vit-base-patch16-224": {
+    "Image": 1
+  },
+  "timm/convnextv2_tiny.fcmae_ft_in1k": {
+    "Image": 1
+  },
+  "microsoft/swinv2-tiny-patch4-window16-256": {
+    "Image": 1
+  },
+  "timm/convnext_femto.d1_in1k": {
+    "Image": 1
+  },
+  "rizvandwiki/gender-classification-2": {
+    "Image": 1
+  },
+  "Falconsai/nsfw_image_detection": {
+    "Image": 1
+  }
+}

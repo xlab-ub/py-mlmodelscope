@@ -1,0 +1,216 @@
+{
+  "Stable-X/yoso-normal-v1-8-1": {
+    "Image": 1
+  },
+  "TencentARC/t2i-adapter-depth-midas-sdxl-1.0": {
+    "Image": 1,
+    "Text": 1
+  },
+  "lllyasviel/control_v11p_sd15_softedge": {
+    "Image": 1,
+    "Text": 1
+  },
+  "dx8152/Qwen-Image-Edit-2509-White_to_Scene": {
+    "Image": 1,
+    "Text": 1
+  },
+  "lllyasviel/control_v11p_sd15_canny": {
+    "Image": 1,
+    "Text": 1
+  },
+  "stanfordmimi/MedVAE": {
+    "Image": 1
+  },
+  "dx8152/Qwen-Image-Edit-2509-Relight": {
+    "Image": 1,
+    "Text": 1
+  },
+  "lllyasviel/control_v11f1e_sd15_tile": {
+    "Image": 1,
+    "Text": 1
+  },
+  "InstantX/Qwen-Image-ControlNet-Inpainting": {
+    "Image": 2,
+    "Text": 1
+  },
+  "alexanderkroner/MSI-Net": {
+    "Image": 1
+  },
+  "DiffusionLight/TurboLoRA": {
+    "Image": 3,
+    "Text": 1
+  },
+  "enhanceaiteam/Flux-Uncensored-V2": {
+    "Text": 1
+  },
+  "lllyasviel/control_v11p_sd15_normalbae": {
+    "Image": 1,
+    "Text": 1
+  },
+  "alimama-creative/FLUX.1-dev-Controlnet-Inpainting-Beta": {
+    "Image": 2,
+    "Text": 1
+  },
+  "QuantStack/Qwen-Image-Edit-GGUF": {
+    "Image": 1,
+    "Text": 1
+  },
+  "stabilityai/stable-diffusion-2-inpainting": {
+    "Text": 1,
+    "Image": 2
+  },
+  "calcuis/qwen-image-edit-plus-gguf": {
+    "Image": -1,
+    "Text": 1
+  },
+  "Qwen/Qwen-Image-Edit-2509": {
+    "Image": -1,
+    "Text": 1
+  },
+  "ilkerzgi/Overlay-Kontext-Dev-LoRA": {
+    "Image": 1,
+    "Text": 1
+  },
+  "destitech/controlnet-inpaint-dreamer-sdxl": {
+    "Image": 1,
+    "Text": 1
+  },
+  "REPA-E/e2e-qwenimage-vae": {
+    "Image": 1
+  },
+  "ovedrive/Qwen-Image-Edit-2509-4bit": {
+    "Image": -1,
+    "Text": 1
+  },
+  "Qwen/Qwen-Image-Edit": {
+    "Image": 1,
+    "Text": 1
+  },
+  "refiners/sd15.controlnet.canny": {
+    "Image": 1,
+    "Text": 1
+  },
+  "lovis93/next-scene-qwen-image-lora-2509": {
+    "Image": 1,
+    "Text": 1
+  },
+  "kontext-community/relighting-kontext-dev-lora-v3": {
+    "Image": 1,
+    "Text": 1
+  },
+  "refiners/sd15.realistic_vision.v5_1.unet": {
+    "Image": 1,
+    "Text": 1
+  },
+  "latentcat/control_v1p_sd15_brightness": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Lykon/dreamshaper-8-inpainting": {
+    "Text": 1,
+    "Image": 2
+  },
+  "jasperai/Flux.1-dev-Controlnet-Upscaler": {
+    "Image": 1,
+    "Text": 1
+  },
+  "tlennon-ie/qwen-edit-skin": {
+    "Image": 1,
+    "Text": 1
+  },
+  "unsloth/FLUX.1-Kontext-dev-GGUF": {
+    "Image": 1,
+    "Text": 1
+  },
+  "lllyasviel/control_v11e_sd15_ip2p": {
+    "Image": 1,
+    "Text": 1
+  },
+  "caidas/swin2SR-classical-sr-x4-64": {
+    "Image": 1
+  },
+  "TencentARC/t2i-adapter-sketch-sdxl-1.0": {
+    "Image": 1,
+    "Text": 1
+  },
+  "caidas/swin2SR-classical-sr-x2-64": {
+    "Image": 1
+  },
+  "lllyasviel/control_v11p_sd15_seg": {
+    "Text": 1,
+    "Image": 1
+  },
+  "stabilityai/stable-diffusion-xl-refiner-1.0": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Stable-X/yoso-normal-v1-5": {
+    "Image": 1
+  },
+  "nunchaku-tech/nunchaku-flux.1-fill-dev": {
+    "Image": 1,
+    "Text": 1
+  },
+  "peteromallet/Qwen-Image-Edit-InScene": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Stable-X/yoso-delight-v0-4-base": {
+    "Image": 1
+  },
+  "lllyasviel/sd-controlnet-openpose": {
+    "Image": 1,
+    "Text": 1
+  },
+  "dx8152/Qwen-Edit-2509-Multiple-angles": {
+    "Image": 1,
+    "Text": 1
+  },
+  "valiantcat/Qwen-Image-Edit-MeiTu": {
+    "Image": 1,
+    "Text": 1
+  },
+  "lllyasviel/sd-controlnet-canny": {
+    "Image": 1,
+    "Text": 1
+  },
+  "mit-han-lab/svdq-int4-flux.1-fill-dev": {
+    "Image": 1,
+    "Text": 1
+  },
+  "InstantX/Qwen-Image-ControlNet-Union": {
+    "Image": 1,
+    "Text": 1
+  },
+  "XLabs-AI/flux-ip-adapter-v2": {
+    "Image": 1,
+    "Text": 1
+  },
+  "caidas/swin2SR-realworld-sr-x4-64-bsrgan-psnr": {
+    "Image": 1
+  },
+  "echarlaix/tiny-random-stable-diffusion-xl-refiner": {
+    "Image": 1,
+    "Text": 1
+  },
+  "optimum-intel-internal-testing/tiny-random-stable-diffusion-xl-refiner": {
+    "Image": 1,
+    "Text": 1
+  },
+  "calcuis/qwen-image-edit-gguf": {
+    "Image": 1,
+    "Text": 1
+  },
+  "bullerwins/FLUX.1-Kontext-dev-GGUF": {
+    "Image": 1,
+    "Text": 1
+  },
+  "QuantStack/FLUX.1-Kontext-dev-GGUF": {
+    "Image": 1,
+    "Text": 1
+  },
+  "timbrooks/instruct-pix2pix": {
+    "Image": 1,
+    "Text": 1
+  }
+}

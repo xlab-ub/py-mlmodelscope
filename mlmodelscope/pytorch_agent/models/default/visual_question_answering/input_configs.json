@@ -1,0 +1,235 @@
+{
+  "TIGER-Lab/VL-Rethinker-72B": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Lin-Chen/sharegpt4video-8b": {
+    "Video": 1,
+    "Text": 1
+  },
+  "google/matcha-plotqa-v1": {
+    "Image": 1,
+    "Text": 1
+  },
+  "VLM-Reasoner/LMM-R1-MGT-PerceReason": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Jesteban247/brats_medgemma": {
+    "Image": 1,
+    "Text": 1
+  },
+  "microsoft/git-large-textvqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "internlm/internlm-xcomposer2-vl-7b": {
+    "Image": 1,
+    "Text": 1
+  },
+  "second-state/MiniCPM-V-4-GGUF": {
+    "Image": 1,
+    "Text": 1
+  },
+  "dandelin/vilt-b32-finetuned-vqa": {
+    "Image": 1,
+    "Text": 1
+  },
+  "BAAI/Aquila-VL-2B-llava-qwen": {
+    "Image": 1,
+    "Text": 1
+  },
+  "ByteDance/Sa2VA-4B": {
+    "Image": 1,
+    "Text": 1
+  },
+  "google/matcha-chart2text-pew": {
+    "Image": 1
+  },
+  "lmstudio-community/gemma-3n-E4B-it-MLX-bf16": {
+    "Image": 1,
+    "Text": 1
+  },
+  "exdysa/infrl-qwen2.5-vl-72b-preview-GGUF": {
+    "Image": 1,
+    "Text": 1
+  },
+  "SimulaMet/Qwen2.5-VL-KvasirVQA-x1-ft": {
+    "Image": 1,
+    "Text": 1
+  },
+  "zai-org/GLM-4.5V-FP8": {
+    "Image": 1,
+    "Text": 1
+  },
+  "google/pix2struct-docvqa-large": {
+    "Image": 1,
+    "Text": 1
+  },
+  "fancyfeast/llama-joycaption-beta-one-hf-llava": {
+    "Image": 1,
+    "Text": 1
+  },
+  "TIGER-Lab/VideoScore2-SFT": {
+    "Video": 1,
+    "Text": 1
+  },
+  "lmstudio-community/gemma-3n-E4B-it-MLX-4bit": {
+    "Image": 1,
+    "Text": 1
+  },
+  "gaianet/MiniCPM-V-2_6-GGUF": {
+    "Image": 1,
+    "Text": 1
+  },
+  "google/matcha-base": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Qwen/Qwen3-VL-32B-Instruct": {
+    "Image": 1,
+    "Text": 1
+  },
+  "deepseek-ai/DeepSeek-OCR": {
+    "Image": 1,
+    "Text": 1
+  },
+  "lmstudio-community/Qwen3-VL-30B-A3B-Instruct-MLX-8bit": {
+    "Image": 1,
+    "Text": 1
+  },
+  "SakanaAI/TAID-VLM-2B": {
+    "Image": 1,
+    "Text": 1
+  },
+  "mradermacher/NayanaVQA-GGUF": {
+    "Image": 1,
+    "Text": 1
+  },
+  "mradermacher/TreeVGR-7B-CI-GGUF": {
+    "Image": 1,
+    "Text": 1
+  },
+  "OpenGVLab/InternVL3-8B": {
+    "Image": -1,
+    "Text": 1
+  },
+  "google/pix2struct-screen2words-base": {
+    "Image": 1
+  },
+  "BUAADreamer/Chinese-LLaVA-Med-7B": {
+    "Image": 1,
+    "Text": 1
+  },
+  "microsoft/git-large-vqav2": {
+    "Image": 1,
+    "Text": 1
+  },
+  "opendatalab/MinerU2.5-2509-1.2B": {
+    "Image": 1
+  },
+  "lmstudio-community/Qwen3-VL-4B-Instruct-MLX-4bit": {
+    "Image": 1,
+    "Text": 1
+  },
+  "openbmb/MiniCPM-V-2": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Qwen/Qwen3-VL-30B-A3B-Instruct": {
+    "Image": 1,
+    "Text": 1
+  },
+  "mPLUG/mPLUG-Owl3-7B-241101": {
+    "Text": 1,
+    "Image": -1,
+    "Video": -1
+  },
+  "second-state/MiniCPM-V-2_6-GGUF": {
+    "Image": 1,
+    "Text": 1
+  },
+  "TIGER-Lab/VideoScore": {
+    "Video": 1,
+    "Text": 1
+  },
+  "IDEA-CCNL/Ziya-BLIP2-14B-Visual-v1": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Qwen/Qwen2.5-VL-7B-Instruct": {
+    "Text": 1,
+    "Image": -1,
+    "Video": -1
+  },
+  "HuggingFaceTB/SmolVLM2-2.2B-Instruct": {
+    "Text": 1,
+    "Image": -1,
+    "Video": 1
+  },
+  "mradermacher/TreeVGR-7B-CI-i1-GGUF": {
+    "Image": 1,
+    "Text": 1
+  },
+  "mlx-community/gemma-3-12b-it-qat-4bit": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Qwen/Qwen3-VL-8B-Thinking": {
+    "Image": 1,
+    "Text": 1
+  },
+  "google/matcha-chart2text-statista": {
+    "Image": 1,
+    "Text": 1
+  },
+  "OpenGVLab/InternVL3_5-241B-A28B-Instruct": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Qwen/Qwen3-VL-4B-Instruct": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Qwen/Qwen2.5-VL-7B-Instruct-AWQ": {
+    "Text": 1,
+    "Image": -1,
+    "Video": -1
+  },
+  "lmstudio-community/gemma-3n-E4B-it-MLX-8bit": {
+    "Image": 1,
+    "Text": 1
+  },
+  "GeorgyGUF/INFRL-Qwen2.5-VL-72B-Preview-ggufs-fully-quantized": {
+    "Image": 1,
+    "Text": 1
+  },
+  "llava-hf/llava-1.5-7b-hf": {
+    "Image": -1,
+    "Text": -1
+  },
+  "llava-hf/llava-v1.6-mistral-7b-hf": {
+    "Image": 1,
+    "Text": 1
+  },
+  "lmstudio-community/Qwen3-VL-8B-Instruct-MLX-6bit": {
+    "Image": 1,
+    "Text": 1
+  },
+  "google/deplot": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Salesforce/blip-vqa-base": {
+    "Image": 1,
+    "Text": 1
+  },
+  "Salesforce/blip-vqa-capfilt-large": {
+    "Image": 1,
+    "Text": 1
+  },
+  "gaianet/MiniCPM-V-4-GGUF": {
+    "Image": 1,
+    "Text": 1
+  }
+}

@@ -1,0 +1,206 @@
+{
+  "manandey/wav2vec2-large-xlsr-punjabi": {
+    "Audio": 1
+  },
+  "tristayqc/my_zh_CN_asr_cv13_model": {
+    "Audio": 1
+  },
+  "nvidia/parakeet-ctc-1.1b": {
+    "Audio": 1
+  },
+  "imvladikon/wav2vec2-xls-r-300m-hebrew": {
+    "Audio": 1
+  },
+  "gvs/wav2vec2-large-xlsr-malayalam": {
+    "Audio": 1
+  },
+  "openai/whisper-medium": {
+    "Audio": 1
+  },
+  "Systran/faster-whisper-large-v3": {
+    "Audio": 1
+  },
+  "comodoro/wav2vec2-xls-r-300m-cs-250": {
+    "Audio": 1
+  },
+  "Systran/faster-whisper-medium.en": {
+    "Audio": 1
+  },
+  "openai/whisper-large": {
+    "Audio": 1
+  },
+  "facebook/wav2vec2-xlsr-53-espeak-cv-ft": {
+    "Audio": 1
+  },
+  "openai/whisper-tiny": {
+    "Audio": 1
+  },
+  "waveletdeboshir/gigaam-rnnt": {
+    "Audio": 1
+  },
+  "stefan-it/wav2vec2-large-xlsr-53-basque": {
+    "Audio": 1
+  },
+  "jonatasgrosman/wav2vec2-large-xlsr-53-portuguese": {
+    "Audio": 1
+  },
+  "jonatasgrosman/wav2vec2-large-xlsr-53-chinese-zh-cn": {
+    "Audio": 1
+  },
+  "jonatasgrosman/wav2vec2-xls-r-1b-portuguese": {
+    "Audio": 1
+  },
+  "jonatasgrosman/wav2vec2-large-xlsr-53-finnish": {
+    "Audio": 1
+  },
+  "mlx-community/parakeet-tdt-0.6b-v3": {
+    "Audio": 1
+  },
+  "argmaxinc/whisperkit-coreml": {
+    "Audio": 1
+  },
+  "softcatala/wav2vec2-large-xlsr-catala": {
+    "Audio": 1
+  },
+  "Systran/faster-whisper-small.en": {
+    "Audio": 1
+  },
+  "openai/whisper-large-v2": {
+    "Audio": 1
+  },
+  "Khalsuu/filipino-wav2vec2-l-xls-r-300m-official": {
+    "Audio": 1
+  },
+  "facebook/wav2vec2-conformer-rope-large-960h-ft": {
+    "Audio": 1
+  },
+  "TKU410410103/wav2vec2-base-japanese-asr": {
+    "Audio": 1
+  },
+  "eddiegulay/wav2vec2-large-xlsr-mvc-swahili": {
+    "Audio": 1
+  },
+  "nvidia/parakeet-tdt_ctc-110m": {
+    "Audio": 1
+  },
+  "openai/whisper-large-v3-turbo": {
+    "Audio": 1
+  },
+  "NbAiLab/nb-wav2vec2-1b-bokmaal-v2": {
+    "Audio": 1
+  },
+  "jonatasgrosman/wav2vec2-large-xlsr-53-greek": {
+    "Audio": 1
+  },
+  "vasista22/whisper-tamil-small": {
+    "Audio": 1
+  },
+  "jonatasgrosman/wav2vec2-large-xlsr-53-persian": {
+    "Audio": 1
+  },
+  "openai/whisper-base": {
+    "Audio": 1
+  },
+  "nvidia/parakeet-rnnt-0.6b": {
+    "Audio": 1
+  },
+  "comodoro/wav2vec2-xls-r-300m-sk-cv8": {
+    "Audio": 1
+  },
+  "jonatasgrosman/wav2vec2-large-xlsr-53-russian": {
+    "Audio": 1
+  },
+  "NbAiLab/nb-wav2vec2-1b-nynorsk": {
+    "Audio": 1
+  },
+  "openai/whisper-small": {
+    "Audio": 1
+  },
+  "microsoft/Phi-4-multimodal-instruct": {
+    "Text": 1,
+    "Image": -1,
+    "Audio": 1
+  },
+  "Systran/faster-whisper-base": {
+    "Audio": 1
+  },
+  "facebook/wav2vec2-large-es-voxpopuli": {
+    "Audio": 1
+  },
+  "facebook/wav2vec2-large-960h": {
+    "Audio": 1
+  },
+  "jonatasgrosman/wav2vec2-large-xlsr-53-arabic": {
+    "Audio": 1
+  },
+  "mpoyraz/wav2vec2-xls-r-300m-cv7-turkish": {
+    "Audio": 1
+  },
+  "t-tech/T-one": {
+    "Audio": 1
+  },
+  "openai/whisper-large-v3": {
+    "Audio": 1
+  },
+  "bangla-speech-processing/BanglaASR": {
+    "Audio": 1
+  },
+  "KBLab/wav2vec2-large-xlsr-53-swedish": {
+    "Audio": 1
+  },
+  "indonesian-nlp/wav2vec2-indonesian-javanese-sundanese": {
+    "Audio": 1
+  },
+  "indonesian-nlp/wav2vec2-large-xlsr-indonesian": {
+    "Audio": 1
+  },
+  "Systran/faster-whisper-large-v2": {
+    "Audio": 1
+  },
+  "jonatasgrosman/wav2vec2-large-xlsr-53-english": {
+    "Audio": 1
+  },
+  "ibm-granite/granite-speech-3.3-2b": {
+    "Audio": 1,
+    "Text": 1
+  },
+  "jonatasgrosman/wav2vec2-large-xlsr-53-dutch": {
+    "Audio": 1
+  },
+  "kingabzpro/wav2vec2-large-xls-r-300m-Urdu": {
+    "Audio": 1
+  },
+  "jonatasgrosman/wav2vec2-large-xlsr-53-japanese": {
+    "Audio": 1
+  },
+  "argmaxinc/parakeetkit-pro": {
+    "Audio": 1
+  },
+  "kresnik/wav2vec2-large-xlsr-korean": {
+    "Audio": 1
+  },
+  "facebook/wav2vec2-large-robust-ft-libri-960h": {
+    "Audio": 1
+  },
+  "Systran/faster-whisper-tiny": {
+    "Audio": 1
+  },
+  "mlx-community/parakeet-tdt-0.6b-v2": {
+    "Audio": 1
+  },
+  "facebook/wav2vec2-base-960h": {
+    "Audio": 1
+  },
+  "nvidia/parakeet-tdt-0.6b-v3": {
+    "Audio": 1
+  },
+  "nvidia/parakeet-tdt-0.6b-v2": {
+    "Audio": 1
+  },
+  "Xenova/whisper-medium": {
+    "Audio": 1
+  },
+  "facebook/hubert-large-ls960-ft": {
+    "Audio": 1
+  }
+}

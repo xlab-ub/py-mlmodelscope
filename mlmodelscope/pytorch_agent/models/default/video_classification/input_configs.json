@@ -1,0 +1,187 @@
+{
+  "microsoft/xclip-base-patch16": {
+    "Video": 1,
+    "Text": 1
+  },
+  "Shawon16/VideoMAE_fold__1__20_epoch_p5_bdslw60_kinetics_check_longtail__": {
+    "Video": 1
+  },
+  "OpenGVLab/VideoMAEv2-giant": {
+    "Video": 1
+  },
+  "mitegvg/videomae-tiny-ssv2-binary-finetuned-xd-violence": {
+    "Video": 1
+  },
+  "Nikeytas/videomae-crime-detector-ultra-v1": {
+    "Video": 1
+  },
+  "MCG-NJU/videomae-base-short": {
+    "Video": 1
+  },
+  "google/videoprism-lvt-base-f16r288": {
+    "Video": 1,
+    "Text": 1
+  },
+  "microsoft/xclip-base-patch32-16-frames": {
+    "Video": 1,
+    "Text": 1
+  },
+  "qubvel-hf/vjepa2-vitg-fpc64-384-ssv2": {
+    "Video": 1
+  },
+  "facebook/timesformer-base-finetuned-k400": {
+    "Video": 1
+  },
+  "archit11/videomae-base-finetuned-fight-nofight-subset2": {
+    "Video": 1
+  },
+  "facebook/vjepa2-vitg-fpc64-384-ssv2": {
+    "Video": 1
+  },
+  "facebook/timesformer-hr-finetuned-ssv2": {
+    "Video": 1
+  },
+  "mitegvg/videomae-small-kinetics-binary-finetuned-xd-violence": {
+    "Video": 1
+  },
+  "qubvel-hf/vjepa2-vitl-fpc16-256-ssv2": {
+    "Video": 1
+  },
+  "microsoft/xclip-base-patch16-16-frames": {
+    "Video": 1,
+    "Text": 1
+  },
+  "shylhy/videomae-large-finetuned-deepfake-subset": {
+    "Video": 1
+  },
+  "Nikeytas/videomae-crime-detector-production-v1": {
+    "Video": 1
+  },
+  "Shawon16/VideoMAE_Base_WLASL_100_200_epochs_p20_SR_8": {
+    "Video": 1
+  },
+  "sayloren/videomae-base-finetuned-ucf101-subset": {
+    "Video": 1
+  },
+  "microsoft/xclip-base-patch32": {
+    "Video": 1,
+    "Text": 1
+  },
+  "aap9002/RGB_Optic_Flow_Bend_Classification": {
+    "Video": 1
+  },
+  "google/vivit-b-16x2": {
+    "Video": 1
+  },
+  "facebook/timesformer-base-finetuned-ssv2": {
+    "Video": 1
+  },
+  "sheraz179/videomae-base-finetuned": {
+    "Video": 1
+  },
+  "microsoft/xclip-large-patch14": {
+    "Video": 1,
+    "Text": 1
+  },
+  "MCG-NJU/videomae-large-finetuned-kinetics": {
+    "Video": 1
+  },
+  "qualcomm/ResNet-Mixed-Convolution": {
+    "Video": 1
+  },
+  "qualcomm/ResNet-3D": {
+    "Video": 1
+  },
+  "MCG-NJU/videomae-base": {
+    "Video": 1
+  },
+  "microsoft/xclip-base-patch16-kinetics-600": {
+    "Video": 1,
+    "Text": 1
+  },
+  "facebook/timesformer-hr-finetuned-k600": {
+    "Video": 1
+  },
+  "Kartikeya/timesformer-base-finetuned-k400-finetuned-snapdata_short_classification-sample_rate32": {
+    "Video": 1
+  },
+  "Shawon16/VideoMAE_fold__0__20_epoch_p5_bdslw60_kinetics_check_longtail_10class": {
+    "Video": 1
+  },
+  "OpenGVLab/VideoMAEv2-Huge": {
+    "Video": 1
+  },
+  "Shawon16/VideoMAE_fold__0__5_epoch_p5_bdslw60_kinetics_check_longtail_60class_sperman": {
+    "Video": 1
+  },
+  "google/vivit-b-16x2-kinetics400": {
+    "Video": 1
+  },
+  "mitegvg/videomae-base-kinetics-binary-finetuned-xd-violence": {
+    "Video": 1
+  },
+  "facebook/vjepa2-vitl-fpc32-256-diving48": {
+    "Video": 1
+  },
+  "Shawon16/VideoMAE_fold__1__5_epoch_p5_bdslw60_kinetics_check_longtail_60class_sperman": {
+    "Video": 1
+  },
+  "MCG-NJU/videomae-base-short-finetuned-kinetics": {
+    "Video": 1
+  },
+  "MCG-NJU/videomae-small-finetuned-kinetics": {
+    "Video": 1
+  },
+  "facebook/vjepa2-vitl-fpc64-256": {
+    "Video": 1
+  },
+  "google/videoprism-base-f16r288": {
+    "Video": 1
+  },
+  "google/videoprism-large-f8r288": {
+    "Video": 1
+  },
+  "fcakyon/timesformer-base-finetuned-k400": {
+    "Video": 1
+  },
+  "NandakishoreN/videomae-base-finetuned-ucf101-subset": {
+    "Video": 1
+  },
+  "OpenGVLab/VideoMAEv2-Large": {
+    "Video": 1
+  },
+  "parksy1314/videomae-base-finetuned-kinetics-finetuned-violence-subset": {
+    "Video": 1
+  },
+  "facebook/timesformer-base-finetuned-k600": {
+    "Video": 1
+  },
+  "microsoft/xclip-base-patch16-zero-shot": {
+    "Video": 1,
+    "Text": 1
+  },
+  "Awais1718/videomae-base-finetuned-kinetics-finetuned-shoplifting-dataset": {
+    "Video": 1
+  },
+  "Kartikeya/timesformer-base-finetuned-k400-finetuned-snapdata_short_classification-sample_rate16": {
+    "Video": 1
+  },
+  "MCG-NJU/videomae-base-short-ssv2": {
+    "Video": 1
+  },
+  "facebook/vjepa2-vitl-fpc16-256-ssv2": {
+    "Video": 1
+  },
+  "mitegvg/videomae-tiny-92-kinetics-binary-finetuned-xd-violence": {
+    "Video": 1
+  },
+  "MCG-NJU/videomae-huge-finetuned-kinetics": {
+    "Video": 1
+  },
+  "MCG-NJU/videomae-large": {
+    "Video": 1
+  },
+  "sigtakahashi/videomae-base-finetuned-ucf101-subset": {
+    "Video": 1
+  }
+}

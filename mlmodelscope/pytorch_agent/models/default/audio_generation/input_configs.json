@@ -1,0 +1,26 @@
+{
+  "facebook/musicgen-large": {
+    "Text": 1
+  },
+  "facebook/musicgen-melody": {
+    "Text": 1,
+    "Audio": 1
+  },
+  "facebook/musicgen-small": {
+    "Text": 1
+  },
+  "ylacombe/musicgen-melody": {
+    "Text": 1,
+    "Audio": 1
+  },
+  "facebook/musicgen-melody-large": {
+    "Text": 1,
+    "Audio": 1
+  },
+  "Xenova/musicgen-small": {
+    "Text": 1
+  },
+  "facebook/musicgen-medium": {
+    "Text": 1
+  }
+}

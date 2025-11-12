@@ -1,0 +1,234 @@
+{
+  "apple/coreml-sam2.1-small": {
+    "Image": 1
+  },
+  "Xenova/medsam-vit-base": {
+    "Image": 1
+  },
+  "nchanduka/my-sec-4b": {
+    "Video": 1,
+    "Text": 1
+  },
+  "merve/sam2-hiera-base-plus": {
+    "Image": 1
+  },
+  "syscv-community/sam-hq-vit-large": {
+    "Image": 1
+  },
+  "merve/sam2-hiera-small": {
+    "Image": 1
+  },
+  "Xenova/slimsam-50-uniform": {
+    "Image": 1,
+    "Tensor": 1
+  },
+  "finegrain/finegrain-box-segmenter": {
+    "Image": 1,
+    "Tensor": 1
+  },
+  "facebook/sam2-hiera-large": {
+    "Image": 1,
+    "Video": 1,
+    "Tensor": 1
+  },
+  "MsAlEhR/MetaBERTa-bigbird-gene": {
+    "Text": 1
+  },
+  "apple/coreml-sam2-small": {
+    "Image": 1
+  },
+  "ductai199x/sam_hq_vit_huge": {
+    "Image": 1
+  },
+  "chaitnya26/sam2-hiera-large": {
+    "Image": 1,
+    "Video": 1
+  },
+  "apple/coreml-sam2.1-baseplus": {
+    "Image": 1
+  },
+  "Xenova/slimsam-77-uniform": {
+    "Image": 1,
+    "Tensor": 1
+  },
+  "twelcone/medsam2-hiera-large": {
+    "Image": 1
+  },
+  "Yasssh2123/Grape": {
+    "Image": 1
+  },
+  "facebook/sam-vit-base": {
+    "Image": 1,
+    "Tensor": 1
+  },
+  "facebook/sam2.1-hiera-small": {
+    "Image": 1,
+    "Video": 1,
+    "Tensor": 1
+  },
+  "martintomov/InsectSAM": {
+    "Image": 1
+  },
+  "ahishamm/skinsam": {
+    "Image": 1
+  },
+  "weihao1115/ucmt_sam_on_hsi": {
+    "Image": 1,
+    "Text": 1
+  },
+  "ahishamm/skinsam_large": {
+    "Image": 1
+  },
+  "Xenova/sam-vit-large": {
+    "Image": 1,
+    "Tensor": 1
+  },
+  "twelcone/medsam2-hiera-small": {
+    "Image": 1
+  },
+  "Mit1208/sam-fine-tune-doclaynet": {
+    "Image": 1
+  },
+  "yayafengzi/InternVL2_5-HiMTok-8B": {
+    "Image": 1,
+    "Text": 1
+  },
+  "apple/coreml-sam2-large": {
+    "Image": 1
+  },
+  "ductai199x/sam_hq_vit_large": {
+    "Image": 1
+  },
+  "apple/coreml-sam2.1-tiny": {
+    "Image": 1
+  },
+  "ahishamm/skinsam_focalloss_large": {
+    "Image": 1
+  },
+  "yjmsvma/car_sam": {
+    "Image": 1
+  },
+  "apple/coreml-sam2-baseplus": {
+    "Image": 1
+  },
+  "ahishamm/fine_tuned_efficient_sam": {
+    "Image": 1
+  },
+  "OpenIXCLab/SeC-4B": {
+    "Video": 1
+  },
+  "weihao1115/wmmf_sam_on_hsi": {
+    "Image": 2
+  },
+  "kitooo/sidewalk-seg-base": {
+    "Image": 1
+  },
+  "flaviagiammarino/medsam-vit-base": {
+    "Image": 1,
+    "Tensor": 1
+  },
+  "nielsr/slimsam-50-uniform": {
+    "Image": 1
+  },
+  "djessica/sam2": {
+    "Image": 1,
+    "Video": 1
+  },
+  "ZoeVN/sam_full_finetune_breastcancer": {
+    "Image": 1
+  },
+  "facebook/sam2.1-hiera-base-plus": {
+    "Image": 1
+  },
+  "AndreaLeylavergne/segformer_B0_B5": {
+    "Image": 1
+  },
+  "fxmarty/sam-vit-tiny-random": {
+    "Image": 1
+  },
+  "ahishamm/skinsam_focalloss_base_combined": {
+    "Image": 1
+  },
+  "giladvdn/test-sam-handler": {
+    "Image": 1
+  },
+  "ahishamm/skinsam_focalloss_base": {
+    "Image": 1
+  },
+  "syscv-community/sam-hq-vit-base": {
+    "Image": 1
+  },
+  "tictag-io-demo/sam2.1-hiera-large": {
+    "Image": 1,
+    "Video": 1
+  },
+  "apple/coreml-sam2-tiny": {
+    "Image": 1
+  },
+  "facebook/sam2-hiera-base-plus": {
+    "Image": 1,
+    "Video": 1
+  },
+  "cmhong68/medSAM_skin": {
+    "Image": 1
+  },
+  "aradootle/sam-vit-base": {
+    "Image": 1
+  },
+  "aldigobbler/ben2_30m_test_distilled_e2": {
+    "Image": 1
+  },
+  "apple/coreml-sam2.1-large": {
+    "Image": 1
+  },
+  "merve/sam2-hiera-large": {
+    "Image": 1
+  },
+  "masapasa/medsam-vit-base-cancer": {
+    "Image": 1
+  },
+  "aldigobbler/ben2_30m_test": {
+    "Image": 1
+  },
+  "facebook/sam2-hiera-small": {
+    "Image": 1,
+    "Video": 1
+  },
+  "syscv-community/sam-hq-vit-huge": {
+    "Image": 1
+  },
+  "facebook/sam-vit-large": {
+    "Image": 1,
+    "Tensor": 1
+  },
+  "facebook/sam2.1-hiera-large": {
+    "Image": 1,
+    "Video": 1
+  },
+  "Xenova/sam-vit-base": {
+    "Image": 1,
+    "Tensor": 1
+  },
+  "nielsr/slimsam-77-uniform": {
+    "Image": 1
+  },
+  "wanglab/medsam-vit-base": {
+    "Image": 1,
+    "Tensor": 1
+  },
+  "safe-models/SUM": {
+    "Image": 1
+  },
+  "halimb/sam-vit-base": {
+    "Image": 1,
+    "Tensor": 1
+  },
+  "Xenova/sam-vit-huge": {
+    "Image": 1,
+    "Tensor": 1
+  },
+  "facebook/sam-vit-huge": {
+    "Image": 1,
+    "Tensor": 1
+  }
+}

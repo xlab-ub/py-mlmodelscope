@@ -1,0 +1,180 @@
+{
+  "MoritzLaurer/DeBERTa-v3-xsmall-mnli-fever-anli-ling-binary": {
+    "Text": 2
+  },
+  "chuhac/BiomedCLIP-vit-bert-hf": {
+    "Image": 1,
+    "Text": 1
+  },
+  "MoritzLaurer/DeBERTa-v3-base-mnli": {
+    "Text": 1
+  },
+  "OpenMed/OpenMed-NER-GenomeDetect-PubMed-109M": {
+    "Text": 1
+  },
+  "Copycats/koelectra-base-v3-generalized-sentiment-analysis": {
+    "Text": 1
+  },
+  "alexandrainst/scandi-nli-large": {
+    "Text": 1
+  },
+  "OpenMed/OpenMed-NER-GenomicDetect-SnowMed-568M": {
+    "Text": 1
+  },
+  "cross-encoder/nli-deberta-v3-xsmall": {
+    "Text": 2
+  },
+  "MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7": {
+    "Text": 2
+  },
+  "protectai/MoritzLaurer-roberta-base-zeroshot-v2.0-c-onnx": {
+    "Text": 1
+  },
+  "startificial/nli-implementation": {
+    "Text": 2
+  },
+  "deepset/deberta-v3-base-injection": {
+    "Text": 1
+  },
+  "facebook/bart-large-mnli": {
+    "Text": 1
+  },
+  "OpenMed/OpenMed-NER-PharmaDetect-BioPatient-108M": {
+    "Text": 1
+  },
+  "Davlan/xlm-roberta-base-ner-hrl": {
+    "Text": 1
+  },
+  "cross-encoder/nli-deberta-base": {
+    "Text": 2
+  },
+  "akdeniz27/bert-base-turkish-cased-ner": {
+    "Text": 1
+  },
+  "OpenMed/OpenMed-NER-BloodCancerDetect-TinyMed-65M": {
+    "Text": 1
+  },
+  "distilbert/distilbert-base-uncased-finetuned-sst-2-english": {
+    "Text": 1
+  },
+  "asosoft/KuBERT-Central-Kurdish-BERT-Model": {
+    "Text": 1
+  },
+  "touch20032003/xuyuan-trial-sentiment-bert-chinese": {
+    "Text": 1
+  },
+  "OpenMed/OpenMed-NER-DNADetect-SuperClinical-434M": {
+    "Text": 1
+  },
+  "OpenMed/OpenMed-NER-SpeciesDetect-ElectraMed-109M": {
+    "Text": 1
+  },
+  "tabularisai/multilingual-sentiment-analysis": {
+    "Text": 1
+  },
+  "madhurjindal/autonlp-Gibberish-Detector-492513457": {
+    "Text": 1
+  },
+  "joeddav/bart-large-mnli-yahoo-answers": {
+    "Text": 1
+  },
+  "morit/french_xlm_xnli": {
+    "Text": 1
+  },
+  "OpenMed/OpenMed-NER-ChemicalDetect-BigMed-560M": {
+    "Text": 1
+  },
+  "nlptown/bert-base-multilingual-uncased-sentiment": {
+    "Text": 1
+  },
+  "OpenMed/OpenMed-NER-OncologyDetect-PubMed-335M": {
+    "Text": 1
+  },
+  "NbAiLab/nb-bert-base-mnli": {
+    "Text": 1
+  },
+  "Isotonic/distilbert_finetuned_ai4privacy_v2": {
+    "Text": 1
+  },
+  "5CD-AI/Vietnamese-Sentiment-visobert": {
+    "Text": 1
+  },
+  "segment-any-text/sat-3l-sm": {
+    "Text": 1
+  },
+  "cybersectony/phishing-email-detection-distilbert_v2.4.1": {
+    "Text": 1
+  },
+  "blanchefort/rubert-base-cased-sentiment-rusentiment": {
+    "Text": 1
+  },
+  "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli": {
+    "Text": 1
+  },
+  "trl-internal-testing/tiny-Qwen2ForSequenceClassification-2.5": {
+    "Text": 1
+  },
+  "martin-ha/toxic-comment-model": {
+    "Text": 1
+  },
+  "typeform/roberta-large-mnli": {
+    "Text": 1
+  },
+  "knowledgator/gliclass-small-v1.0": {
+    "Text": 1
+  },
+  "OpenMed/OpenMed-NER-AnatomyDetect-ElectraMed-109M": {
+    "Text": 1
+  },
+  "flair/ner-english-fast": {
+    "Text": 1
+  },
+  "CAMeL-Lab/bert-base-arabic-camelbert-mix-sentiment": {
+    "Text": 1
+  },
+  "pysentimiento/robertuito-sentiment-analysis": {
+    "Text": 1
+  },
+  "textattack/bert-base-uncased-SST-2": {
+    "Text": 1
+  },
+  "BAAI/bge-reranker-base": {
+    "Text": 2
+  },
+  "facebook/roberta-hate-speech-dynabench-r4-target": {
+    "Text": 1
+  },
+  "microsoft/deberta-xlarge-mnli": {
+    "Text": 1
+  },
+  "MoritzLaurer/bge-m3-zeroshot-v2.0-c": {
+    "Text": 1
+  },
+  "OpenMed/OpenMed-NER-OrganismDetect-TinyMed-82M": {
+    "Text": 1
+  },
+  "FacebookAI/roberta-large-mnli": {
+    "Text": 1
+  },
+  "Xenova/nli-deberta-v3-xsmall": {
+    "Text": 1
+  },
+  "cardiffnlp/twitter-roberta-base-sentiment-latest": {
+    "Text": 1
+  },
+  "Xenova/bart-large-mnli": {
+    "Text": 1
+  },
+  "mrm8488/distilroberta-finetuned-financial-news-sentiment-analysis": {
+    "Text": 1
+  },
+  "OpenMed/OpenMed-NER-SpeciesDetect-ModernClinical-395M": {
+    "Text": 1
+  },
+  "knowledgator/gliclass-modern-base-v2.0-init": {
+    "Text": 1
+  },
+  "OpenMed/OpenMed-NER-PharmaDetect-SuperClinical-434M": {
+    "Text": 1
+  }
+}
