@@ -111,7 +111,7 @@ Generate complete model configurations for: text-to-image, text-to-video, uncond
 **Examples:**
 
 Stable Diffusion Pipeline (with Multi-GPU support):
-{{
+{{{{
     "model_type": "stable_diffusion",
     "imports": "import torch\\nfrom diffusers import StableDiffusionPipeline",
     "class_name": "PyTorch_Diffusers_StableDiffusion_V1_4",
@@ -121,10 +121,10 @@ Stable Diffusion Pipeline (with Multi-GPU support):
     "postprocess_body": "import numpy as np\\n        return [np.array(img).tolist() for img in model_output]",
     "to_body": "self.device = device\\n        self.pipeline.to(device)",
     "eval_body": "pass"
-}}
+}}}}
 
 DDPM Unconditional (with Multi-GPU support):
-{{
+{{{{
     "model_type": "ddpm",
     "imports": "import torch\\nfrom diffusers import DDPMScheduler, UNet2DModel",
     "class_name": "PyTorch_Diffusers_DDPM_Cat",
@@ -134,7 +134,7 @@ DDPM Unconditional (with Multi-GPU support):
     "postprocess_body": "images = (model_output / 2 + 0.5).clamp(0, 1) * 255\\n        return images.to(torch.uint8).permute(0,2,3,1).cpu().numpy().tolist()",
     "to_body": "self.device = device\\n        self.model.to(device)",
     "eval_body": "self.model.eval()"
-}}
+}}}}
 
 Respond with JSON matching ModelConfig schema.
 """,
