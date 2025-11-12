@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -244,7 +245,10 @@ Make sure to:
 
     # --- 4. Main Generation Loop ---
     BASE_DIR = "mlmodelscope/pytorch_agent/models/default/image_classification"
-    ERROR_DIR = "mlmodelscope/pytorch_agent/models/default/image_classification/errors"
+    ERROR_DIR = (
+        "mlmodelscope/pytorch_agent/models/default/image_classification/automation/"
+        + str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    )
     if not os.path.exists(ERROR_DIR):
         os.makedirs(ERROR_DIR)
         print(f"Created error directory: '{ERROR_DIR}'")

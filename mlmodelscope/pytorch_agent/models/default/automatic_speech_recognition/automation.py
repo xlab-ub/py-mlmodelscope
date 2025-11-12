@@ -1,3 +1,4 @@
+from datetime import datetime
 """
 Generalized automation script for audio-to-text PyTorch models.
 
@@ -280,7 +281,9 @@ Based on the examples AND the context above, generate the complete config for th
 
     # --- 4. Main Generation Loop ---
     BASE_DIR = f"mlmodelscope/pytorch_agent/models/default/{task_type}"
-    ERROR_DIR = f"{BASE_DIR}/errors"
+    ERROR_DIR = f"{BASE_DIR}/automation/" + str(
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    )
     os.makedirs(ERROR_DIR, exist_ok=True)
     failed_models = []
     login_req_models = []
@@ -311,8 +314,9 @@ Based on the examples AND the context above, generate the complete config for th
             while not os.path.exists(model_py_path) or (
                 error := check_syntax(model_py_path)
             ):
-                if (try_count_my_model>=MAX_TRIES_PER_MODEL): break
-                try_count_my_model +=1
+                if try_count_my_model >= MAX_TRIES_PER_MODEL:
+                    break
+                try_count_my_model += 1
                 if error:
                     print(
                         f"Syntax error detected in generated file '{model_py_path}'. Regenerating..."

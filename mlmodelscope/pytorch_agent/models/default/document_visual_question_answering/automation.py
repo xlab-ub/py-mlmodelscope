@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -159,7 +160,9 @@ Use the exact model identifier '{model_identifier}' in the init_body.
     BASE_DIR = (
         "mlmodelscope/pytorch_agent/models/default/document_visual_question_answering"
     )
-    ERROR_DIR = f"{BASE_DIR}/errors"
+    ERROR_DIR = f"{BASE_DIR}/automation/" + str(
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    )
     os.makedirs(ERROR_DIR, exist_ok=True)
     failed_models = []
     login_req_models = []

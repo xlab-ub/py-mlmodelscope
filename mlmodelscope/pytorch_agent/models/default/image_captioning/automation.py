@@ -1,3 +1,4 @@
+from datetime import datetime
 """
 Generalized automation script for image-to-text PyTorch models.
 
@@ -257,7 +258,9 @@ Make sure to:
 
     # --- 4. Main Generation Loop ---
     BASE_DIR = f"mlmodelscope/pytorch_agent/models/default/{task_type}"
-    ERROR_DIR = f"{BASE_DIR}/errors"
+    ERROR_DIR = f"{BASE_DIR}/automation/" + str(
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    )
     if not os.path.exists(ERROR_DIR):
         os.makedirs(ERROR_DIR)
         print(f"Created error directory: '{ERROR_DIR}'")

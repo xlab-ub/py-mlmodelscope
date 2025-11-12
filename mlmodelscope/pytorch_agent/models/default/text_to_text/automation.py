@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -258,7 +259,10 @@ Based on the examples AND the context above, generate the config for the model: 
 
     # --- 4. Main Generation Loop ---
     BASE_DIR = "mlmodelscope/pytorch_agent/models/default/text_to_text"
-    ERROR_DIR = "mlmodelscope/pytorch_agent/models/default/text_to_text/errors"
+    ERROR_DIR = (
+        "mlmodelscope/pytorch_agent/models/default/text_to_text/automation/"
+        + str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    )
     if not os.path.exists(ERROR_DIR):
         os.makedirs(ERROR_DIR)
         print(f"Created error directory: '{ERROR_DIR}'")

@@ -1,3 +1,4 @@
+from datetime import datetime
 """
 Generalized automation script for text-to-image generation PyTorch models.
 
@@ -161,7 +162,9 @@ Detect task type (text-to-image, unconditional, controlnet, video) and generate 
     chain = prompt | llm | parser
 
     BASE_DIR = f"mlmodelscope/pytorch_agent/models/default/{task_type}"
-    ERROR_DIR = f"{BASE_DIR}/errors"
+    ERROR_DIR = f"{BASE_DIR}/automation/" + str(
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    )
     os.makedirs(ERROR_DIR, exist_ok=True)
     failed_models, login_req_models = [], []
 
@@ -187,8 +190,9 @@ Detect task type (text-to-image, unconditional, controlnet, video) and generate 
             while not os.path.exists(model_py_path) or (
                 error := check_syntax(model_py_path)
             ):
-                if (try_count_my_model>=MAX_TRIES_PER_MODEL): break
-                try_count_my_model +=1
+                if try_count_my_model >= MAX_TRIES_PER_MODEL:
+                    break
+                try_count_my_model += 1
                 url = f"https://huggingface.co/{model_name}"
                 response = requests.get(url)
                 response.raise_for_status()
