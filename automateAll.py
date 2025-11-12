@@ -112,5 +112,5 @@ for modality in masterDataSet:
         continue
     print("Doing", modality)
     processorFunction = categories[modality][0]
-    model = choice(masterDataSet[modality]["allModels"])
-    processorFunction([model])
+    models = masterDataSet[modality]["allModels"]
+    processorFunction(models)
