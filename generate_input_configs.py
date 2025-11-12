@@ -123,59 +123,98 @@ Your task is to determine:
 - What types of inputs the model accepts (Image, Text, Audio, Video, Tensor, etc.)
 - How many of each input type are required
 
-**IMPORTANT RULES:**
+**CRITICAL RULES - READ CAREFULLY:**
+
 1. **Input Types**: Use standard names like "Image", "Text", "Audio", "Video", "Tensor"
-2. **Counts**: 
-   - Use positive integers (1, 2, 3, etc.) for exact counts
-   - Use -1 for variable/any number of that input type (e.g., batch processing)
-3. **Common Patterns**:
-   - Image Classification: {{"Image": 1}} (exactly 1 image)
-   - Text Classification: {{"Text": 1}} (exactly 1 text)
-   - Text-to-Image: {{"Text": 1}} (exactly 1 text prompt)
-   - Image-to-Text: {{"Image": 1}} (exactly 1 image)
-   - Visual Question Answering: {{"Image": 1, "Text": 1}} (1 image + 1 question text)
-   - Object Detection: {{"Image": 1}} (exactly 1 image)
-   - Text-to-Text: {{"Text": 1}} (exactly 1 text)
-   - Batch processing (multiple inputs): {{"Image": -1}} or {{"Text": -1}} (any number)
-   - Multi-modal: {{"Image": 1, "Text": 1}} (both required)
 
-4. **Analyze the model's purpose**:
-   - Check the model card for input examples
-   - Look for preprocessing steps (image preprocessing, tokenization, etc.)
-   - Check if the model accepts batches (then use -1)
-   - Check if it's multi-modal (multiple input types)
+2. **Counts - VERY IMPORTANT**:
+   - **Use positive integers (1, 2, 3, etc.) for MOST models** - This means the model expects exactly that many inputs
+   - **Use -1 ONLY when the model explicitly supports batch processing with variable numbers**
+   - **DEFAULT to 1 unless the documentation clearly states the model processes batches of variable size**
+   - **MOST single-input models use 1, NOT -1**
+   - **Multi-input models typically use 1 for each input type (e.g., {{"Image": 1, "Text": 1}})**
 
-**Examples:**
+3. **When to use -1 (RARE)**:
+   - Only use -1 if the model documentation explicitly mentions:
+     * Batch processing with variable batch sizes
+     * Processing multiple inputs simultaneously
+     * The model API accepts lists/arrays of variable length
+   - **DO NOT use -1 just because a model CAN process batches** - use -1 only if batch processing is the PRIMARY or EXPECTED mode
+   - **Most models that support batching still have a fixed input structure per sample (use 1)**
 
-Example 1: Image Classification Model
+4. **When to use 1 (MOST COMMON)**:
+   - Single image input models (classification, detection, etc.) → {{"Image": 1}}
+   - Single text input models (classification, generation, etc.) → {{"Text": 1}}
+   - Image + text models (VQA, captioning with prompts) → {{"Image": 1, "Text": 1}}
+   - Even if the model can process batches, if each sample requires 1 input → use 1
+
+5. **Common Patterns**:
+   - Image Classification (ViT, ResNet, etc.): {{"Image": 1}} - Each sample is 1 image
+   - Text Classification (BERT, DistilBERT, etc.): {{"Text": 1}} - Each sample is 1 text
+   - Text-to-Image (Stable Diffusion, etc.): {{"Text": 1}} - Each generation needs 1 prompt
+   - Image-to-Text (BLIP, GPT-2 with images): {{"Image": 1}} - Each caption needs 1 image
+   - Visual Question Answering (BLIP-VQA, LLaVA): {{"Image": 1, "Text": 1}} - Each question needs 1 image + 1 text
+   - Object Detection (YOLO, etc.): {{"Image": 1}} - Each detection needs 1 image
+   - Text-to-Text (GPT-2, T5, etc.): {{"Text": 1}} - Each generation needs 1 text prompt
+   - Multi-modal models: {{"Image": 1, "Text": 1}} - Both inputs required per sample
+
+6. **Analyze the model's purpose CAREFULLY**:
+   - Read the model card description and examples
+   - Look at usage examples - do they show single inputs or batches?
+   - Check preprocessing steps - are they applied per-sample or per-batch?
+   - **If examples show single inputs → use 1**
+   - **If examples show lists/arrays with multiple items → check if it's per-sample or batch**
+   - **Most Hugging Face models process one sample at a time in their API (use 1)**
+   - **Batching is typically handled by the framework, not the model's input specification**
+
+**Examples - Study These Carefully:**
+
+Example 1: Image Classification Model (ViT)
 Model: "google/vit-base-patch16-224"
 Inputs: {{"Image": 1}}
-Explanation: Takes exactly one image as input.
+Explanation: Each classification requires exactly ONE image. Even though the model can process batches, each sample in the batch is ONE image. Use 1, NOT -1.
 
-Example 2: Text-to-Image Generation
+Example 2: Text-to-Image Generation (Stable Diffusion)
 Model: "CompVis/stable-diffusion-v1-4"
 Inputs: {{"Text": 1}}
-Explanation: Takes exactly one text prompt as input.
+Explanation: Each generation requires exactly ONE text prompt. Use 1, NOT -1.
 
-Example 3: Visual Question Answering
+Example 3: Visual Question Answering (BLIP-VQA)
 Model: "Salesforce/blip-vqa-base"
 Inputs: {{"Image": 1, "Text": 1}}
-Explanation: Takes exactly one image and one question text.
+Explanation: Each question requires exactly ONE image and ONE question text. Both are required per sample. Use 1 for each, NOT -1.
 
-Example 4: Text Classification (batch processing)
+Example 4: Text Classification (BERT-based)
 Model: "distilbert-base-uncased-finetuned-sst-2-english"
-Inputs: {{"Text": -1}}
-Explanation: Can process any number of texts (batch processing).
+Inputs: {{"Text": 1}}
+Explanation: Each classification requires exactly ONE text. Even though BERT processes batches, each sample is ONE text. Use 1, NOT -1. The framework handles batching, but the model expects 1 text per sample.
 
-Example 5: Image-to-Text (Captioning)
+Example 5: Image-to-Text Captioning (BLIP)
 Model: "Salesforce/blip-image-captioning-base"
 Inputs: {{"Image": 1}}
-Explanation: Takes exactly one image as input.
+Explanation: Each caption generation requires exactly ONE image. Use 1, NOT -1.
 
-Example 6: Text-to-Text Generation
+Example 6: Text-to-Text Generation (GPT-2)
 Model: "gpt2"
 Inputs: {{"Text": 1}}
-Explanation: Takes exactly one text as input.
+Explanation: Each generation requires exactly ONE text prompt. Use 1, NOT -1.
+
+Example 7: Object Detection (YOLO, DETR)
+Model: "facebook/detr-resnet-50"
+Inputs: {{"Image": 1}}
+Explanation: Each detection requires exactly ONE image. Use 1, NOT -1.
+
+Example 8: WHEN TO USE -1 (Very Rare):
+Model: A model that explicitly processes variable numbers of inputs in a single call
+Inputs: {{"Text": -1}}
+Explanation: Only use -1 if the model API explicitly accepts and processes multiple inputs in one call where the number can vary (not batch processing, but true variable input).
+
+**IMPORTANT REMINDER:**
+- 99% of models use 1 for their input counts
+- -1 should be used VERY RARELY, only when explicitly documented
+- When in doubt, use 1
+- Batch processing in frameworks does NOT mean you should use -1
+- Each sample in a batch typically requires 1 input of each type
 
 Respond ONLY with the JSON structure matching the InputConfig schema:
 {{"inputs": {{"InputType": count, ...}}}}
@@ -192,7 +231,16 @@ Model Documentation:
 ---
 
 Based on the documentation above, determine the input types and counts required by this model.
+
+**CRITICAL INSTRUCTIONS:**
+1. DEFAULT to using 1 for input counts unless the documentation explicitly states the model accepts variable numbers of inputs
+2. Most models require exactly 1 input per type (e.g., {{"Image": 1}} or {{"Text": 1}})
+3. Use -1 ONLY if the documentation clearly shows the model accepts variable numbers of inputs in a single call
+4. Batch processing capability does NOT mean you should use -1 - use 1 for per-sample inputs
+5. When in doubt, use 1
+
 Return a JSON object with the "inputs" field containing a dictionary of input types to counts.
+Example: {{"inputs": {{"Image": 1}}}} or {{"inputs": {{"Image": 1, "Text": 1}}}}
 """,
             ),
         ]
