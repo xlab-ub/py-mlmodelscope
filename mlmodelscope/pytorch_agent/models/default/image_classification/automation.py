@@ -153,7 +153,7 @@ You must generate the complete model configuration based *primarily* on the prov
 **Reference Examples:**
 
 Example 1: TorchVision ResNet50 (torchvision_hub)
-{{{{
+{{
     "model_type": "torchvision_hub",
     "imports": "import torch\\nfrom torchvision import transforms\\nfrom PIL import Image",
     "class_name": "TorchVision_ResNet50",
@@ -162,10 +162,10 @@ Example 1: TorchVision ResNet50 (torchvision_hub)
     "preprocess_body": "preprocessor = transforms.Compose([\\n            transforms.Resize(256),\\n            transforms.CenterCrop(224),\\n            transforms.ToTensor(),\\n            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),\\n        ])\\n        for i in range(len(input_images)):\\n            input_images[i] = preprocessor(Image.open(input_images[i]).convert('RGB'))\\n        model_input = torch.stack(input_images)\\n        return model_input",
     "predict_body": "return self.model(model_input)",
     "postprocess_body": "probabilities = torch.nn.functional.softmax(model_output, dim=1)\\n        return probabilities.tolist()"
-}}}}
+}}
 
 Example 2: HuggingFace ViT (transformers with Multi-GPU)
-{{{{
+{{
     "model_type": "transformers",
     "imports": "from transformers import AutoImageProcessor, AutoModelForImageClassification\\nfrom PIL import Image\\nimport torch",
     "class_name": "PyTorch_Transformers_ViT_Base_Patch16_224",
@@ -174,10 +174,10 @@ Example 2: HuggingFace ViT (transformers with Multi-GPU)
     "preprocess_body": "processed_images = [\\n            Image.open(image_path).convert('RGB')\\n            for image_path in input_images\\n        ]\\n        model_input = self.processor(processed_images, return_tensors=\\"pt\\")\\n        return model_input",
     "predict_body": "return self.model(**model_input)",
     "postprocess_body": "probabilities = torch.nn.functional.softmax(model_output.logits, dim=1)\\n        return probabilities.tolist()"
-}}}}
+}}
 
 Example 3: Custom torchvision model (custom_torchvision)
-{{{{
+{{
     "model_type": "custom_torchvision",
     "imports": "import torch\\nimport torch.nn as nn\\nfrom torchvision import transforms\\nfrom PIL import Image",
     "class_name": "TorchVision_CustomModel",
@@ -186,7 +186,7 @@ Example 3: Custom torchvision model (custom_torchvision)
     "preprocess_body": "preprocessor = transforms.Compose([\\n            transforms.Resize(256),\\n            transforms.CenterCrop(224),\\n            transforms.ToTensor(),\\n            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),\\n        ])\\n        for i in range(len(input_images)):\\n            input_images[i] = preprocessor(Image.open(input_images[i]).convert('RGB'))\\n        model_input = torch.stack(input_images)\\n        return model_input",
     "predict_body": "return self.model(model_input)",
     "postprocess_body": "probabilities = torch.nn.functional.softmax(model_output, dim=1)\\n        return probabilities.tolist()"
-}}}}
+}}
 
 **CRITICAL NOTES:**
 - Pay attention to image size requirements (224x224, 299x299, 384x384, etc.)
