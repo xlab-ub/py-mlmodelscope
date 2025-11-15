@@ -155,7 +155,7 @@ def run_model_test(model_name, dataset_name_str, test_dir_path, task):
 
         # --- NEW: Write individual log files ---
         # Ensure the test directory exists (it should, but good to be safe)
-        test_dir_path.mkdir(parents=True, exist_ok=True)
+        # # test_dir_path.mkdir(parents=True, exist_ok=True)
         log_file = test_dir_path / f"{model_name}.log"
         err_file = test_dir_path / f"{model_name}.err"
 
@@ -352,8 +352,8 @@ if __name__ == "__main__":
     myJson = dict(json.loads(open("./test.json").read()))
     for modality in myJson:
         dir = myJson[modality]["dir"]
-        test = myJson[modality]["test"]
+        test = json.dumps(myJson[modality]["test"])
         modelName = [x.split("/")[-2] for x in dirs if dir in x][0]
         task = [x.split("/")[-3] for x in dirs if dir in x][0]
         print(task,modelName)
-        run_model_test(modelName,test,"./test_run/", task )
+        run_model_test(modelName,test,Path("./test_run/"), task )
