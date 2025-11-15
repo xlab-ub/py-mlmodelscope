@@ -252,35 +252,45 @@ def main(task, dataset_name_src, models_to_test):
                 print(f"Going for try {tries+1}")
             start_time = time.time()
             readable_start = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            result = run_model_test(
-                model_name=model,
-                dataset_name_str=dataset_name_src,
-                test_dir_path=TEST_DIR,
-                task=task,
-            )
-            end_time = time.time()
-            duration = round(end_time - start_time, 2)
-            result["startTime"] = readable_start
-            result["runTime"] = duration
-            if "CUDA out of memory" in result["error"]:
-                models_need_more_GPU.append(model)
-                break
-            elif "pip install" in result["error"]:
-                models_to_install = extract_pip_modules(result["error"])
-                print("Trying to install", models_to_install)
-                # !TODO: Log model name and their package dependencies, check for version conflicts
-                if pip_error := install_packages_in_conda(models_to_install):
-                    result["error"] += "\n" + pip_error
+            try:
+                result = run_model_test(
+                    model_name=model,
+                    dataset_name_str=dataset_name_src,
+                    test_dir_path=TEST_DIR,
+                    task=task,
+                )
+                end_time = time.time()
+                duration = round(end_time - start_time, 2)
+                result["startTime"] = readable_start
+                result["runTime"] = duration
+
+            except Exception as e:
+                e_str = str(e)
+
+                if "CUDA out of memory" in e_str:
+                    models_need_more_GPU.append(model)
                     break
-            elif "ModuleNotFoundError" in result["error"]:
-                missing_module_match = extract_missing_module_name(result["error"])
-                if missing_module_match:
-                    print(f"Trying to install missing module: {missing_module_match}")
-                    if pip_error := install_packages_in_conda(missing_module_match):
-                        result["error"] += "\n" + pip_error
+                
+                elif "pip install" in e_str:
+                    models_to_install = extract_pip_modules(e_str)
+                    print("Trying to install", models_to_install)
+
+                    pip_error = install_packages_in_conda(models_to_install)
+                    if pip_error:
+                        e = Exception(e_str + "\n" + pip_error)
                         break
-            else:
-                break
+                    
+                elif "ModuleNotFoundError" in e_str:
+                    missing_module_match = extract_missing_module_name(e_str)
+                    if missing_module_match:
+                        print(f"Trying to install missing module: {missing_module_match}")
+                        pip_error = install_packages_in_conda(missing_module_match)
+                        if pip_error:
+                            e = Exception(e_str + "\n" + pip_error)
+                            break
+                        
+                else:
+                    break
             tries += 1
         all_results.setdefault(model, []).append(result)
         if result["status"] == "Success":
