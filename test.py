@@ -261,7 +261,7 @@ def debug_with_gemini(file_name: str, error_message: str) -> int:
     # 3. Set up LangChain components
     try:
         # Initialize the Google Generative AI model
-        llm = ChatGoogleGenerativeAI(model="gemini-pro")
+        llm = ChatGoogleGenerativeAI(model="gemini-2.5-pro")
 
         # Define the system prompt to instruct the model
         system_template = """
