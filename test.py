@@ -485,7 +485,7 @@ def main(task, dataset_name_src, models_to_test):
                     break  # Avoid infinite loop
 
             else:
-                debug_check = debug_with_gemini(file= MODEL_FILE, error_message= error_str)
+                debug_check = debug_with_gemini(file_name= MODEL_FILE, error_message= error_str)
                 if debug_check!=0:
                     break
             tries += 1
