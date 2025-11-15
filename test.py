@@ -1,6 +1,10 @@
 import re, subprocess, sys, os, shutil, json, time, shlex
 from pathlib import Path
 from datetime import datetime
+import tempfile
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 
 # ! This script installs depencies by itself which could be a security risk !
 
@@ -219,6 +223,172 @@ def run_model_test(model_name, dataset_name_str, test_dir_path, task):
         return {"status": "Unexpected Error", "model": model_name, "error": str(e)}
 
 
+def debug_with_gemini(file_name: str, error_message: str) -> int:
+    """
+    Attempts to debug a Python file using the Gemini API via LangChain.
+    Validates the fix with a syntax check before overwriting.
+
+    Args:
+        file_name: The path to the Python file with the bug.
+        error_message: The error message received when running the file.
+
+    Returns:
+        0 if the file was successfully fixed and updated.
+        -1 if any step failed (file read, API error, no fix, syntax check, file write).
+    """
+    
+    # 1. Check for Google API Key
+    if "GOOGLE_API_KEY" not in os.environ:
+        print("Error: GOOGLE_API_KEY environment variable not set.", file=sys.stderr)
+        print("Please set this environment variable with your API key.", file=sys.stderr)
+        return -1
+
+    # 2. Read the original code from the file
+    try:
+        with open(file_name, 'r') as f:
+            original_code = f.read()
+    except FileNotFoundError:
+        print(f"Error: File not found at {file_name}", file=sys.stderr)
+        return -1
+    except IOError as e:
+        print(f"Error reading file {file_name}: {e}", file=sys.stderr)
+        return -1
+    except Exception as e:
+        print(f"An unexpected error occurred during file read: {e}", file=sys.stderr)
+        return -1
+
+    # 3. Set up LangChain components
+    try:
+        # Initialize the Google Generative AI model
+        llm = ChatGoogleGenerativeAI(model="gemini-pro")
+
+        # Define the system prompt to instruct the model
+        system_template = """
+You are an expert Python debugger. Your task is to fix the provided Python code based on the given error message.
+
+Rules:
+1.  Analyze the code and the error message.
+2.  If you can fix the code, respond *only* with the complete, corrected Python code, inside a single markdown code block (```python ... ```).
+3.  Do not include *any* explanation, greeting, or text before or after the code block. Your response must contain *only* the code block.
+4.  If you *cannot* fix the code, or if the error message is insufficient, respond *only* with the exact string: CANNOT_FIX
+"""
+        
+        # Define the human prompt that will contain the code and error
+        human_template = """
+Here is the code that needs debugging:
+---CODE---
+{code}
+---END CODE---
+
+Here is the error message I received:
+---ERROR---
+{error}
+---END ERROR---
+"""
+        # Create the full prompt template
+        prompt = ChatPromptTemplate.from_messages([
+            SystemMessagePromptTemplate.from_template(system_template),
+            HumanMessagePromptTemplate.from_template(human_template)
+        ])
+        
+        # Define a simple string output parser
+        output_parser = StrOutputParser()
+        
+        # Create the chain using LangChain Expression Language (LCEL)
+        chain = prompt | llm | output_parser
+
+    except Exception as e:
+        print(f"Error setting up LangChain components: {e}", file=sys.stderr)
+        return -1
+
+    # 4. Run the chain (invoke the model)
+    try:
+        print(f"Sending code from {file_name} to Gemini for debugging...")
+        response = chain.invoke({
+            "code": original_code,
+            "error": error_message
+        })
+        
+        # 5. Process the response
+        response_trimmed = response.strip()
+        
+        if response_trimmed == "CANNOT_FIX":
+            print("Gemini reported it cannot fix the code.")
+            return -1
+
+        # 6. Extract code from the markdown block
+        # Use re.DOTALL (s) flag to make '.' match newlines
+        match = re.search(r"```python\n(.*?)\n```", response_trimmed, re.DOTALL | re.IGNORECASE)
+        
+        fixed_code = ""
+        if match:
+            fixed_code = match.group(1).strip()
+        else:
+            # Fallback: Check if the model *only* returned code without the block
+            if "def " in response_trimmed or "import " in response_trimmed or "print(" in response_trimmed:
+                 print("Warning: Model returned code without markdown block. Trying to use it anyway.")
+                 fixed_code = response_trimmed
+            else:
+                print("Error: Model response was not in the expected format (no ```python block).", file=sys.stderr)
+                print("---GEMINI RESPONSE---")
+                print(response)
+                print("---END RESPONSE---")
+                return -1
+
+        if not fixed_code:
+             print("Error: Extracted fixed code is empty.", file=sys.stderr)
+             return -1
+
+        # 7. NEW: Validate syntax and write the fixed code
+        
+        # Define the syntax check function
+        # os.system returns 0 on success
+        check_syntax = lambda fn: os.system(f"{sys.executable} -m py_compile {fn}")
+        
+        temp_file = None
+        temp_file_name = ""
+        try:
+            # Create a temporary file to write the fix to
+            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.py') as temp_file:
+                temp_file.write(fixed_code)
+                temp_file_name = temp_file.name
+
+            # Run the syntax check on the temporary file
+            print(f"Checking syntax of Gemini's fix in {temp_file_name}...")
+            exit_code = check_syntax(temp_file_name)
+
+            if exit_code != 0:
+                print(f"Error: Gemini's fix failed the syntax check (exit code: {exit_code}).", file=sys.stderr)
+                print("Original file was NOT modified.")
+                return -1
+            
+            print("Syntax check passed.")
+            
+            # 8. Write the validated fixed code back to the original file
+            try:
+                with open(file_name, 'w') as f:
+                    f.write(fixed_code)
+                print(f"Successfully fixed and updated {file_name}.")
+                return 0  # Success!
+            except IOError as e:
+                print(f"Error writing fixed code to {file_name}: {e}", file=sys.stderr)
+                return -1
+
+        except Exception as e:
+            print(f"An error occurred during validation/writing: {e}", file=sys.stderr)
+            return -1
+        finally:
+            # Clean up the temporary file
+            if temp_file_name and os.path.exists(temp_file_name):
+                os.remove(temp_file_name)
+                print(f"Cleaned up temporary file: {temp_file_name}")
+
+    except Exception as e:
+        # This catches API errors, rate limits, etc.
+        print(f"An error occurred while communicating with Gemini: {e}", file=sys.stderr)
+        return -1
+
+
 def main(task, dataset_name_src, models_to_test):
     # --- Define the Test Directory ---
     TEST_DIR_STR = f"mlmodelscope/pytorch_agent/models/default/{task}/test/{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
@@ -232,7 +402,7 @@ def main(task, dataset_name_src, models_to_test):
     except Exception as e:
         print(f"--- [CRITICAL FAILURE] Could not create directory: {TEST_DIR_STR} ---")
         print(f"Error: {e}")
-        return  # Exit if we can't create the log directory
+        return 1  # Exit if we can't create the log directory, return failure
 
     # --- EDIT THIS LIST ---
     # Add all the model names you want to test here
@@ -246,61 +416,94 @@ def main(task, dataset_name_src, models_to_test):
     models_need_more_GPU = []
 
     for model in models_to_test:
+        MODEL_FILE = f"mlmodelscope/pytorch_agent/models/default/{task}/{model}/model.py"
         tries = 0
+        result = {}  # Initialize result here
         while tries < MAX_TRIES_PER_MODEL:
             if tries != 0:
                 print(f"Going for try {tries+1}")
             start_time = time.time()
             readable_start = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            try:
-                result = run_model_test(
-                    model_name=model,
-                    dataset_name_str=dataset_name_src,
-                    test_dir_path=TEST_DIR,
-                    task=task,
+
+
+            result = run_model_test(
+                model_name=model,
+                dataset_name_str=dataset_name_src,
+                test_dir_path=TEST_DIR,
+                task=task,
+            )
+            end_time = time.time()
+            duration = round(end_time - start_time, 2)
+            result["startTime"] = readable_start
+            result["runTime"] = duration
+
+            # --- FIXED LOGIC ---
+            # Check the result status
+            if result["status"] == "Success":
+                break  # Successful run, exit the while loop
+
+            # If it failed, check why. Combine output and error for searching.
+            error_str = result.get("error", "") + result.get("output", "")
+
+            if "CUDA out of memory" in error_str:
+                print(
+                    "Detected CUDA out of memory. Adding to list and stopping tries."
                 )
-                end_time = time.time()
-                duration = round(end_time - start_time, 2)
-                result["startTime"] = readable_start
-                result["runTime"] = duration
+                models_need_more_GPU.append(model)
+                break  
 
-            except Exception as e:
-                e_str = str(e)
-
-                if "CUDA out of memory" in e_str:
-                    models_need_more_GPU.append(model)
-                    break
-                
-                elif "pip install" in e_str:
-                    models_to_install = extract_pip_modules(e_str)
-                    print("Trying to install", models_to_install)
-
+            elif "pip install" in error_str:
+                print("Detected 'pip install' recommendation.")
+                models_to_install = extract_pip_modules(error_str)
+                if models_to_install:
+                    print(f"Trying to install: {models_to_install}")
                     pip_error = install_packages_in_conda(models_to_install)
                     if pip_error:
-                        e = Exception(e_str + "\n" + pip_error)
+                        print("Installation failed. Stopping tries.")
+                        result["error"] = (
+                            result.get("error", "") + "\n" + pip_error
+                        )
+                        break  
+            elif "ModuleNotFoundError" in error_str:
+                print("Detected 'ModuleNotFoundError'.")
+                missing_module = extract_missing_module_name(error_str)
+                if missing_module:
+                    print(
+                        f"Trying to install missing module: {missing_module}"
+                    )
+                    pip_error = install_packages_in_conda(missing_module)
+                    if pip_error:
+                        print("Installation failed. Stopping tries.")
+                        result["error"] = (
+                            result.get("error", "") + "\n" + pip_error
+                        )
                         break
-                    
-                elif "ModuleNotFoundError" in e_str:
-                    missing_module_match = extract_missing_module_name(e_str)
-                    if missing_module_match:
-                        print(f"Trying to install missing module: {missing_module_match}")
-                        pip_error = install_packages_in_conda(missing_module_match)
-                        if pip_error:
-                            e = Exception(e_str + "\n" + pip_error)
-                            break
-                        
                 else:
+                    print(
+                        "Found 'ModuleNotFoundError' but couldn't parse module. Stopping tries."
+                    )
+                    break  # Avoid infinite loop
+
+            else:
+                debug_check = debug_with_gemini(file= MODEL_FILE, error_message= error_str)
+                if debug_check!=0:
                     break
             tries += 1
+
         all_results.setdefault(model, []).append(result)
-        if result["status"] == "Success":
+        
+        if result.get("status") == "Success":
             success_count += 1
         else:
             failure_count += 1
+            
         print(f"--- [FINISHED] Test for: {model} ---\n")
         cache_dir = os.path.expanduser("~/.cache/huggingface/")
-        shutil.rmtree(cache_dir, ignore_errors=True)
-        print(f"--- Deleted ~/.cache/huggingface/ ---\n")
+        if os.path.exists(cache_dir):
+            shutil.rmtree(cache_dir, ignore_errors=True)
+            print(f"--- Deleted ~/.cache/huggingface/ ---\n")
+        else:
+            print(f"--- Cache dir not found. Skipping delete: ~/.cache/huggingface/ ---\n")
 
     # Save full summary JSON results to the TEST_DIR
     results_filename = TEST_DIR / f"model_test_results.json"
@@ -330,37 +533,89 @@ def main(task, dataset_name_src, models_to_test):
     for model_name, results_list in all_results.items():
         # Get the final result from the list (it's the last one)
         final_result = results_list[-1]
-        print(f"  - {final_result['model']}: {final_result['status']}")
-        if final_result["status"] != "Success": 
+        print(f"  - {final_result.get('model', model_name)}: {final_result.get('status', 'Unknown')}")
+        if final_result.get("status") != "Success":
             error_preview = final_result.get("error", "No error message.").splitlines()
             error_snippet = f": {error_preview[0]}" if error_preview else ""
             print(
                 f"    - Details: Return Code {final_result.get('returncode', 'N/A')}{error_snippet}"
             )
+            
+    # Return the number of failures for sys.exit()
+    return failure_count
 
 
 if __name__ == "__main__":
-    dirs = [
-        "mlmodelscope/pytorch_agent/models/default/automatic_speech_recognition/wav2vec2_large_xlsr_punjabi/model.py",
-        "mlmodelscope/pytorch_agent/models/default/depth_estimation/coreml_sam2_1_small/model.py",
-        "mlmodelscope/pytorch_agent/models/default/document_visual_question_answering/layoutlm_document_qa/model.py",
-        "mlmodelscope/pytorch_agent/models/default/image_captioning/pix2struct_tiny_random/model.py",
-        "mlmodelscope/pytorch_agent/models/default/image_classification/nsfw_image_detector/model.py",
-        "mlmodelscope/pytorch_agent/models/default/image_editing/yoso_normal_v1_8_1/model.py",
-        "mlmodelscope/pytorch_agent/models/default/image_object_detection/dfine_small_coco/model.py",
-        "mlmodelscope/pytorch_agent/models/default/image_semantic_segmentation/seg_zero_7b/model.py",
-        "mlmodelscope/pytorch_agent/models/default/music_generation/qwen2_5_omni_wo_video_1016/model.py",
-        "mlmodelscope/pytorch_agent/models/default/sentiment_analysis/deberta_v3_xsmall_mnli_fever_anli_ling_binary/model.py",
-        "mlmodelscope/pytorch_agent/models/default/text_to_image/stablematerials/model.py",
-        "mlmodelscope/pytorch_agent/models/default/text_to_text/t5_small_booksum/model.py",
-        "mlmodelscope/pytorch_agent/models/default/video_classification/xclip_base_patch16/model.py",
-        "mlmodelscope/pytorch_agent/models/default/visual_question_answering/vl_rethinker_72b/model.py"
-    ]
-    myJson = dict(json.loads(open("./test.json").read()))
-    for modality in myJson:
-        dir = myJson[modality]["dir"]
-        test = json.dumps(myJson[modality]["test"])
-        modelName = [x.split("/")[-2] for x in dirs if dir in x][0]
-        task = [x.split("/")[-3] for x in dirs if dir in x][0]
-        print(task,modelName)
-        main(task=task, dataset_name_src=test, models_to_test=[modelName])
+    overall_failures = 0
+    try:
+        dirs = [
+            "mlmodelscope/pytorch_agent/models/default/automatic_speech_recognition/wav2vec2_large_xlsr_punjabi/model.py",
+            "mlmodelscope/pytorch_agent/models/default/depth_estimation/coreml_sam2_1_small/model.py",
+            "mlmodelscope/pytorch_agent/models/default/document_visual_question_answering/layoutlm_document_qa/model.py",
+            "mlmodelscope/pytorch_agent/models/default/image_captioning/pix2struct_tiny_random/model.py",
+            "mlmodelscope/pytorch_agent/models/default/image_classification/nsfw_image_detector/model.py",
+            "mlmodelscope/pytorch_agent/models/default/image_editing/yoso_normal_v1_8_1/model.py",
+            "mlmodelscope/pytorch_agent/models/default/image_object_detection/dfine_small_coco/model.py",
+            "mlmodelscope/pytorch_agent/models/default/image_semantic_segmentation/seg_zero_7b/model.py",
+            "mlmodelscope/pytorch_agent/models/default/music_generation/qwen2_5_omni_wo_video_1016/model.py",
+            "mlmodelscope/pytorch_agent/models/default/sentiment_analysis/deberta_v3_xsmall_mnli_fever_anli_ling_binary/model.py",
+            "mlmodelscope/pytorch_agent/models/default/text_to_image/stablematerials/model.py",
+            "mlmodelscope/pytorch_agent/models/default/text_to_text/t5_small_booksum/model.py",
+            "mlmodelscope/pytorch_agent/models/default/video_classification/xclip_base_patch16/model.py",
+            "mlmodelscope/pytorch_agent/models/default/visual_question_answering/vl_rethinker_72b/model.py"
+        ]
+        
+        json_file_path = "./test.json"
+        if not os.path.exists(json_file_path):
+            print(f"❌ Error: JSON file not found at {json_file_path}")
+            sys.exit(1) # Exit with error
+            
+        with open(json_file_path, "r") as f:
+            myJson = dict(json.loads(f.read()))
+
+        for modality in myJson:
+            dir_key = myJson[modality].get("dir")
+            test_data = myJson[modality].get("test")
+            
+            if not dir_key or test_data is None:
+                print(f"⚠️ Skipping modality '{modality}': missing 'dir' or 'test' key.")
+                continue
+
+            test = json.dumps(test_data)
+
+            # Find model and task, with error checking
+            modelName_matches = [x.split("/")[-2] for x in dirs if dir_key in x]
+            task_matches = [x.split("/")[-3] for x in dirs if dir_key in x]
+            
+            if not modelName_matches or not task_matches:
+                print(f"⚠️ Skipping modality '{modality}': could not find matching model/task for dir '{dir_key}'")
+                overall_failures += 1
+                continue
+                
+            modelName = modelName_matches[0]
+            task = task_matches[0]
+            
+            print(f"\n{'='*20} 🚀 Starting Test for Task: {task}, Model: {modelName} {'='*20}\n")
+            # main() now returns the number of failures for that run
+            failures = main(task=task, dataset_name_src=test, models_to_test=[modelName])
+            overall_failures += failures
+            print(f"\n{'='*20} 🏁 Finished Test for Task: {task}, Model: {modelName} {'='*20}\n")
+            
+    except json.JSONDecodeError:
+        print("❌ Error: Failed to decode './test.json'. Please check for syntax errors.")
+        overall_failures += 1
+    except FileNotFoundError:
+        print("❌ Error: './test.json' file not found.")
+        overall_failures += 1
+    except Exception as e:
+        print(f"❌ An unexpected error occurred in the main execution block: {e}")
+        overall_failures += 1
+        
+    finally:
+        # --- This is the new exit logic ---
+        if overall_failures > 0:
+            print(f"\n🚫 Script finished with {overall_failures} total failures.")
+            sys.exit(1) # Exit with a non-zero status code
+        else:
+            print("\n✅ All tests passed. Script finished successfully.")
+            sys.exit(0) # Exit with status code 0
