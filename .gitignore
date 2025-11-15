@@ -10,6 +10,7 @@ mlmodelscope/mxnet_agent/tmp/
 mlmodelscope/jax_agent/tmp/
 mlmodelscope/max_agent/tmp/
 *.ipynb
+pydldataset/datasets/tmp/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

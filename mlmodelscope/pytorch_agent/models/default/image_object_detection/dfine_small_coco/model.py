@@ -8,11 +8,11 @@ import torch
 import warnings
 
 class PyTorch_Transformers_DFineSmallCoco(PyTorchAbstractClass):
-    def __init__(selfmodel_id: str = "ustc-community/dfine-small-coco"):
+    def __init__(self, config, model_id: str = "ustc-community/dfine-small-coco"):
         super().__init__(config)
         warnings.warn("The batch size should be 1.")
         self.processor = AutoImageProcessor.from_pretrained(model_id)
-        self.load_hf_model(DFineForObjectDetection, model_id)
+        self.model = self.load_hf_model(DFineForObjectDetection, model_id)
 
     def preprocess(self, input_images):
         images = [Image.open(p).convert("RGB") for p in input_images]

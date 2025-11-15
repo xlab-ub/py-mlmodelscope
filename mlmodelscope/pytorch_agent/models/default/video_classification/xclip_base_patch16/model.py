@@ -2,7 +2,7 @@
 from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 
 import torch
-from transformers import AutoProcessor, VideoMAEForVideoClassification
+from transformers import AutoProcessor, AutoModelForVideoClassification
 import av
 import numpy as np
 
@@ -11,21 +11,35 @@ class PyTorch_Transformers_XCLIP_Base_Patch16(PyTorchAbstractClass):
         super().__init__(config)
         model_id = "microsoft/xclip-base-patch16"
         self.processor = AutoProcessor.from_pretrained(model_id)
-        self.model = self.load_hf_model(VideoMAEForVideoClassification, model_id)
+        self.model = self.load_hf_model(AutoModelForVideoClassification, model_id)
 
-        self.features = [v for k, v in sorted(self.model.config.text_config['id2label'].items())]
+        self.features = [v for k, v in sorted(self.model.config.id2label.items())]
+
+    def sample_frame_indices(self, clip_len, frame_sample_rate, seg_len):
+        indices = np.linspace(0, seg_len - 1, num=clip_len).astype(int)
+        return indices
+
+    def read_video_pyav(self, container, indices):
+        frames = []
+        container.seek(0)
+        for i, frame in enumerate(container.decode(video=0)):
+            if i in indices:
+                frames.append(frame.to_ndarray(format="rgb24"))
+        return np.stack(frames)
 
     def preprocess(self, input_videos):
         container = av.open(input_videos[0])
         # sample 8 frames, as specified in the model card
         indices = self.sample_frame_indices(clip_len=8, frame_sample_rate=1, seg_len=container.streams.video[0].frames)
         video = self.read_video_pyav(container, indices)
-        pixel_values = self.processor(videos=list(video), return_tensors="pt").pixel_values
-        return pixel_values
+        inputs = self.processor(
+            text=self.features, videos=list(video), return_tensors="pt", padding=True
+        )
+        return inputs
 
     def predict(self, model_input):
-        return self.model(model_input)
+        return self.model(**model_input)
 
     def postprocess(self, model_output):
-        probabilities = torch.nn.functional.softmax(model_output.logits, dim=1)
+        probabilities = torch.nn.functional.softmax(model_output.logits_per_video, dim=1)
         return probabilities.tolist()

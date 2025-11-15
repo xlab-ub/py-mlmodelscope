@@ -21,6 +21,7 @@ class PyTorch_Transformers_NsfwImageDetector(PyTorchAbstractClass):
             for image_path in input_images
         ]
         model_input = self.processor(processed_images, return_tensors="pt")
+        model_input = {k: v.to(self.model.device) for k, v in model_input.items()}
         return model_input
 
     def predict(self, model_input):

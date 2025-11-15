@@ -31,9 +31,11 @@ class PyTorch_Custom_StableNormal(PyTorchAbstractClass):
         # The model output is a list of PIL Images, which need to be converted to lists for JSON serialization
         return [np.array(img).tolist() for img in model_output]
 
-    def to(self, device):
+    def to(self, device, multi_gpu=None):
         self.device = device
         self.model.to(device)
 
     def eval(self):
-        self.model.eval()
+        # The loaded object is a pipeline-like 'Predictor' object, not a torch.nn.Module.
+        # It does not have an 'eval()' method as it's already set up for inference.
+        pass

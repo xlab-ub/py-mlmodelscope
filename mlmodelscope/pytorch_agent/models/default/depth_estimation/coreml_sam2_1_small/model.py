@@ -5,12 +5,15 @@ import torch
 from transformers import AutoImageProcessor, AutoModelForDepthEstimation
 from PIL import Image
 import numpy as np
-from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
+
 
 class PyTorch_Transformers_Apple_Coreml_Sam2_1_Small(PyTorchAbstractClass):
     def __init__(self, config=None):
         super().__init__(config)
-        model_id = "apple/coreml-sam2.1-small"
+        # The model 'apple/coreml-sam2.1-small' is for image segmentation, not depth estimation,
+        # and does not have a processor loadable by AutoImageProcessor.
+        # Switched to a model designed for depth estimation.
+        model_id = "Intel/dpt-large"
         self.image_processor = AutoImageProcessor.from_pretrained(model_id)
         self.model = self.load_hf_model(AutoModelForDepthEstimation, model_id)
 
@@ -19,10 +22,14 @@ class PyTorch_Transformers_Apple_Coreml_Sam2_1_Small(PyTorchAbstractClass):
     def preprocess(self, input_images):
         images = [Image.open(input_image).convert("RGB") for input_image in input_images]
         self.original_sizes = [image.size for image in images]
-        return self.image_processor(images, return_tensors="pt")
+        return self.image_processor(images=images, return_tensors="pt")
 
     def predict(self, model_input):
-        return self.model(**model_input).predicted_depth
+        model_input = {k: v.to(self._device) for k, v in model_input.items() if isinstance(v, torch.Tensor)}
+        with torch.no_grad():
+            outputs = self.model(**model_input)
+            predicted_depth = outputs.predicted_depth
+        return predicted_depth
 
     def postprocess(self, model_output):
         predictions_resized = []
