@@ -2,59 +2,51 @@
 from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 
 from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
-from transformers import LayoutLMv2Processor, LayoutLMv2ForQuestionAnswering
+from transformers import LayoutLMForQuestionAnswering, LayoutLMv2Processor
 from PIL import Image
+import pytesseract
+from pytesseract import Output
 import torch
 
-class PyTorch_Transformers_Impira_LayoutLM_Document_QA(PyTorchAbstractClass):
+class PyTorch_Transformers_Impira_Layoutlm_Document_Qa(PyTorchAbstractClass):
     def __init__(self, config=None):
-        self.config = config if config else dict()
-        device = self.config.pop("_device", "cpu")
-        # The multi_gpu flag is acknowledged, but LayoutLMv2ForQuestionAnswering doesn't support device_map="auto" for simple multi-GPU setup.
-        # The model is moved to the specified device.
-        multi_gpu = self.config.pop("_multi_gpu", False)
-
+        super().__init__(config)
         model_id = "impira/layoutlm-document-qa"
         self.processor = LayoutLMv2Processor.from_pretrained(model_id)
-        self.model = LayoutLMv2ForQuestionAnswering.from_pretrained(model_id).to(device)
+        self.model = self.load_hf_model(LayoutLMForQuestionAnswering, model_id)
 
     def preprocess(self, input_document_images_and_questions):
-        images, questions = [], []
+        images, questions, all_words, all_boxes = [], [], [], []
         for input_image, question in input_document_images_and_questions:
-            images.append(Image.open(input_image).convert("RGB"))
+            image = Image.open(input_image).convert("RGB")
+            images.append(image)
             questions.append(question)
-        
-        encoding = self.processor(images, questions, return_tensors="pt", padding=True, truncation=True)
-        # Move tensors to the model's device
-        for k, v in encoding.items():
-            encoding[k] = v.to(self.model.device)
-        return encoding
+            width, height = image.size
+            ocr_data = pytesseract.image_to_data(image, output_type=Output.DICT)
+            words, boxes = [], []
+            for i in range(len(ocr_data['text'])):
+                if ocr_data['text'][i].strip():
+                    x, y, w, h = ocr_data['left'][i], ocr_data['top'][i], ocr_data['width'][i], ocr_data['height'][i]
+                    normalized_box = [int(1000 * x / width), int(1000 * y / height), int(1000 * (x + w) / width), int(1000 * (y + h) / height)]
+                    words.append(ocr_data['text'][i])
+                    boxes.append(normalized_box)
+            all_words.append(words)
+            all_boxes.append(boxes)
+        return self.processor(images, questions, words=all_words, boxes=all_boxes, return_tensors="pt", padding="max_length", truncation=True)
 
     def predict(self, model_input):
-        # For extractive QA, we need the original input_ids in postprocessing to decode the answer span.
-        # Therefore, we pass the model_input along with the model_output.
         outputs = self.model(**model_input)
-        return outputs, model_input
+        return {"start_logits": outputs.start_logits, "end_logits": outputs.end_logits, "input_ids": model_input.input_ids}
 
     def postprocess(self, model_output):
-        model_output, model_input = model_output_and_input
-
-        start_indices = torch.argmax(model_output.start_logits, dim=1)
-        end_indices = torch.argmax(model_output.end_logits, dim=1)
-
+        start_logits = model_output["start_logits"]
+        end_logits = model_output["end_logits"]
+        input_ids = model_output["input_ids"]
         answers = []
-        for i in range(len(start_indices)):
-            input_ids = model_input["input_ids"][i]
-            start_index = start_indices[i]
-            end_index = end_indices[i]
-
-            # Ensure the start index is not after the end index
-            if start_index > end_index:
-                answers.append("")  # Model returned an invalid span
-                continue
-
-            answer_ids = input_ids[start_index : end_index + 1]
-            answer = self.processor.tokenizer.decode(answer_ids, skip_special_tokens=True)
-            answers.append(answer.strip())
-
+        for i in range(len(start_logits)):
+            start_index = torch.argmax(start_logits[i])
+            end_index = torch.argmax(end_logits[i])
+            answer_tokens = input_ids[i][start_index : end_index + 1]
+            answer = self.processor.tokenizer.decode(answer_tokens).strip()
+            answers.append(answer)
         return answers

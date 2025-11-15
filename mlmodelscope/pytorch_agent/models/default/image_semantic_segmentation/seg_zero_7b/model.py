@@ -3,25 +3,20 @@ from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 
 from transformers import AutoImageProcessor, AutoModelForSemanticSegmentation
 from PIL import Image
+from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 
 class PyTorch_Transformers_Seg_Zero_7B(PyTorchAbstractClass):
-    def __init__(self, config=None):
-        self.config = config if config else dict()
-        device = self.config.pop("_device", "cpu")
-        multi_gpu = self.config.pop("_multi_gpu", False)
-
+    def __init__(selfself, config):
+        super().__init__(config)
         model_id = "Ricky06662/Seg-Zero-7B"
-        # This model is a CausalLM for reasoning, not a direct segmentation model.
-        # We are using the AutoModelForSemanticSegmentation class as a placeholder to fit the required structure,
-        # but this will likely fail at runtime due to model architecture mismatch.
+        # This model is a CausalLM and not a standard Semantic Segmentation model.
+        # The following lines are a template and will likely fail as the model architecture is not compatible with AutoModelForSemanticSegmentation.
         self.processor = AutoImageProcessor.from_pretrained(model_id, trust_remote_code=True)
-        if multi_gpu and device == "cuda":
-            self.model = AutoModelForSemanticSegmentation.from_pretrained(model_id, device_map="auto", torch_dtype="auto", trust_remote_code=True)
-        else:
-            self.model = AutoModelForSemanticSegmentation.from_pretrained(model_id, trust_remote_code=True)
+        self.model = self.load_hf_model(AutoModelForSemanticSegmentation, model_id, trust_remote_code=True)
 
     def preprocess(self, input_images):
-        model_input = self.processor(images=input_images, return_tensors="pt")
+        images = [Image.open(path).convert("RGB") for path in input_images]
+        model_input = self.processor(images=images, return_tensors="pt")
         return model_input
 
     def predict(self, model_input):

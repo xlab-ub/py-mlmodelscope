@@ -5,29 +5,26 @@ from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 from transformers import Pix2StructProcessor, Pix2StructForConditionalGeneration
 from PIL import Image
 
-class PyTorch_Transformers_Pix2Struct_Tiny_Random(PyTorchAbstractClass):
+class PyTorch_Transformers_Pix2Struct_Image_Captioning(PyTorchAbstractClass):
     def __init__(self, config=None):
-        self.config = config if config else dict()
-        device = self.config.pop("_device", "cpu")
-        multi_gpu = self.config.pop("_multi_gpu", False)
-
+        super().__init__(config)
         model_id = "optimum-intel-internal-testing/pix2struct-tiny-random"
-
         self.processor = Pix2StructProcessor.from_pretrained(model_id)
-        
-        if multi_gpu and device == "cuda":
-            self.model = Pix2StructForConditionalGeneration.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
-        else:
-            self.model = Pix2StructForConditionalGeneration.from_pretrained(model_id)
+        self.model = self.load_hf_model(Pix2StructForConditionalGeneration, model_id)
 
-        self.max_new_tokens = self.config.get('max_new_tokens', 64)
+        self.max_new_tokens = self.config.get('max_new_tokens', 32)
 
     def preprocess(self, input_images):
-        images = [Image.open(image_path).convert('RGB') for image_path in input_images]
+        images = []
+        for image_path in input_images:
+            images.append(Image.open(image_path).convert('RGB'))
+        
+        # The processor handles batching
         model_input = self.processor(images=images, return_tensors="pt")
         return model_input
 
     def predict(self, model_input):
+        # The model_input is a dictionary, so we unpack it with **
         return self.model.generate(**model_input, max_new_tokens=self.max_new_tokens)
 
     def postprocess(self, model_output):

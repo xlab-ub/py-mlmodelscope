@@ -5,27 +5,19 @@ import torch
 from transformers import AutoProcessor, VideoMAEForVideoClassification
 import av
 import numpy as np
-from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 
 class PyTorch_Transformers_XCLIP_Base_Patch16(PyTorchAbstractClass):
     def __init__(self, config=None):
-        self.config = config if config else dict()
-        device = self.config.pop("_device", "cpu")
-        multi_gpu = self.config.pop("_multi_gpu", False)
-
+        super().__init__(config)
         model_id = "microsoft/xclip-base-patch16"
         self.processor = AutoProcessor.from_pretrained(model_id)
-        
-        if multi_gpu and device == "cuda":
-            self.model = VideoMAEForVideoClassification.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
-        else:
-            self.model = VideoMAEForVideoClassification.from_pretrained(model_id)
+        self.model = self.load_hf_model(VideoMAEForVideoClassification, model_id)
 
         self.features = [v for k, v in sorted(self.model.config.text_config['id2label'].items())]
 
     def preprocess(self, input_videos):
         container = av.open(input_videos[0])
-        # The model was trained on 8 frames, so we sample 8 frames.
+        # sample 8 frames, as specified in the model card
         indices = self.sample_frame_indices(clip_len=8, frame_sample_rate=1, seg_len=container.streams.video[0].frames)
         video = self.read_video_pyav(container, indices)
         pixel_values = self.processor(videos=list(video), return_tensors="pt").pixel_values

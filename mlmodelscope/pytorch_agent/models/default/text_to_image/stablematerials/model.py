@@ -6,52 +6,19 @@ from diffusers import DiffusionPipeline
 
 class PyTorch_Diffusers_StableMaterials(PyTorchAbstractClass):
     def __init__(self, config=None):
-        self.config = config if config else dict()
-        device = self.config.pop("_device", "cpu")
-        multi_gpu = self.config.pop("_multi_gpu", False)
-
-        model_id = "gvecchio/StableMaterials"
-        if multi_gpu and device == "cuda":
-            self.pipeline = DiffusionPipeline.from_pretrained(
-                model_id,
-                trust_remote_code=True,
-                torch_dtype=torch.float16
-            )
-        else:
-            self.pipeline = DiffusionPipeline.from_pretrained(
-                model_id,
-                trust_remote_code=True
-            )
-
+        super().__init__(config)
+        self.pipeline = DiffusionPipeline.from_pretrained("gvecchio/StableMaterials", trust_remote_code=True, torch_dtype=torch.float16)
         self.num_inference_steps = self.config.get('num_inference_steps', 50)
-        self.guidance_scale = self.config.get('guidance_scale', 10.0)
-        self.tileable = self.config.get('tileable', True)
 
     def preprocess(self, input_prompts):
-        # The model can also accept an image prompt, but we default to text prompts.
         return input_prompts
 
     def predict(self, model_input):
-        return self.pipeline(
-            prompt=model_input,
-            num_inference_steps=self.num_inference_steps,
-            guidance_scale=self.guidance_scale,
-            tileable=self.tileable
-        ).images
+        return self.pipeline(prompt=model_input, num_inference_steps=self.num_inference_steps, tileable=True).images
 
     def postprocess(self, model_output):
         import numpy as np
-        # The model output is a list of custom material objects.
-        # We extract the 'basecolor' map as the primary image output.
-        # Other maps include: normal, height, roughness, metallic.
-        processed_images = []
-        for material in model_output:
-            if hasattr(material, 'basecolor'):
-                processed_images.append(np.array(material.basecolor).tolist())
-            else:
-                # Fallback for standard PIL.Image output
-                processed_images.append(np.array(material).tolist())
-        return processed_images
+        return [np.array(img).tolist() for img in model_output]
 
     def to(self, device):
         self.device = device

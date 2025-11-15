@@ -4,14 +4,15 @@ from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 from transformers import AutoImageProcessor, AutoModelForImageClassification
 from PIL import Image
 import torch
+from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 
 class PyTorch_Transformers_NsfwImageDetector(PyTorchAbstractClass):
     def __init__(self, config=None):
-        self.config = config if config else dict()
+        super().__init__(config)
         model_id = "Freepik/nsfw_image_detector"
         
         self.processor = AutoImageProcessor.from_pretrained(model_id)
-        self.model = AutoModelForImageClassification.from_pretrained(model_id)
+        self.model = self.load_hf_model(AutoModelForImageClassification, model_id)
         self.model.eval()
 
     def preprocess(self, input_images):
@@ -23,8 +24,7 @@ class PyTorch_Transformers_NsfwImageDetector(PyTorchAbstractClass):
         return model_input
 
     def predict(self, model_input):
-        with torch.no_grad():
-            return self.model(**model_input)
+        return self.model(**model_input)
 
     def postprocess(self, model_output):
         probabilities = torch.nn.functional.softmax(model_output.logits, dim=1)

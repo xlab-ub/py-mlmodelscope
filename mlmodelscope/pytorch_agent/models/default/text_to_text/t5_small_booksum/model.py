@@ -15,19 +15,12 @@ class PyTorch_Transformers_T5_Small_Booksum(PyTorchAbstractClass):
         # --- Generated Configuration ---
         # trust_remote_code=False
         tokenizer_args = {'padding_side': 'left'}
-        
-        try:
-            self.tokenizer = T5Tokenizer.from_pretrained(model_id, **tokenizer_args)
-            self.model = self.load_hf_model(T5ForConditionalGeneration, model_id)
-        except Exception as e:
-            if model_id in e.__str__():
-                self.huggingface_authenticate()
-                self.tokenizer = T5Tokenizer.from_pretrained(model_id, **tokenizer_args)
-                self.model = self.load_hf_model(T5ForConditionalGeneration, model_id)
-            else:
-                raise e
+        model_args = {}
 
-        None
+        self.tokenizer = T5Tokenizer.from_pretrained(model_id, **tokenizer_args)
+        self.model = self.load_hf_model(T5ForConditionalGeneration, model_id, **model_args)
+
+        self.tokenizer.pad_token = self.tokenizer.eos_token
         # --- End Generated Configuration ---
 
         self.max_new_tokens = self.config.get("max_new_tokens", 256)
@@ -46,7 +39,7 @@ class PyTorch_Transformers_T5_Small_Booksum(PyTorchAbstractClass):
             model_input["input_ids"],
             attention_mask=model_input.get("attention_mask"), # Use .get for safety
             max_new_tokens=self.max_new_tokens,
-            pad_token_id=None
+            pad_token_id=self.tokenizer.eos_token_id
         )
         return outputs
 

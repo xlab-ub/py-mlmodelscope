@@ -3,6 +3,7 @@ from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from torch.nn.functional import softmax
+from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 
 class PyTorch_Transformers_DeBERTa_NLI(PyTorchAbstractClass):
     def __init__(self, config=None):
@@ -10,6 +11,7 @@ class PyTorch_Transformers_DeBERTa_NLI(PyTorchAbstractClass):
         model_id = "MoritzLaurer/DeBERTa-v3-xsmall-mnli-fever-anli-ling-binary"
         self.tokenizer = AutoTokenizer.from_pretrained(model_id)
         self.model = self.load_hf_model(AutoModelForSequenceClassification, model_id)
+
         self.features = list(self.model.config.id2label.values())
 
     def preprocess(self, input_texts):

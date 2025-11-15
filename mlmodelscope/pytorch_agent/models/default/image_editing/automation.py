@@ -230,7 +230,7 @@ Example 4: Image-to-Image Pipeline (diffusers_pipeline)
     "init_config": ", config=None",
     "init_body": "super().__init__(config)\\n        model_id = \\"runwayml/stable-diffusion-v1-5\\"\\n        self.pipeline = StableDiffusionImg2ImgPipeline.from_pretrained(model_id)",
     "preprocess_input": "input_images_and_prompts",
-    "preprocess_body": "images = []\\n        prompts = []\\n        for img_path, prompt in input_images_and_prompts:\\n            images.append(Image.open(img_path).convert('RGB'))\\n            prompts.append(prompt)\\n        return {{\\"images\\": images, \\"prompt\\": prompts}}",
+    "preprocess_body": "images = []\\n        prompts = []\\n        for img_path, prompt in input_images_and_prompts:\\n            images.append(Image.open(img_path).convert('RGB'))\\n            prompts.append(prompt)\\n        return {{{{\\"images\\": images, \\"prompt\\": prompts}}}}",
     "predict_body": "return self.pipeline(**model_input).images",
     "postprocess_body": "# Pipeline returns PIL images\\n        import numpy as np\\n        return [np.array(img).tolist() for img in model_output]",
     "optional_methods": "\\n    def to(self, device):\\n        self.device = device\\n        self.pipeline.to(device)"
