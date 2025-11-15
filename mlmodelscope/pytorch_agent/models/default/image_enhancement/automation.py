@@ -1,4 +1,3 @@
-from datetime import datetime
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -50,7 +49,7 @@ class {class_name}(PyTorchAbstractClass):
         )
 
         init_body: str = Field(
-            description="The complete body of the __init__ method. Should include: 1) config initialization if needed, 2) loading model, 3) setting scale factor or enhancement parameters. Include proper indentation (8 spaces).",
+            description="The complete body of the __init__ method. Should include: 1) config initialization with super().__init__(config) for transformers models, 2) loading model (for transformers: use self.load_hf_model(ModelClass, model_id), for torch.hub: use torch.hub.load), 3) setting scale factor or enhancement parameters. Include proper indentation (8 spaces).",
         )
 
         preprocess_body: str = Field(
@@ -85,20 +84,8 @@ You are an expert in PyTorch image enhancement models. Your task is to generate 
    - May need torchvision transforms
 
 3. **Init Method:**
-   - Initialize config: `self.config = config if config else dict()`
-   - **ALWAYS extract device and multi_gpu settings:**
-     ```
-     device = self.config.pop("_device", "cpu")
-     multi_gpu = self.config.pop("_multi_gpu", False)
-     ```
-   - **Load model with multi-GPU support (if transformers):**
-     ```
-     if multi_gpu and device == "cuda":
-         self.model = ModelClass.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
-     else:
-         self.model = ModelClass.from_pretrained(model_id)
-     ```
-   - For torch.hub models: Use `torch.hub.load()` (doesn't support device_map)
+   - For transformers models: Call `super().__init__(config)` and use `self.load_hf_model(ModelClass, model_id)` for model loading
+   - For torch.hub models: Use `torch.hub.load()` directly (no super().__init__ needed)
    - Set scale factor if super-resolution
 
 4. **Preprocess Method:**
@@ -117,7 +104,7 @@ You are an expert in PyTorch image enhancement models. Your task is to generate 
     "imports": "import torch\\nfrom PIL import Image\\nimport numpy as np\\nimport torchvision.transforms as transforms",
     "class_name": "PyTorch_SRGAN_v1",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        # Note: torch.hub.load doesn't support device_map\\n        self.model = torch.hub.load('url', 'model_name')\\n        self.scale_factor = 4",
+    "init_body": "self.config = config if config else dict()\\n        self.model = torch.hub.load('url', 'model_name')\\n        self.scale_factor = 4",
     "preprocess_body": "images = [Image.open(img_path).convert('RGB') for img_path in input_images]\\n        transform = transforms.ToTensor()\\n        tensors = [transform(img).unsqueeze(0) for img in images]\\n        return torch.cat(tensors, dim=0)",
     "predict_body": "with torch.no_grad():\\n            return self.model(model_input)",
     "postprocess_body": "output = model_output.clamp(0, 1)\\n        output = (output*255).to(torch.uint8).permute(0, 2, 3, 1).cpu().numpy()\\n        return [img.tolist() for img in output]"
@@ -156,9 +143,7 @@ Use the exact model identifier '{model_identifier}' in the init_body.
     chain = prompt | llm | parser
 
     BASE_DIR = "mlmodelscope/pytorch_agent/models/default/image_enhancement"
-    ERROR_DIR = f"{BASE_DIR}/automation/" + str(
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    )
+    ERROR_DIR = f"{BASE_DIR}/errors"
     os.makedirs(ERROR_DIR, exist_ok=True)
     failed_models = []
     login_req_models = []
@@ -181,14 +166,9 @@ Use the exact model identifier '{model_identifier}' in the init_body.
         try:
             check_syntax = lambda fn: os.system(f"python -m py_compile {fn}")
             error = False
-            MAX_TRIES_PER_MODEL = 5
-            try_count_my_model = 0
             while not os.path.exists(model_py_path) or (
                 error := check_syntax(model_py_path)
             ):
-                if try_count_my_model >= MAX_TRIES_PER_MODEL:
-                    break
-                try_count_my_model += 1
                 if error:
                     error_log += f"Syntax error, regenerating...\n"
 
@@ -277,3 +257,4 @@ Use the exact model identifier '{model_identifier}' in the init_body.
 
 if __name__ == "__main__":
     image_enhancement_model_automation(models_to_add=["eugenesiow/esrgan"])
+

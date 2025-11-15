@@ -1,4 +1,3 @@
-from datetime import datetime
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -50,7 +49,7 @@ class {class_name}(PyTorchAbstractClass):
         )
 
         init_body: str = Field(
-            description="The complete body of the __init__ method. Should include: 1) config initialization, 2) loading image_processor from_pretrained, 3) loading model from_pretrained, 4) initialize self.original_sizes = None for storing image sizes. Include proper indentation (8 spaces).",
+            description="The complete body of the __init__ method. Should include: 1) config initialization with super().__init__(config), 2) loading image_processor from_pretrained, 3) loading model using self.load_hf_model(ModelClass, model_id) for multi-GPU support, 4) initialize self.original_sizes = None for storing image sizes. Include proper indentation (8 spaces).",
         )
 
         preprocess_body: str = Field(
@@ -83,20 +82,9 @@ You are an expert in PyTorch depth estimation models. Generate a complete, worki
    - For DPT: `import torch`, `from transformers import DPTImageProcessor, DPTForDepthEstimation`, `from PIL import Image`, `import numpy as np`
 
 3. **Init Method:**
-   - Initialize config: `self.config = config if config else dict()`
-   - **ALWAYS extract device and multi_gpu settings:**
-     ```
-     device = self.config.pop("_device", "cpu")
-     multi_gpu = self.config.pop("_multi_gpu", False)
-     ```
-   - Load image_processor from_pretrained
-   - **Load model with multi-GPU support:**
-     ```
-     if multi_gpu and device == "cuda":
-         self.model = DPTForDepthEstimation.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
-     else:
-         self.model = DPTForDepthEstimation.from_pretrained(model_id)
-     ```
+   - Initialize config: `super().__init__(config)` (required for load_hf_model to work)
+   - Load image_processor: `ImageProcessorClass.from_pretrained(model_id)`
+   - Load model: `self.model = self.load_hf_model(ModelClass, model_id)` (use load_hf_model for multi-GPU support)
    - Set `self.original_sizes = None` to store original image dimensions
 
 4. **Preprocess Method:**
@@ -118,7 +106,7 @@ You are an expert in PyTorch depth estimation models. Generate a complete, worki
     "imports": "import torch\\nfrom transformers import DPTImageProcessor, DPTForDepthEstimation\\nfrom PIL import Image\\nimport numpy as np",
     "class_name": "PyTorch_Transformers_DPT_Large",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        self.image_processor = DPTImageProcessor.from_pretrained(\\"Intel/dpt-large\\")\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = DPTForDepthEstimation.from_pretrained(\\"Intel/dpt-large\\", device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = DPTForDepthEstimation.from_pretrained(\\"Intel/dpt-large\\")\\n\\n        self.original_sizes = None",
+    "init_body": "super().__init__(config)\\n        model_id = \\"Intel/dpt-large\\"\\n        self.image_processor = DPTImageProcessor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(DPTForDepthEstimation, model_id)\\n\\n        self.original_sizes = None",
     "preprocess_body": "images = [Image.open(input_image) for input_image in input_images]\\n        self.original_sizes = [image.size for image in images]\\n        return self.image_processor(images, return_tensors=\\"pt\\")",
     "predict_body": "return self.model(**model_input).predicted_depth",
     "postprocess_body": "predictions_resized = []\\n        for output, original_size in zip(model_output, self.original_sizes):\\n            prediction = torch.nn.functional.interpolate(\\n                output.unsqueeze(0).unsqueeze(0),\\n                size=original_size,\\n                mode=\\"bicubic\\",\\n                align_corners=False,\\n            )\\n            output = prediction.squeeze().cpu().numpy()\\n            formatted = (output * 255 / np.max(output)).astype(\\"uint8\\").tolist()\\n            predictions_resized.append(formatted)\\n        self.original_sizes = None\\n        return predictions_resized"
@@ -140,19 +128,12 @@ Use exact identifier '{model_identifier}' in code.
 
     modelCounter = 0
     load_dotenv()
-    llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-pro",
-        model_kwargs={"thinkingBudget": -1},
-        temperature=0,
-        convert_system_message_to_human=True,
-    )
+    llm = ChatGoogleGenerativeAI(model="gemini-2.5-pro", model_kwargs={"thinkingBudget": -1}, temperature=0, convert_system_message_to_human=True)
     parser = JsonOutputParser(pydantic_object=ModelConfig)
     chain = prompt | llm | parser
 
     BASE_DIR = "mlmodelscope/pytorch_agent/models/default/depth_estimation"
-    ERROR_DIR = f"{BASE_DIR}/automation/" + str(
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    )
+    ERROR_DIR = f"{BASE_DIR}/errors"
     os.makedirs(ERROR_DIR, exist_ok=True)
     failed_models = []
     login_req_models = []
@@ -160,9 +141,7 @@ Use exact identifier '{model_identifier}' in code.
     for model_name in models_to_add:
         if modelCounter == 50:
             break
-        model_folder_name = (
-            model_name.split("/")[-1].replace("-", "_").replace(".", "_").lower()
-        )
+        model_folder_name = model_name.split("/")[-1].replace("-", "_").replace(".", "_").lower()
         model_py_path = os.path.join(BASE_DIR, model_folder_name, "model.py")
 
         if os.path.exists(model_py_path):
@@ -171,58 +150,30 @@ Use exact identifier '{model_identifier}' in code.
         try:
             check_syntax = lambda fn: os.system(f"python -m py_compile {fn}")
             error = False
-            MAX_TRIES_PER_MODEL = 5
-            try_count_my_model = 0
-            while not os.path.exists(model_py_path) or (
-                error := check_syntax(model_py_path)
-            ):
-                if try_count_my_model >= MAX_TRIES_PER_MODEL:
-                    break
-                try_count_my_model += 1
+            while not os.path.exists(model_py_path) or (error := check_syntax(model_py_path)):
                 url = f"https://huggingface.co/{model_name}"
                 response = requests.get(url)
                 response.raise_for_status()
                 soup = BeautifulSoup(response.text, "html.parser")
-                main_content = (
-                    soup.find("model-card-content")
-                    or soup.find("main")
-                    or soup.find("body")
-                )
+                main_content = soup.find("model-card-content") or soup.find("main") or soup.find("body")
                 if not main_content:
                     break
-                if main_content.find(
-                    "a", href=lambda h: h and h.startswith("/login?next=")
-                ):
+                if main_content.find("a", href=lambda h: h and h.startswith("/login?next=")):
                     login_req_models.append(model_name)
                     break
 
                 context_text = main_content.get_text(separator=" ", strip=True)[:20000]
-                model_config_dict = chain.invoke(
-                    {"model_identifier": model_name, "model_page_context": context_text}
-                )
-
-                init_body = model_config_dict.get("init_body", "").replace(
-                    "{hugging_face_model_id}", model_name
-                )
+                model_config_dict = chain.invoke({"model_identifier": model_name, "model_page_context": context_text})
+                
+                init_body = model_config_dict.get("init_body", "").replace("{hugging_face_model_id}", model_name)
                 filled_template = MODEL_TEMPLATE.format(
-                    imports=model_config_dict.get(
-                        "imports",
-                        "import torch\nfrom transformers import DPTImageProcessor, DPTForDepthEstimation\nfrom PIL import Image\nimport numpy as np",
-                    ),
-                    class_name=model_config_dict.get(
-                        "class_name", "PyTorch_Depth_Estimation_Model"
-                    ),
+                    imports=model_config_dict.get("imports", "import torch\nfrom transformers import DPTImageProcessor, DPTForDepthEstimation\nfrom PIL import Image\nimport numpy as np"),
+                    class_name=model_config_dict.get("class_name", "PyTorch_Depth_Estimation_Model"),
                     init_config=model_config_dict.get("init_config", ", config=None"),
                     init_body=init_body.lstrip(" "),
-                    preprocess_body=model_config_dict.get(
-                        "preprocess_body", "pass"
-                    ).lstrip(" "),
-                    predict_body=model_config_dict.get(
-                        "predict_body", "return self.model(**model_input)"
-                    ).lstrip(" "),
-                    postprocess_body=model_config_dict.get(
-                        "postprocess_body", "return model_output.tolist()"
-                    ).lstrip(" "),
+                    preprocess_body=model_config_dict.get("preprocess_body", "pass").lstrip(" "),
+                    predict_body=model_config_dict.get("predict_body", "return self.model(**model_input)").lstrip(" "),
+                    postprocess_body=model_config_dict.get("postprocess_body", "return model_output.tolist()").lstrip(" "),
                 )
 
                 os.makedirs(os.path.join(BASE_DIR, model_folder_name), exist_ok=True)
@@ -232,7 +183,6 @@ Use exact identifier '{model_identifier}' in code.
                 modelCounter += 1
         except Exception as e:
             import traceback
-
             traceback.print_exc()
             failed_models.append(model_name)
 
@@ -243,3 +193,7 @@ Use exact identifier '{model_identifier}' in code.
 
 if __name__ == "__main__":
     depth_estimation_model_automation(models_to_add=["Intel/dpt-large"])
+
+
+
+

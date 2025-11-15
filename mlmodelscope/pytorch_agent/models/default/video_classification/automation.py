@@ -1,4 +1,3 @@
-from datetime import datetime
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -50,7 +49,7 @@ class {class_name}(PyTorchAbstractClass):
         )
 
         init_body: str = Field(
-            description="The complete body of the __init__ method. Should include: 1) config initialization, 2) loading processor and model from_pretrained, 3) extracting label features from model config. Include proper indentation (8 spaces).",
+            description="The complete body of the __init__ method. Should include: 1) config initialization with super().__init__(config), 2) loading processor from_pretrained, 3) loading model using self.load_hf_model(ModelClass, model_id) for multi-GPU support, 4) extracting label features from model config. Include proper indentation (8 spaces).",
         )
 
         preprocess_body: str = Field(
@@ -85,20 +84,9 @@ You are an expert in PyTorch video classification models. Your task is to genera
    - For video reading: `import av`, `import numpy as np`
 
 3. **Init Method:**
-   - Initialize config: `self.config = config if config else dict()`
-   - **ALWAYS extract device and multi_gpu settings:**
-     ```
-     device = self.config.pop("_device", "cpu")
-     multi_gpu = self.config.pop("_multi_gpu", False)
-     ```
-   - Load processor from_pretrained
-   - **Load model with multi-GPU support:**
-     ```
-     if multi_gpu and device == "cuda":
-         self.model = VideoMAEForVideoClassification.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
-     else:
-         self.model = VideoMAEForVideoClassification.from_pretrained(model_id)
-     ```
+   - Initialize config: `super().__init__(config)` (required for load_hf_model to work)
+   - Load processor: `AutoProcessor.from_pretrained(model_id)`
+   - Load model: `self.model = self.load_hf_model(ModelClass, model_id)` (use load_hf_model for multi-GPU support)
    - Extract labels: `self.features = [v for k, v in sorted(self.model.config.text_config['id2label'].items())]` or similar
 
 4. **Preprocess Method:**
@@ -118,7 +106,7 @@ You are an expert in PyTorch video classification models. Your task is to genera
     "imports": "import torch\\nfrom transformers import AutoProcessor, VideoMAEForVideoClassification\\nimport av\\nimport numpy as np",
     "class_name": "PyTorch_Transformers_XCLIP_Base_Patch32",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        model_id = \\"microsoft/xclip-base-patch32\\"\\n        self.processor = AutoProcessor.from_pretrained(model_id)\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = VideoMAEForVideoClassification.from_pretrained(model_id, device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = VideoMAEForVideoClassification.from_pretrained(model_id)\\n\\n        self.features = [v for k, v in sorted(self.model.config.text_config['id2label'].items())]",
+    "init_body": "super().__init__(config)\\n        model_id = \\"microsoft/xclip-base-patch32\\"\\n        self.processor = AutoProcessor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(VideoMAEForVideoClassification, model_id)\\n\\n        self.features = [v for k, v in sorted(self.model.config.text_config['id2label'].items())]",
     "preprocess_body": "container = av.open(input_videos[0])\\n        indices = self.sample_frame_indices(clip_len=16, frame_sample_rate=1, seg_len=container.streams.video[0].frames)\\n        video = self.read_video_pyav(container, indices)\\n        pixel_values = self.processor(videos=list(video), return_tensors=\\"pt\\").pixel_values\\n        return pixel_values",
     "predict_body": "return self.model(model_input)",
     "postprocess_body": "probabilities = torch.nn.functional.softmax(model_output.logits, dim=1)\\n        return probabilities.tolist()"
@@ -157,9 +145,7 @@ Use the exact model identifier '{model_identifier}' in the init_body.
     chain = prompt | llm | parser
 
     BASE_DIR = "mlmodelscope/pytorch_agent/models/default/video_classification"
-    ERROR_DIR = f"{BASE_DIR}/automation/" + str(
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    )
+    ERROR_DIR = f"{BASE_DIR}/errors"
     os.makedirs(ERROR_DIR, exist_ok=True)
     failed_models = []
     login_req_models = []
@@ -182,14 +168,9 @@ Use the exact model identifier '{model_identifier}' in the init_body.
         try:
             check_syntax = lambda fn: os.system(f"python -m py_compile {fn}")
             error = False
-            MAX_TRIES_PER_MODEL = 5
-            try_count_my_model = 0
             while not os.path.exists(model_py_path) or (
                 error := check_syntax(model_py_path)
             ):
-                if try_count_my_model >= MAX_TRIES_PER_MODEL:
-                    break
-                try_count_my_model += 1
                 if error:
                     error_log += f"Syntax error, regenerating...\n"
 
@@ -281,3 +262,4 @@ if __name__ == "__main__":
     video_classification_model_automation(
         models_to_add=["microsoft/xclip-base-patch32"]
     )
+

@@ -1,4 +1,3 @@
-from datetime import datetime
 """
 Generalized automation script for text-classification PyTorch models.
 
@@ -63,7 +62,6 @@ from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 
 class {class_name}(PyTorchAbstractClass):
     def __init__(self{init_config}):
-        super().__init__(config)
         {init_body}
 
     def preprocess(self, input_texts):
@@ -99,7 +97,7 @@ class {class_name}(PyTorchAbstractClass):
         )
 
         init_body: str = Field(
-            description="The complete body of the __init__ method (after super().__init__(config) call). Should include: 1) loading tokenizer from_pretrained, 2) loading model using self.load_hf_model(ModelClass, model_id), 3) extracting label names from model.config.id2label and storing in self.features list. DO NOT include device/multi_gpu extraction - use self.load_hf_model() instead which handles multi-GPU automatically.",
+            description="The complete body of the __init__ method. Should include: 1) config initialization with super().__init__(config), 2) loading tokenizer from_pretrained, 3) loading model using self.load_hf_model(ModelClass, model_id) for multi-GPU support, 4) extracting label names from model.config.id2label and storing in self.features list.",
         )
 
         preprocess_body: str = Field(
@@ -142,19 +140,11 @@ You must generate the complete model configuration based *primarily* on the prov
    - For multilabel: Use `import torch` instead of just softmax
 
 3. **Init Method:**
-   - The template already calls `super().__init__(config)` which handles device/multi_gpu from config
-   - Load tokenizer from_pretrained
-   - **Load model using self.load_hf_model() which handles multi-GPU automatically:**
-     ```
-     self.model = self.load_hf_model(AutoModelForSequenceClassification, model_id)
-     ```
-     Or with trust_remote_code:
-     ```
-     self.model = self.load_hf_model(AutoModelForSequenceClassification, model_id, trust_remote_code=True)
-     ```
-   - **DO NOT manually extract device/multi_gpu or add device_map/torch_dtype** - the parent class handles this automatically
+   - Initialize config: `super().__init__(config)` (required for load_hf_model to work)
+   - Load tokenizer: `AutoTokenizer.from_pretrained(model_id)`
+   - Load model: `self.model = self.load_hf_model(AutoModelForSequenceClassification, model_id)` (use load_hf_model for multi-GPU support)
    - Extract labels: `self.features = list(self.model.config.id2label.values())`
-   - Check if trust_remote_code is needed
+   - Check if trust_remote_code or problem_type (multilabel) is needed
 
 4. **Preprocess Method:**
    - Tokenize: `return self.tokenizer(input_texts, return_tensors="pt", padding=True, truncation=True)`
@@ -176,13 +166,13 @@ You must generate the complete model configuration based *primarily* on the prov
 
 **Reference Examples:**
 
-Example 1: Sentiment Analysis (Binary Classification with Multi-GPU)
+Example 1: Sentiment Analysis (Binary Classification)
 {{{{
     "model_type": "sequence_classification",
     "imports": "from transformers import AutoTokenizer, AutoModelForSequenceClassification\\nfrom torch.nn.functional import softmax",
     "class_name": "PyTorch_Transformers_DistilBERT_Sentiment",
     "init_config": ", config=None",
-    "init_body": "model_id = \\"distilbert-base-uncased-finetuned-sst-2-english\\"\\n        self.tokenizer = AutoTokenizer.from_pretrained(model_id)\\n        self.model = self.load_hf_model(AutoModelForSequenceClassification, model_id)\\n        self.features = list(self.model.config.id2label.values())",
+    "init_body": "super().__init__(config)\\n        model_id = \\"distilbert-base-uncased-finetuned-sst-2-english\\"\\n        self.tokenizer = AutoTokenizer.from_pretrained(model_id)\\n        self.model = self.load_hf_model(AutoModelForSequenceClassification, model_id)\\n\\n        self.features = list(self.model.config.id2label.values())",
     "preprocess_body": "return self.tokenizer(input_texts, return_tensors=\\"pt\\", padding=True, truncation=True)",
     "predict_body": "return self.model(**model_input).logits",
     "postprocess_body": "return softmax(model_output, dim=1).tolist()"
@@ -194,7 +184,7 @@ Example 2: Toxicity Detection (Multi-label Classification)
     "imports": "import torch\\nfrom transformers import AutoTokenizer, AutoModelForSequenceClassification",
     "class_name": "PyTorch_Transformers_BERT_Toxicity",
     "init_config": ", config=None",
-    "init_body": "model_id = \\"unitary/toxic-bert\\"\\n        self.tokenizer = AutoTokenizer.from_pretrained(model_id)\\n        self.model = self.load_hf_model(AutoModelForSequenceClassification, model_id)\\n        self.features = list(self.model.config.id2label.values())",
+    "init_body": "super().__init__(config)\\n        model_id = \\"unitary/toxic-bert\\"\\n        self.tokenizer = AutoTokenizer.from_pretrained(model_id)\\n        self.model = self.load_hf_model(AutoModelForSequenceClassification, model_id)\\n\\n        self.features = list(self.model.config.id2label.values())",
     "preprocess_body": "return self.tokenizer(input_texts, return_tensors=\\"pt\\", padding=True, truncation=True)",
     "predict_body": "return self.model(**model_input).logits",
     "postprocess_body": "return torch.sigmoid(model_output).tolist()"
@@ -206,7 +196,7 @@ Example 3: Emotion Detection (Multi-class Classification)
     "imports": "from transformers import AutoTokenizer, AutoModelForSequenceClassification\\nfrom torch.nn.functional import softmax",
     "class_name": "PyTorch_Transformers_RoBERTa_Emotion",
     "init_config": ", config=None",
-    "init_body": "model_id = \\"j-hartmann/emotion-english-distilroberta-base\\"\\n        self.tokenizer = AutoTokenizer.from_pretrained(model_id)\\n        self.model = self.load_hf_model(AutoModelForSequenceClassification, model_id)\\n        self.features = list(self.model.config.id2label.values())",
+    "init_body": "super().__init__(config)\\n        model_id = \\"j-hartmann/emotion-english-distilroberta-base\\"\\n        self.tokenizer = AutoTokenizer.from_pretrained(model_id)\\n        self.model = self.load_hf_model(AutoModelForSequenceClassification, model_id)\\n\\n        self.features = list(self.model.config.id2label.values())",
     "preprocess_body": "return self.tokenizer(input_texts, return_tensors=\\"pt\\", padding=True, truncation=True)",
     "predict_body": "return self.model(**model_input).logits",
     "postprocess_body": "return softmax(model_output, dim=1).tolist()"
@@ -218,20 +208,18 @@ Example 4: Named Entity Recognition (Token Classification)
     "imports": "import torch\\nfrom transformers import AutoTokenizer, AutoModelForTokenClassification",
     "class_name": "PyTorch_Transformers_BERT_NER",
     "init_config": ", config=None",
-    "init_body": "model_id = \\"dslim/bert-base-NER\\"\\n        self.tokenizer = AutoTokenizer.from_pretrained(model_id)\\n        self.model = self.load_hf_model(AutoModelForTokenClassification, model_id)\\n        self.features = list(self.model.config.id2label.values())",
+    "init_body": "super().__init__(config)\\n        model_id = \\"dslim/bert-base-NER\\"\\n        self.tokenizer = AutoTokenizer.from_pretrained(model_id)\\n        self.model = self.load_hf_model(AutoModelForTokenClassification, model_id)\\n\\n        self.features = list(self.model.config.id2label.values())",
     "preprocess_body": "return self.tokenizer(input_texts, return_tensors=\\"pt\\", padding=True, truncation=True)",
     "predict_body": "return self.model(**model_input).logits",
     "postprocess_body": "predictions = torch.argmax(model_output, dim=2)\\n        predicted_labels = [[self.features[p.item()] for p in prediction] for prediction in predictions]\\n        return predicted_labels"
 }}}}
 
 **CRITICAL NOTES:**
-- **Multi-GPU Support**: Use `self.load_hf_model(ModelClass, model_id)` - it handles multi-GPU automatically via the parent class
-- **DO NOT** manually extract device/multi_gpu or add device_map/torch_dtype - use `self.load_hf_model()` instead
 - Detect if it's single-label (softmax), multi-label (sigmoid), or token classification
 - For multi-label: Use torch.sigmoid() instead of softmax
 - For token classification: Use argmax per token and map to label names
 - Always extract id2label to self.features list
-- Check for trust_remote_code if model requires it (pass as kwarg to load_hf_model)
+- Check for trust_remote_code if model requires it
 - Use truncation=True to handle long texts
 - Make sure the code is complete and runnable
 
@@ -273,9 +261,7 @@ Generate config for model: '{model_identifier}'
     chain = prompt | llm | parser
 
     BASE_DIR = f"mlmodelscope/pytorch_agent/models/default/{task_type}"
-    ERROR_DIR = f"{BASE_DIR}/automation/" + str(
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    )
+    ERROR_DIR = f"{BASE_DIR}/errors"
     os.makedirs(ERROR_DIR, exist_ok=True)
     failed_models = []
     login_req_models = []
@@ -298,14 +284,9 @@ Generate config for model: '{model_identifier}'
         try:
             check_syntax = lambda fn: os.system(f"python -m py_compile {fn}")
             error = False
-            MAX_TRIES_PER_MODEL = 5
-            try_count_my_model = 0
             while not os.path.exists(model_py_path) or (
                 error := check_syntax(model_py_path)
             ):
-                if try_count_my_model >= MAX_TRIES_PER_MODEL:
-                    break
-                try_count_my_model += 1
                 if error:
                     error_log += f"Syntax error, regenerating...\n"
 

@@ -1,4 +1,3 @@
-from datetime import datetime
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -50,7 +49,7 @@ class {class_name}(PyTorchAbstractClass):
         )
 
         init_body: str = Field(
-            description="The complete body of the __init__ method. Should include: 1) config initialization, 2) loading processor and model from_pretrained. Include proper indentation (8 spaces).",
+            description="The complete body of the __init__ method. Should include: 1) config initialization with super().__init__(config), 2) loading processor from_pretrained, 3) loading model using self.load_hf_model(ModelClass, model_id) for multi-GPU support. Include proper indentation (8 spaces).",
         )
 
         preprocess_body: str = Field(
@@ -84,25 +83,14 @@ You are an expert in PyTorch document VQA models. Your task is to generate a com
    - For Donut: `from transformers import DonutProcessor, VisionEncoderDecoderModel`, `from PIL import Image`, `import re`
 
 3. **Init Method:**
-   - Initialize config: `self.config = config if config else dict()`
-   - **ALWAYS extract device and multi_gpu settings:**
-     ```
-     device = self.config.pop("_device", "cpu")
-     multi_gpu = self.config.pop("_multi_gpu", False)
-     ```
-   - Load processor from_pretrained
-   - **Load model with multi-GPU support:**
-     ```
-     if multi_gpu and device == "cuda":
-         self.model = VisionEncoderDecoderModel.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
-     else:
-         self.model = VisionEncoderDecoderModel.from_pretrained(model_id)
-     ```
+   - Initialize config: `super().__init__(config)` (required for load_hf_model to work)
+   - Load processor: `ProcessorClass.from_pretrained(model_id)`
+   - Load model: `self.model = self.load_hf_model(ModelClass, model_id)` (use load_hf_model for multi-GPU support)
 
 4. **Preprocess Method:**
    - Input: list of (image_path, question) tuples
    - Load images, format questions with task-specific prompts
-   - For Donut DocVQA: `f"<s_docvqa><s_question>{{{{question}}}}</s_question><s_answer>"`
+   - For Donut DocVQA: `f"<s_docvqa><s_question>{{question}}</s_question><s_answer>"`
    - Process with processor
 
 5. **Predict Method:**
@@ -119,8 +107,8 @@ You are an expert in PyTorch document VQA models. Your task is to generate a com
     "imports": "from transformers import DonutProcessor, VisionEncoderDecoderModel\\nfrom PIL import Image\\nimport re",
     "class_name": "PyTorch_Transformers_Donut_Base_finetuned_DocVQA",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        model_id = \\"naver-clova-ix/donut-base-finetuned-docvqa\\"\\n        self.processor = DonutProcessor.from_pretrained(model_id)\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = VisionEncoderDecoderModel.from_pretrained(model_id, device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = VisionEncoderDecoderModel.from_pretrained(model_id)",
-    "preprocess_body": "images, questions = [], []\\n        for input_image, question in input_document_images_and_questions:\\n            images.append(Image.open(input_image).convert('RGB'))\\n            questions.append(f\\"<s_docvqa><s_question>{{{{question}}}}</s_question><s_answer>\\")\\n        return self.processor(images=images, text=questions, add_special_tokens=False, padding=True, return_tensors=\\"pt\\")",
+    "init_body": "super().__init__(config)\\n        model_id = \\"naver-clova-ix/donut-base-finetuned-docvqa\\"\\n        self.processor = DonutProcessor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(VisionEncoderDecoderModel, model_id)",
+    "preprocess_body": "images, questions = [], []\\n        for input_image, question in input_document_images_and_questions:\\n            images.append(Image.open(input_image).convert('RGB'))\\n            questions.append(f\\"<s_docvqa><s_question>{{question}}</s_question><s_answer>\\")\\n        return self.processor(images=images, text=questions, add_special_tokens=False, padding=True, return_tensors=\\"pt\\")",
     "predict_body": "return self.model.generate(model_input['pixel_values'], decoder_input_ids=model_input['labels'], max_length=self.model.decoder.config.max_position_embeddings, pad_token_id=self.processor.tokenizer.pad_token_id, eos_token_id=self.processor.tokenizer.eos_token_id, use_cache=True, bad_words_ids=[[self.processor.tokenizer.unk_token_id]], return_dict_in_generate=True)",
     "postprocess_body": "sequences = self.processor.batch_decode(model_output.sequences)\\n        answers = []\\n        for sequence in sequences:\\n            sequence = sequence.replace(self.processor.tokenizer.eos_token, \\"\\").replace(self.processor.tokenizer.pad_token, \\"\\")\\n            sequence = re.sub(r\\"<.*?>\\", \\"\\", sequence, count=1).strip()\\n            answer = self.processor.token2json(sequence)['answer']\\n            answers.append(answer)\\n        return answers"
 }}}}
@@ -157,12 +145,8 @@ Use the exact model identifier '{model_identifier}' in the init_body.
     parser = JsonOutputParser(pydantic_object=ModelConfig)
     chain = prompt | llm | parser
 
-    BASE_DIR = (
-        "mlmodelscope/pytorch_agent/models/default/document_visual_question_answering"
-    )
-    ERROR_DIR = f"{BASE_DIR}/automation/" + str(
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    )
+    BASE_DIR = "mlmodelscope/pytorch_agent/models/default/document_visual_question_answering"
+    ERROR_DIR = f"{BASE_DIR}/errors"
     os.makedirs(ERROR_DIR, exist_ok=True)
     failed_models = []
     login_req_models = []
@@ -185,14 +169,9 @@ Use the exact model identifier '{model_identifier}' in the init_body.
         try:
             check_syntax = lambda fn: os.system(f"python -m py_compile {fn}")
             error = False
-            MAX_TRIES_PER_MODEL = 5
-            try_count_my_model = 0
             while not os.path.exists(model_py_path) or (
                 error := check_syntax(model_py_path)
             ):
-                if try_count_my_model >= MAX_TRIES_PER_MODEL:
-                    break
-                try_count_my_model += 1
                 if error:
                     error_log += f"Syntax error, regenerating...\n"
 
@@ -284,3 +263,4 @@ if __name__ == "__main__":
     document_visual_question_answering_model_automation(
         models_to_add=["naver-clova-ix/donut-base-finetuned-docvqa"]
     )
+

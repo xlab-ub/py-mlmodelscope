@@ -1,4 +1,3 @@
-from datetime import datetime
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -56,7 +55,7 @@ class {class_name}(PyTorchAbstractClass):
         )
 
         init_body: str = Field(
-            description="The complete body of the __init__ method. Should include: 1) config initialization, 2) loading pipeline or individual components (VAE, text_encoder, tokenizer, unet, scheduler), 3) setting generation parameters from config (height, width, num_inference_steps, guidance_scale, seed). Include proper indentation (8 spaces).",
+            description="The complete body of the __init__ method. Should include: 1) config initialization with super().__init__(config), 2) loading pipeline or individual components (VAE, text_encoder, tokenizer, unet, scheduler) with from_pretrained (diffusers doesn't use load_hf_model), 3) setting generation parameters from config (height, width, num_inference_steps, guidance_scale, seed). Include proper indentation (8 spaces).",
         )
 
         preprocess_body: str = Field(
@@ -99,25 +98,8 @@ You are an expert in PyTorch image synthesis models (Stable Diffusion). Your tas
    - For Stable Diffusion: `import torch`, diffusers components, transformers CLIP classes
 
 3. **Init Method:**
-   - Initialize config: `self.config = config if config else dict()`
-   - **ALWAYS extract device and multi_gpu settings:**
-     ```
-     device = self.config.pop("_device", "cpu")
-     multi_gpu = self.config.pop("_multi_gpu", False)
-     ```
-   - Load tokenizer from_pretrained
-   - **Load VAE, text_encoder, unet with multi-GPU support (diffusers components):**
-     ```
-     if multi_gpu and device == "cuda":
-         self.vae = AutoencoderKL.from_pretrained(model_id, subfolder="vae", device_map="auto", torch_dtype=torch.float16)
-         self.text_encoder = CLIPTextModel.from_pretrained(model_id, subfolder="text_encoder", device_map="auto", torch_dtype=torch.float16)
-         self.unet = UNet2DConditionModel.from_pretrained(model_id, subfolder="unet", device_map="auto", torch_dtype=torch.float16)
-     else:
-         self.vae = AutoencoderKL.from_pretrained(model_id, subfolder="vae")
-         self.text_encoder = CLIPTextModel.from_pretrained(model_id, subfolder="text_encoder")
-         self.unet = UNet2DConditionModel.from_pretrained(model_id, subfolder="unet")
-     ```
-   - Load scheduler from_pretrained
+   - Initialize config: `super().__init__(config)` (required for base class initialization)
+   - Load VAE, text_encoder, tokenizer, unet, scheduler from_pretrained (diffusers components use from_pretrained directly, not load_hf_model)
    - Set generation parameters: height, width, num_inference_steps, guidance_scale, seed
 
 4. **Preprocess Method:**
@@ -152,7 +134,7 @@ You are an expert in PyTorch image synthesis models (Stable Diffusion). Your tas
     "imports": "import torch\\nfrom transformers import CLIPTextModel, CLIPTokenizer\\nfrom diffusers import AutoencoderKL, UNet2DConditionModel, PNDMScheduler",
     "class_name": "PyTorch_Transformers_Stable_Diffusion_v1_5",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        model_id = \\"runwayml/stable-diffusion-v1-5\\"\\n        self.tokenizer = CLIPTokenizer.from_pretrained(model_id, subfolder=\\"tokenizer\\")\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.vae = AutoencoderKL.from_pretrained(model_id, subfolder=\\"vae\\", use_safetensors=True, device_map=\\"auto\\", torch_dtype=torch.float16)\\n            self.text_encoder = CLIPTextModel.from_pretrained(model_id, subfolder=\\"text_encoder\\", use_safetensors=True, device_map=\\"auto\\", torch_dtype=torch.float16)\\n            self.unet = UNet2DConditionModel.from_pretrained(model_id, subfolder=\\"unet\\", use_safetensors=True, device_map=\\"auto\\", torch_dtype=torch.float16)\\n        else:\\n            self.vae = AutoencoderKL.from_pretrained(model_id, subfolder=\\"vae\\", use_safetensors=True)\\n            self.text_encoder = CLIPTextModel.from_pretrained(model_id, subfolder=\\"text_encoder\\", use_safetensors=True)\\n            self.unet = UNet2DConditionModel.from_pretrained(model_id, subfolder=\\"unet\\", use_safetensors=True)\\n        \\n        self.scheduler = PNDMScheduler.from_pretrained(model_id, subfolder=\\"scheduler\\")\\n\\n        self.vae_scale_factor = 2 ** (len(self.vae.config.block_out_channels) - 1)\\n        self.height = self.config.get('height', 512)\\n        self.width = self.config.get('width', 512)\\n        self.num_inference_steps = self.config.get('num_inference_steps', 25)\\n        self.guidance_scale = self.config.get('guidance_scale', 7.5)\\n        self.seed = self.config.get('seed', 0)",
+    "init_body": "super().__init__(config)\\n        model_id = \\"runwayml/stable-diffusion-v1-5\\"\\n        self.vae = AutoencoderKL.from_pretrained(model_id, subfolder=\\"vae\\", use_safetensors=True)\\n        self.tokenizer = CLIPTokenizer.from_pretrained(model_id, subfolder=\\"tokenizer\\")\\n        self.text_encoder = CLIPTextModel.from_pretrained(model_id, subfolder=\\"text_encoder\\", use_safetensors=True)\\n        self.unet = UNet2DConditionModel.from_pretrained(model_id, subfolder=\\"unet\\", use_safetensors=True)\\n        self.scheduler = PNDMScheduler.from_pretrained(model_id, subfolder=\\"scheduler\\")\\n\\n        self.vae_scale_factor = 2 ** (len(self.vae.config.block_out_channels) - 1)\\n        self.height = self.config.get('height', 512)\\n        self.width = self.config.get('width', 512)\\n        self.num_inference_steps = self.config.get('num_inference_steps', 25)\\n        self.guidance_scale = self.config.get('guidance_scale', 7.5)\\n        self.seed = self.config.get('seed', 0)",
     "preprocess_body": "batch_size = len(input_prompts)\\n        text_inputs = self.tokenizer(input_prompts, padding=\\"max_length\\", max_length=self.tokenizer.model_max_length, truncation=True, return_tensors=\\"pt\\").input_ids.to(self.device)\\n        unconditional_input = self.tokenizer([\\"\\"]*batch_size, padding=\\"max_length\\", max_length=self.tokenizer.model_max_length, return_tensors=\\"pt\\").input_ids.to(self.device)\\n        with torch.no_grad():\\n            cond_embeddings = self.text_encoder(text_inputs).last_hidden_state\\n            uncond_embeddings = self.text_encoder(unconditional_input).last_hidden_state\\n        model_input = torch.cat([uncond_embeddings, cond_embeddings], dim=0)\\n        self.latents = torch.randn((batch_size, self.unet.config.in_channels, self.height//8, self.width//8), generator=self.generator, device=self.device) * self.scheduler.init_noise_sigma\\n        self.scheduler.set_timesteps(self.num_inference_steps, device=self.device)\\n        return model_input",
     "predict_body": "for t in self.scheduler.timesteps:\\n            latent_model_input = torch.cat([self.latents]*2)\\n            latent_model_input = self.scheduler.scale_model_input(latent_model_input, timestep=t)\\n            with torch.no_grad():\\n                noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=model_input).sample\\n            noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)\\n            noise_pred = noise_pred_uncond + self.guidance_scale * (noise_pred_text - noise_pred_uncond)\\n            self.latents = self.scheduler.step(noise_pred, t, self.latents).prev_sample\\n        return self.latents",
     "postprocess_body": "image_latents = model_output * (1/0.18215)\\n        with torch.no_grad():\\n            images = self.vae.decode(image_latents).sample\\n        images = ((images/2)+0.5).clamp(0, 1)\\n        if images.ndim == 3:\\n            images.unsqueeze_(0)\\n        images = (images*255).to(torch.uint8).permute(0, 2, 3, 1).cpu().numpy()\\n        return [image.tolist() for image in images]",
@@ -193,9 +175,7 @@ Use the exact model identifier '{model_identifier}' in the init_body.
     chain = prompt | llm | parser
 
     BASE_DIR = "mlmodelscope/pytorch_agent/models/default/image_synthesis"
-    ERROR_DIR = f"{BASE_DIR}/automation/" + str(
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    )
+    ERROR_DIR = f"{BASE_DIR}/errors"
     os.makedirs(ERROR_DIR, exist_ok=True)
     failed_models = []
     login_req_models = []
@@ -218,14 +198,9 @@ Use the exact model identifier '{model_identifier}' in the init_body.
         try:
             check_syntax = lambda fn: os.system(f"python -m py_compile {fn}")
             error = False
-            MAX_TRIES_PER_MODEL = 5
-            try_count_my_model = 0
             while not os.path.exists(model_py_path) or (
                 error := check_syntax(model_py_path)
             ):
-                if try_count_my_model >= MAX_TRIES_PER_MODEL:
-                    break
-                try_count_my_model += 1
                 if error:
                     error_log += f"Syntax error, regenerating...\n"
 
@@ -321,4 +296,7 @@ Use the exact model identifier '{model_identifier}' in the init_body.
 
 
 if __name__ == "__main__":
-    image_synthesis_model_automation(models_to_add=["runwayml/stable-diffusion-v1-5"])
+    image_synthesis_model_automation(
+        models_to_add=["runwayml/stable-diffusion-v1-5"]
+    )
+

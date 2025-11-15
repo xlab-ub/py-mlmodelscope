@@ -1,4 +1,3 @@
-from datetime import datetime
 """
 Generalized automation script for audio-to-text PyTorch models.
 
@@ -60,7 +59,6 @@ from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 
 class {class_name}(PyTorchAbstractClass):
     def __init__(self{init_config}):
-        super().__init__(config)
         {init_body}
 
     def preprocess(self, input_audios):
@@ -96,7 +94,7 @@ class {class_name}(PyTorchAbstractClass):
         )
 
         init_body: str = Field(
-            description="The complete body of the __init__ method (after super().__init__(config) call). Should include: 1) loading processor/feature_extractor from_pretrained, 2) loading model using self.load_hf_model(ModelClass, model_id), 3) setting sampling_rate from config (default 16_000), 4) for classification: extracting labels from model.config.id2label to self.features list. DO NOT include device/multi_gpu extraction - use self.load_hf_model() instead which handles multi-GPU automatically.",
+            description="The complete body of the __init__ method. Should include: 1) config initialization with super().__init__(config), 2) loading processor/feature_extractor from_pretrained, 3) loading model using self.load_hf_model(ModelClass, model_id) for multi-GPU support, 4) setting sampling_rate from config (default 16_000), 5) for classification: extracting labels from model.config.id2label to self.features list.",
         )
 
         preprocess_body: str = Field(
@@ -142,20 +140,10 @@ You must generate the complete model configuration based *primarily* on the prov
    - Always include: `import librosa` for audio loading
 
 3. **Init Method:**
-   - The template already calls `super().__init__(config)` which handles device/multi_gpu from config
-   - Load processor/feature_extractor from_pretrained
-   - **Load model using self.load_hf_model() which handles multi-GPU automatically:**
-     ```
-     model_id = "openai/whisper-base"
-     self.processor = WhisperProcessor.from_pretrained(model_id)
-     self.model = self.load_hf_model(WhisperForConditionalGeneration, model_id)
-     ```
-     Or with trust_remote_code:
-     ```
-     self.model = self.load_hf_model(ModelClass, model_id, trust_remote_code=True)
-     ```
-   - **DO NOT manually extract device/multi_gpu or add device_map/torch_dtype** - use `self.load_hf_model()` instead
-   - Set sampling_rate from config with default: `self.config.get('sampling_rate', 16_000)`
+   - Initialize config: `super().__init__(config)` (required for load_hf_model to work)
+   - Load processor/feature_extractor: `ProcessorClass.from_pretrained(model_id)`
+   - Load model: `self.model = self.load_hf_model(ModelClass, model_id)` (use load_hf_model for multi-GPU support)
+   - Set sampling_rate from config with default: `self.sampling_rate = self.config.get('sampling_rate', 16_000)`
    - For classification: Extract labels: `self.features = list(self.model.config.id2label.values())`
 
 4. **Preprocess Method:**
@@ -178,37 +166,37 @@ You must generate the complete model configuration based *primarily* on the prov
 
 **Reference Examples:**
 
-Example 1: Whisper ASR Model (with Multi-GPU Support)
+Example 1: Whisper ASR Model
 {{{{
     "model_architecture": "whisper",
     "imports": "from transformers import WhisperForConditionalGeneration, WhisperProcessor\\nimport librosa",
     "class_name": "PyTorch_Transformers_Whisper_Base",
     "init_config": ", config=None",
-    "init_body": "model_id = \\"openai/whisper-base\\"\\n        self.processor = WhisperProcessor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(WhisperForConditionalGeneration, model_id)\\n        self.sampling_rate = self.config.get('sampling_rate', 16_000)",
+    "init_body": "super().__init__(config)\\n        model_id = \\"openai/whisper-base\\"\\n        self.processor = WhisperProcessor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(WhisperForConditionalGeneration, model_id)\\n\\n        self.sampling_rate = self.config.get('sampling_rate', 16_000)",
     "preprocess_body": "for i in range(len(input_audios)):\\n            input_audios[i], _ = librosa.load(input_audios[i], sr=self.sampling_rate)\\n        model_input = self.processor(input_audios, sampling_rate=self.sampling_rate, return_tensors=\\"pt\\").input_features\\n        return model_input",
     "predict_body": "return self.model.generate(model_input)",
     "postprocess_body": "return self.processor.batch_decode(model_output, skip_special_tokens=True)"
 }}}}
 
-Example 2: Wav2Vec2 CTC ASR Model (with Multi-GPU Support)
+Example 2: Wav2Vec2 CTC ASR Model
 {{{{
     "model_architecture": "wav2vec2",
     "imports": "import torch\\nfrom transformers import Wav2Vec2ForCTC, Wav2Vec2Processor\\nimport librosa",
     "class_name": "PyTorch_Transformers_Wav2Vec2_Base_960h",
     "init_config": ", config=None",
-    "init_body": "model_id = \\"facebook/wav2vec2-base-960h\\"\\n        self.processor = Wav2Vec2Processor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(Wav2Vec2ForCTC, model_id)\\n        self.sampling_rate = self.config.get('sampling_rate', 16_000)",
+    "init_body": "super().__init__(config)\\n        model_id = \\"facebook/wav2vec2-base-960h\\"\\n        self.processor = Wav2Vec2Processor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(Wav2Vec2ForCTC, model_id)\\n\\n        self.sampling_rate = self.config.get('sampling_rate', 16_000)",
     "preprocess_body": "for i in range(len(input_audios)):\\n            input_audios[i], _ = librosa.load(input_audios[i], sr=self.sampling_rate)\\n        model_input = self.processor(input_audios, sampling_rate=self.sampling_rate, return_tensors=\\"pt\\", padding=\\"longest\\")\\n        return model_input",
     "predict_body": "return self.model(**model_input).logits",
     "postprocess_body": "predicted_ids = torch.argmax(model_output, dim=-1)\\n        return self.processor.batch_decode(predicted_ids)"
 }}}}
 
-Example 3: Audio Classification Model (AST with Multi-GPU)
+Example 3: Audio Classification Model (AST)
 {{{{
     "model_architecture": "audio_classification",
     "imports": "from transformers import ASTForAudioClassification, ASTFeatureExtractor\\nfrom torch.nn.functional import softmax\\nimport librosa",
     "class_name": "PyTorch_Transformers_AST_AudioClassification",
     "init_config": ", config=None",
-    "init_body": "model_id = \\"MIT/ast-finetuned-audioset-10-10-0.4593\\"\\n        self.feature_extractor = ASTFeatureExtractor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(ASTForAudioClassification, model_id)\\n        self.sampling_rate = self.config.get('sampling_rate', 16_000)\\n        self.features = list(self.model.config.id2label.values())",
+    "init_body": "super().__init__(config)\\n        model_id = \\"MIT/ast-finetuned-audioset-10-10-0.4593\\"\\n        self.feature_extractor = ASTFeatureExtractor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(ASTForAudioClassification, model_id)\\n\\n        self.sampling_rate = self.config.get('sampling_rate', 16_000)\\n        self.features = list(self.model.config.id2label.values())",
     "preprocess_body": "for i in range(len(input_audios)):\\n            input_audios[i], _ = librosa.load(input_audios[i], sr=self.sampling_rate)\\n        model_input = self.feature_extractor(input_audios, sampling_rate=self.sampling_rate, return_tensors=\\"pt\\")\\n        return model_input",
     "predict_body": "return self.model(**model_input).logits",
     "postprocess_body": "return softmax(model_output, dim=1).tolist()"
@@ -220,7 +208,7 @@ Example 4: Wav2Vec2 Audio Classification
     "imports": "from transformers import Wav2Vec2ForSequenceClassification, Wav2Vec2FeatureExtractor\\nfrom torch.nn.functional import softmax\\nimport librosa",
     "class_name": "PyTorch_Transformers_Wav2Vec2_Emotion_Classification",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        self.feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(\\"superb/wav2vec2-base-superb-er\\")\\n        self.model = Wav2Vec2ForSequenceClassification.from_pretrained(\\"superb/wav2vec2-base-superb-er\\")\\n\\n        self.sampling_rate = self.config.get('sampling_rate', 16_000)\\n        self.features = list(self.model.config.id2label.values())",
+    "init_body": "super().__init__(config)\\n        model_id = \\"superb/wav2vec2-base-superb-er\\"\\n        self.feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(Wav2Vec2ForSequenceClassification, model_id)\\n\\n        self.sampling_rate = self.config.get('sampling_rate', 16_000)\\n        self.features = list(self.model.config.id2label.values())",
     "preprocess_body": "for i in range(len(input_audios)):\\n            input_audios[i], _ = librosa.load(input_audios[i], sr=self.sampling_rate)\\n        model_input = self.feature_extractor(input_audios, sampling_rate=self.sampling_rate, return_tensors=\\"pt\\", padding=True)\\n        return model_input",
     "predict_body": "return self.model(**model_input).logits",
     "postprocess_body": "return softmax(model_output, dim=1).tolist()"
@@ -281,9 +269,7 @@ Based on the examples AND the context above, generate the complete config for th
 
     # --- 4. Main Generation Loop ---
     BASE_DIR = f"mlmodelscope/pytorch_agent/models/default/{task_type}"
-    ERROR_DIR = f"{BASE_DIR}/automation/" + str(
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    )
+    ERROR_DIR = f"{BASE_DIR}/errors"
     os.makedirs(ERROR_DIR, exist_ok=True)
     failed_models = []
     login_req_models = []
@@ -305,18 +291,13 @@ Based on the examples AND the context above, generate the complete config for th
         error_log = ""
 
         try:
-            check_syntax = lambda fileName: os.system(
+            check_python_file_syntax_issue = lambda fileName: os.system(
                 f"python -m py_compile {fileName}"
             )
             error = False
-            MAX_TRIES_PER_MODEL = 5
-            try_count_my_model = 0
             while not os.path.exists(model_py_path) or (
-                error := check_syntax(model_py_path)
+                error := check_python_file_syntax_issue(model_py_path)
             ):
-                if try_count_my_model >= MAX_TRIES_PER_MODEL:
-                    break
-                try_count_my_model += 1
                 if error:
                     print(
                         f"Syntax error detected in generated file '{model_py_path}'. Regenerating..."

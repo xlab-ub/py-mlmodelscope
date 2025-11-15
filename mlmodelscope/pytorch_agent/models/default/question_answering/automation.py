@@ -1,4 +1,3 @@
-from datetime import datetime
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -50,7 +49,7 @@ class {class_name}(PyTorchAbstractClass):
         )
 
         init_body: str = Field(
-            description="The complete body of the __init__ method. Should include: 1) config initialization, 2) loading tokenizer and model from_pretrained. Include proper indentation (8 spaces).",
+            description="The complete body of the __init__ method. Should include: 1) config initialization with super().__init__(config), 2) loading tokenizer from_pretrained, 3) loading model using self.load_hf_model(ModelClass, model_id) for multi-GPU support. Include proper indentation (8 spaces).",
         )
 
         preprocess_body: str = Field(
@@ -84,20 +83,9 @@ You are an expert in PyTorch question answering models. Your task is to generate
    - May need: `import torch`
 
 3. **Init Method:**
-   - Initialize config: `self.config = config if config else dict()`
-   - **ALWAYS extract device and multi_gpu settings:**
-     ```
-     device = self.config.pop("_device", "cpu")
-     multi_gpu = self.config.pop("_multi_gpu", False)
-     ```
-   - Load tokenizer from_pretrained
-   - **Load model with multi-GPU support:**
-     ```
-     if multi_gpu and device == "cuda":
-         self.model = AutoModelForQuestionAnswering.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
-     else:
-         self.model = AutoModelForQuestionAnswering.from_pretrained(model_id)
-     ```
+   - Initialize config: `super().__init__(config)` (required for load_hf_model to work)
+   - Load tokenizer: `AutoTokenizer.from_pretrained(model_id)`
+   - Load model: `self.model = self.load_hf_model(AutoModelForQuestionAnswering, model_id)` (use load_hf_model for multi-GPU support)
 
 4. **Preprocess Method:**
    - Input: list of (question, context) or similar
@@ -117,7 +105,7 @@ You are an expert in PyTorch question answering models. Your task is to generate
     "imports": "import torch\\nfrom transformers import AutoTokenizer, AutoModelForQuestionAnswering",
     "class_name": "PyTorch_Transformers_BERT_QA",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        model_id = \\"bert-large-uncased-whole-word-masking-finetuned-squad\\"\\n        self.tokenizer = AutoTokenizer.from_pretrained(model_id)\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = AutoModelForQuestionAnswering.from_pretrained(model_id, device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = AutoModelForQuestionAnswering.from_pretrained(model_id)",
+    "init_body": "super().__init__(config)\\n        model_id = \\"bert-large-uncased-whole-word-masking-finetuned-squad\\"\\n        self.tokenizer = AutoTokenizer.from_pretrained(model_id)\\n        self.model = self.load_hf_model(AutoModelForQuestionAnswering, model_id)",
     "preprocess_body": "return self.tokenizer(input_texts, return_tensors=\\"pt\\", padding=True)",
     "predict_body": "return self.model(**model_input)",
     "postprocess_body": "start_positions = torch.argmax(model_output.start_logits, dim=1)\\n        end_positions = torch.argmax(model_output.end_logits, dim=1)\\n        answers = []\\n        for i in range(len(start_positions)):\\n            tokens = model_input['input_ids'][i][start_positions[i]:end_positions[i]+1]\\n            answer = self.tokenizer.decode(tokens)\\n            answers.append(answer)\\n        return answers"
@@ -156,9 +144,7 @@ Use the exact model identifier '{model_identifier}' in the init_body.
     chain = prompt | llm | parser
 
     BASE_DIR = "mlmodelscope/pytorch_agent/models/default/question_answering"
-    ERROR_DIR = f"{BASE_DIR}/automation/" + str(
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    )
+    ERROR_DIR = f"{BASE_DIR}/errors"
     os.makedirs(ERROR_DIR, exist_ok=True)
     failed_models = []
     login_req_models = []
@@ -181,14 +167,9 @@ Use the exact model identifier '{model_identifier}' in the init_body.
         try:
             check_syntax = lambda fn: os.system(f"python -m py_compile {fn}")
             error = False
-            MAX_TRIES_PER_MODEL = 5
-            try_count_my_model = 0
             while not os.path.exists(model_py_path) or (
                 error := check_syntax(model_py_path)
             ):
-                if try_count_my_model >= MAX_TRIES_PER_MODEL:
-                    break
-                try_count_my_model += 1
                 if error:
                     error_log += f"Syntax error, regenerating...\n"
 
@@ -276,4 +257,7 @@ Use the exact model identifier '{model_identifier}' in the init_body.
 
 
 if __name__ == "__main__":
-    question_answering_model_automation(models_to_add=["deepset/roberta-base-squad2"])
+    question_answering_model_automation(
+        models_to_add=["deepset/roberta-base-squad2"]
+    )
+

@@ -1,4 +1,3 @@
-from datetime import datetime
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -69,17 +68,10 @@ class {class_name}(PyTorchAbstractClass):
         # --- Generated Configuration ---
         {trust_remote_code_comment}
         tokenizer_args = {{'padding_side': 'left'{tokenizer_trust_remote}}}
-        
-        try:
-            self.tokenizer = {tokenizer_class}.from_pretrained(model_id, **tokenizer_args)
-            self.model = self.load_hf_model({model_class}, model_id{model_trust_remote_kwargs})
-        except Exception as e:
-            if model_id in e.__str__():
-                self.huggingface_authenticate()
-                self.tokenizer = {tokenizer_class}.from_pretrained(model_id, **tokenizer_args)
-                self.model = self.load_hf_model({model_class}, model_id{model_trust_remote_kwargs})
-            else:
-                raise e
+        model_args = {{{model_trust_remote}}}
+
+        self.tokenizer = {tokenizer_class}.from_pretrained(model_id, **tokenizer_args)
+        self.model = self.load_hf_model({model_class}, model_id, **model_args)
 
         {pad_token_str}
         # --- End Generated Configuration ---
@@ -171,13 +163,6 @@ First, determine if the model is a 'base' model (for text completion) or a 'chat
 2.  If `is_chat_model` is `True`, you **MUST** provide the `preprocess_chat_logic` and `postprocess_chat_logic`.
 3.  If `is_chat_model` is `False`, you **MUST** set `preprocess_chat_logic` and `postprocess_chat_logic` to `null`.
 
-**MULTI-GPU SUPPORT:**
-All generated models automatically support multi-GPU via the `load_hf_model` method from the parent class:
-- The parent class `PyTorchAbstractClass` automatically handles `_device` and `_multi_gpu` from config
-- Simply use `self.load_hf_model(ModelClass, model_id)` - it handles multi-GPU automatically
-- When `_multi_gpu=True` and `_device="cuda"`, the model loads with `device_map="auto"` and `torch_dtype="auto"`
-- **DO NOT** manually extract device/multi_gpu or add device_map/torch_dtype - use `self.load_hf_model()` instead
-
 Pay close attention to these details:
 - **Trust Remote Code**: Is `trust_remote_code=True` needed? (e.g., Phi-3 needs it).
 - **Model Class**: Is it `AutoModelForCausalLM` or a specific one like `GPT2LMHeadModel`?
@@ -258,10 +243,7 @@ Based on the examples AND the context above, generate the config for the model: 
 
     # --- 4. Main Generation Loop ---
     BASE_DIR = "mlmodelscope/pytorch_agent/models/default/text_to_text"
-    ERROR_DIR = (
-        "mlmodelscope/pytorch_agent/models/default/text_to_text/automation/"
-        + str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-    )
+    ERROR_DIR = "mlmodelscope/pytorch_agent/models/default/text_to_text/errors"
     if not os.path.exists(ERROR_DIR):
         os.makedirs(ERROR_DIR)
         print(f"Created error directory: '{ERROR_DIR}'")
@@ -289,18 +271,13 @@ Based on the examples AND the context above, generate the config for the model: 
         error_log = ""
 
         try:
-            check_syntax = lambda fileName: os.system(
+            check_python_file_syntax_issue = lambda fileName: os.system(
                 f"python -m py_compile {fileName}"
             )
             error = False
-            MAX_TRIES_PER_MODEL = 5
-            try_count_my_model = 0
             while not os.path.exists(model_py_path) or (
-                error := check_syntax(model_py_path)
+                error := check_python_file_syntax_issue(model_py_path)
             ):
-                if try_count_my_model >= MAX_TRIES_PER_MODEL:
-                    break
-                try_count_my_model += 1
                 if error:
                     print(
                         f"Syntax error detected in generated file '{model_py_path}'. Regenerating..."
@@ -402,13 +379,7 @@ Based on the examples AND the context above, generate the config for the model: 
                     )
                     print("Identified as BASE model. Omitting chat methods.")
 
-                # --- 5. Prepare model_trust_remote_kwargs for load_hf_model ---
-                if model_config_dict.get("trust_remote_code"):
-                    model_trust_remote_kwargs = ", trust_remote_code=True"
-                else:
-                    model_trust_remote_kwargs = ""
-
-                # --- 6. Fill Main Template ---
+                # --- 5. Fill Main Template ---
                 filled_template = MODEL_TEMPLATE.format(
                     tokenizer_class=model_config_dict.get(
                         "tokenizer_class", "AutoTokenizer"
@@ -423,7 +394,7 @@ Based on the examples AND the context above, generate the config for the model: 
                     hugging_face_model_id=model_name,
                     trust_remote_code_comment=trust_comment,
                     tokenizer_trust_remote=tokenizer_trust,
-                    model_trust_remote_kwargs=model_trust_remote_kwargs,
+                    model_trust_remote=model_trust,
                     max_new_tokens=model_config_dict.get("max_new_tokens", 32),
                     pad_token_str=model_config_dict.get("pad_token_str", "pass"),
                     pad_token_id_val=model_config_dict.get(

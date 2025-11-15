@@ -1,4 +1,3 @@
-from datetime import datetime
 """
 Generalized automation script for text-to-audio PyTorch models.
 
@@ -66,7 +65,7 @@ class {class_name}(PyTorchAbstractClass):
         )
 
         init_body: str = Field(
-            description="The complete body of the __init__ method. Should include: 1) config initialization, 2) loading processor from_pretrained, 3) loading model from_pretrained, 4) setting generation parameters (max_new_tokens), 5) storing sampling_rate from model config in self.features dict. Include proper indentation (8 spaces).",
+            description="The complete body of the __init__ method. Should include: 1) config initialization with super().__init__(config), 2) loading processor from_pretrained, 3) loading model using self.load_hf_model(ModelClass, model_id) for multi-GPU support, 4) setting generation parameters (max_new_tokens), 5) storing sampling_rate from model config in self.features dict. Include proper indentation (8 spaces).",
         )
 
         preprocess_body: str = Field(
@@ -101,20 +100,9 @@ You are an expert in PyTorch audio generation models. Your task is to generate a
    - Add other imports as needed
 
 3. **Init Method:**
-   - Initialize config: `self.config = config if config else dict()`
-   - **ALWAYS extract device and multi_gpu settings:**
-     ```
-     device = self.config.pop("_device", "cpu")
-     multi_gpu = self.config.pop("_multi_gpu", False)
-     ```
-   - Load processor from_pretrained
-   - **Load model with multi-GPU support:**
-     ```
-     if multi_gpu and device == "cuda":
-         self.model = MusicgenForConditionalGeneration.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
-     else:
-         self.model = MusicgenForConditionalGeneration.from_pretrained(model_id)
-     ```
+   - Initialize config: `super().__init__(config)` (required for load_hf_model to work)
+   - Load processor: `AutoProcessor.from_pretrained(model_id)`
+   - Load model: `self.model = self.load_hf_model(MusicgenForConditionalGeneration, model_id)` (use load_hf_model for multi-GPU support)
    - Set max_new_tokens from config (default 256 for MusicGen)
    - Store sampling_rate: `self.features = {{{{"sampling_rate": self.model.config.audio_encoder.sampling_rate}}}}`
 
@@ -129,12 +117,12 @@ You are an expert in PyTorch audio generation models. Your task is to generate a
 
 **Reference Example:**
 
-Example 1: MusicGen Model (with Multi-GPU)
+Example 1: MusicGen Model
 {{{{
     "imports": "from transformers import AutoProcessor, MusicgenForConditionalGeneration",
     "class_name": "PyTorch_Transformers_MusicGen_Small",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        self.processor = AutoProcessor.from_pretrained(\\"facebook/musicgen-small\\")\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = MusicgenForConditionalGeneration.from_pretrained(\\"facebook/musicgen-small\\", device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = MusicgenForConditionalGeneration.from_pretrained(\\"facebook/musicgen-small\\")\\n\\n        self.max_new_tokens = self.config.get('max_new_tokens', 256)\\n\\n        self.features = {{{{\\"sampling_rate\\": self.model.config.audio_encoder.sampling_rate}}}}",
+    "init_body": "super().__init__(config)\\n        model_id = \\"facebook/musicgen-small\\"\\n        self.processor = AutoProcessor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(MusicgenForConditionalGeneration, model_id)\\n\\n        self.max_new_tokens = self.config.get('max_new_tokens', 256)\\n\\n        self.features = {{{{\\"sampling_rate\\": self.model.config.audio_encoder.sampling_rate}}}}",
     "preprocess_body": "return self.processor(text=input_texts, return_tensors=\\"pt\\", padding=True)",
     "predict_body": "return self.model.generate(**model_input, max_new_tokens=self.max_new_tokens)",
     "postprocess_body": "return model_output.cpu().numpy().squeeze(axis=1).tolist()"
@@ -160,6 +148,8 @@ Use the exact model identifier '{model_identifier}' in the init_body.
 
     modelCounter = 0
     load_dotenv()
+    if not os.getenv("GOOGLE_API_KEY"):
+        raise EnvironmentError("GOOGLE_API_KEY not found.")
 
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-pro",
@@ -171,9 +161,7 @@ Use the exact model identifier '{model_identifier}' in the init_body.
     chain = prompt | llm | parser
 
     BASE_DIR = f"mlmodelscope/pytorch_agent/models/default/{task_type}"
-    ERROR_DIR = f"{BASE_DIR}/automation/" + str(
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    )
+    ERROR_DIR = f"{BASE_DIR}/errors"
     os.makedirs(ERROR_DIR, exist_ok=True)
     failed_models = []
     login_req_models = []
@@ -196,14 +184,9 @@ Use the exact model identifier '{model_identifier}' in the init_body.
         try:
             check_syntax = lambda fn: os.system(f"python -m py_compile {fn}")
             error = False
-            MAX_TRIES_PER_MODEL = 5
-            try_count_my_model = 0
             while not os.path.exists(model_py_path) or (
                 error := check_syntax(model_py_path)
             ):
-                if try_count_my_model >= MAX_TRIES_PER_MODEL:
-                    break
-                try_count_my_model += 1
                 if error:
                     error_log += f"Syntax error, regenerating...\n"
 
@@ -239,10 +222,8 @@ Use the exact model identifier '{model_identifier}' in the init_body.
                     }
                 )
 
-                init_body = (
-                    model_config_dict.get("init_body", "")
-                    .replace("{hugging_face_model_id}", model_name)
-                    .replace("MODEL_IDENTIFIER_PLACEHOLDER", model_name)
+                init_body = model_config_dict.get("init_body", "").replace(
+                    "{hugging_face_model_id}", model_name
                 )
 
                 filled_template = MODEL_TEMPLATE.format(

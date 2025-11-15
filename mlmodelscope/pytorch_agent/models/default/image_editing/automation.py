@@ -1,4 +1,3 @@
-from datetime import datetime
 """
 Generalized automation script for image-to-image PyTorch models.
 
@@ -94,7 +93,7 @@ class {class_name}(PyTorchAbstractClass):
         )
 
         init_body: str = Field(
-            description="The complete body of the __init__ method. Should include: 1) config initialization, 2) loading model/processor/pipeline from_pretrained, 3) setting any task-specific parameters.",
+            description="The complete body of the __init__ method. Should include: 1) config initialization with super().__init__(config), 2) loading processor/pipeline from_pretrained, 3) loading model using self.load_hf_model(ModelClass, model_id) for multi-GPU support (for transformers models), 4) setting any task-specific parameters.",
         )
 
         preprocess_input: str = Field(
@@ -152,21 +151,9 @@ You must generate the complete model configuration based *primarily* on the prov
    - Choose appropriate parameter name
 
 4. **Init Method:**
-   - Initialize config: `self.config = config if config else dict()`
-   - **ALWAYS extract device and multi_gpu settings:**
-     ```
-     device = self.config.pop("_device", "cpu")
-     multi_gpu = self.config.pop("_multi_gpu", False)
-     ```
-   - Load processor from_pretrained
-   - **Load model with multi-GPU support:**
-     ```
-     if multi_gpu and device == "cuda":
-         self.model = ModelClass.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
-     else:
-         self.model = ModelClass.from_pretrained(model_id)
-     ```
-   - For diffusers components: load VAE, text_encoder, unet, scheduler, etc. (can also use device_map on individual components)
+   - Initialize config: `super().__init__(config)` (required for load_hf_model to work, for transformers models)
+   - For transformers models: Load processor with `from_pretrained`, load model with `self.load_hf_model(ModelClass, model_id)` for multi-GPU support
+   - For diffusers components: Load VAE, text_encoder, unet, scheduler, etc. with `from_pretrained` (diffusers doesn't use load_hf_model)
    - Set task-specific parameters
 
 5. **Preprocess Method:**
@@ -193,13 +180,13 @@ You must generate the complete model configuration based *primarily* on the prov
 
 **Reference Examples:**
 
-Example 1: Mask Generation / Semantic Segmentation (transformers_model with Multi-GPU)
+Example 1: Mask Generation / Semantic Segmentation (transformers_model)
 {{{{
     "model_type": "transformers_model",
     "imports": "import torch\\nfrom transformers import AutoImageProcessor, AutoModelForSemanticSegmentation\\nfrom PIL import Image\\nimport numpy as np",
     "class_name": "PyTorch_Transformers_SegFormer",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        model_id = \\"nvidia/segformer-b0-finetuned-ade-512-512\\"\\n        self.processor = AutoImageProcessor.from_pretrained(model_id)\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = AutoModelForSemanticSegmentation.from_pretrained(model_id, device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = AutoModelForSemanticSegmentation.from_pretrained(model_id)",
+    "init_body": "super().__init__(config)\\n        model_id = \\"nvidia/segformer-b0-finetuned-ade-512-512\\"\\n        self.processor = AutoImageProcessor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(AutoModelForSemanticSegmentation, model_id)",
     "preprocess_input": "input_images",
     "preprocess_body": "images = [Image.open(img_path).convert('RGB') for img_path in input_images]\\n        return self.processor(images, return_tensors=\\"pt\\")",
     "predict_body": "return self.model(**model_input)",
@@ -207,13 +194,13 @@ Example 1: Mask Generation / Semantic Segmentation (transformers_model with Mult
     "optional_methods": ""
 }}}}
 
-Example 2: SAM (Segment Anything Model with Multi-GPU)
+Example 2: SAM (Segment Anything Model)
 {{{{
     "model_type": "sam",
     "imports": "import torch\\nfrom transformers import SamModel, SamProcessor\\nfrom PIL import Image\\nimport numpy as np",
     "class_name": "PyTorch_Transformers_SAM",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        model_id = \\"facebook/sam-vit-base\\"\\n        self.processor = SamProcessor.from_pretrained(model_id)\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = SamModel.from_pretrained(model_id, device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = SamModel.from_pretrained(model_id)",
+    "init_body": "super().__init__(config)\\n        model_id = \\"facebook/sam-vit-base\\"\\n        self.processor = SamProcessor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(SamModel, model_id)",
     "preprocess_input": "input_images",
     "preprocess_body": "# For automatic mask generation\\n        images = [Image.open(img_path).convert('RGB') for img_path in input_images]\\n        return self.processor(images, return_tensors=\\"pt\\")",
     "predict_body": "return self.model(**model_input)",
@@ -221,13 +208,13 @@ Example 2: SAM (Segment Anything Model with Multi-GPU)
     "optional_methods": ""
 }}}}
 
-Example 3: InstructPix2Pix (diffusers_components with Multi-GPU)
+Example 3: InstructPix2Pix (diffusers_components - complex)
 {{{{
     "model_type": "diffusers_components",
     "imports": "import torch\\nfrom transformers import CLIPTextModel, CLIPTokenizer\\nfrom diffusers import AutoencoderKL, UNet2DConditionModel, EulerAncestralDiscreteScheduler\\nfrom diffusers.image_processor import VaeImageProcessor\\nfrom PIL import Image",
     "class_name": "PyTorch_Diffusers_InstructPix2Pix",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        model_id = \\"timbrooks/instruct-pix2pix\\"\\n        self.tokenizer = CLIPTokenizer.from_pretrained(model_id, subfolder=\\"tokenizer\\")\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.vae = AutoencoderKL.from_pretrained(model_id, subfolder=\\"vae\\", device_map=\\"auto\\", torch_dtype=torch.float16)\\n            self.text_encoder = CLIPTextModel.from_pretrained(model_id, subfolder=\\"text_encoder\\", device_map=\\"auto\\", torch_dtype=torch.float16)\\n            self.unet = UNet2DConditionModel.from_pretrained(model_id, subfolder=\\"unet\\", device_map=\\"auto\\", torch_dtype=torch.float16)\\n        else:\\n            self.vae = AutoencoderKL.from_pretrained(model_id, subfolder=\\"vae\\")\\n            self.text_encoder = CLIPTextModel.from_pretrained(model_id, subfolder=\\"text_encoder\\")\\n            self.unet = UNet2DConditionModel.from_pretrained(model_id, subfolder=\\"unet\\")\\n        \\n        self.scheduler = EulerAncestralDiscreteScheduler.from_pretrained(model_id, subfolder=\\"scheduler\\")\\n        self.image_processor = VaeImageProcessor(vae_scale_factor=8)\\n        self.seed = self.config.get('seed', 0)",
+    "init_body": "super().__init__(config)\\n        model_id = \\"timbrooks/instruct-pix2pix\\"\\n        self.vae = AutoencoderKL.from_pretrained(model_id, subfolder=\\"vae\\")\\n        self.text_encoder = CLIPTextModel.from_pretrained(model_id, subfolder=\\"text_encoder\\")\\n        self.tokenizer = CLIPTokenizer.from_pretrained(model_id, subfolder=\\"tokenizer\\")\\n        self.unet = UNet2DConditionModel.from_pretrained(model_id, subfolder=\\"unet\\")\\n        self.scheduler = EulerAncestralDiscreteScheduler.from_pretrained(model_id, subfolder=\\"scheduler\\")\\n        self.image_processor = VaeImageProcessor(vae_scale_factor=8)\\n        self.seed = self.config.get('seed', 0)",
     "preprocess_input": "input_images_and_prompts",
     "preprocess_body": "# Process images and prompts for pix2pix\\n        # Complex implementation - see existing model",
     "predict_body": "# Run diffusion loop - see existing model",
@@ -241,9 +228,9 @@ Example 4: Image-to-Image Pipeline (diffusers_pipeline)
     "imports": "import torch\\nfrom diffusers import StableDiffusionImg2ImgPipeline\\nfrom PIL import Image",
     "class_name": "PyTorch_Diffusers_SD_Img2Img",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        model_id = \\"runwayml/stable-diffusion-v1-5\\"\\n        self.pipeline = StableDiffusionImg2ImgPipeline.from_pretrained(model_id)",
+    "init_body": "super().__init__(config)\\n        model_id = \\"runwayml/stable-diffusion-v1-5\\"\\n        self.pipeline = StableDiffusionImg2ImgPipeline.from_pretrained(model_id)",
     "preprocess_input": "input_images_and_prompts",
-    "preprocess_body": "images = []\\n        prompts = []\\n        for img_path, prompt in input_images_and_prompts:\\n            images.append(Image.open(img_path).convert('RGB'))\\n            prompts.append(prompt)\\n        return {{{{\\"images\\": images, \\"prompt\\": prompts}}}}",
+    "preprocess_body": "images = []\\n        prompts = []\\n        for img_path, prompt in input_images_and_prompts:\\n            images.append(Image.open(img_path).convert('RGB'))\\n            prompts.append(prompt)\\n        return {{\\"images\\": images, \\"prompt\\": prompts}}",
     "predict_body": "return self.pipeline(**model_input).images",
     "postprocess_body": "# Pipeline returns PIL images\\n        import numpy as np\\n        return [np.array(img).tolist() for img in model_output]",
     "optional_methods": "\\n    def to(self, device):\\n        self.device = device\\n        self.pipeline.to(device)"
@@ -296,9 +283,7 @@ Generate config for model: '{model_identifier}'
     chain = prompt | llm | parser
 
     BASE_DIR = f"mlmodelscope/pytorch_agent/models/default/{task_type}"
-    ERROR_DIR = f"{BASE_DIR}/automation/" + str(
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    )
+    ERROR_DIR = f"{BASE_DIR}/errors"
     os.makedirs(ERROR_DIR, exist_ok=True)
     failed_models = []
     login_req_models = []
@@ -321,13 +306,9 @@ Generate config for model: '{model_identifier}'
         try:
             check_syntax = lambda fn: os.system(f"python -m py_compile {fn}")
             error = False
-            MAX_TRIES_PER_MODEL = 5
-            try_count_my_model = 0
             while not os.path.exists(model_py_path) or (
                 error := check_syntax(model_py_path)
             ):
-                if try_count_my_model >= MAX_TRIES_PER_MODEL:
-                    break
                 if error:
                     error_log += f"Syntax error, regenerating...\n"
 

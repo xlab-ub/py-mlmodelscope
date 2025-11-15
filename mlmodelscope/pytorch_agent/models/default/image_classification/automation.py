@@ -1,4 +1,3 @@
-from datetime import datetime
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -25,7 +24,6 @@ from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 
 class {class_name}(PyTorchAbstractClass):
     def __init__(self{init_config}):
-        super().__init__(config)
         {init_body}
 
     def preprocess(self, input_images):
@@ -66,7 +64,7 @@ class {class_name}(PyTorchAbstractClass):
         )
 
         init_body: str = Field(
-            description="The complete body of the __init__ method (after super().__init__(config) call). This should include model loading, any setup, optional features file download, etc. For transformers models: use self.load_hf_model(ModelClass, model_id) instead of from_pretrained with device_map. For torchvision: use torch.hub.load as normal. Be comprehensive and handle all model-specific initialization.",
+            description="The complete body of the __init__ method. For transformers models, call super().__init__(config) first, then use self.load_hf_model(ModelClass, model_id) for model loading (not from_pretrained directly) to enable multi-GPU support. For torchvision models, use torch.hub.load. Include any setup, optional features file download, etc. Be comprehensive and handle all model-specific initialization.",
         )
 
         # Preprocess method
@@ -116,20 +114,11 @@ You must generate the complete model configuration based *primarily* on the prov
    - Include the framework/library prefix
 
 4. **Init Method:**
-   - The template already calls `super().__init__(config)` which handles device/multi_gpu from config
-   - For torchvision_hub: Use `torch.hub.load(repo, model_name, pretrained=True)` (doesn't support device_map, uses .to(device) instead)
-   - **For transformers: Load processor and model using self.load_hf_model() which handles multi-GPU automatically:**
-     ```
-     model_id = "google/vit-base-patch16-224"
-     self.processor = AutoImageProcessor.from_pretrained(model_id)
-     self.model = self.load_hf_model(AutoModelForImageClassification, model_id)
-     ```
-     Or with trust_remote_code:
-     ```
-     self.model = self.load_hf_model(AutoModelForImageClassification, model_id, trust_remote_code=True)
-     ```
-   - **DO NOT manually extract device/multi_gpu or add device_map/torch_dtype for transformers** - use `self.load_hf_model()` instead
+   - For torchvision_hub: Use `torch.hub.load(repo, model_name, pretrained=True)`
+   - For transformers: Load processor with `AutoImageProcessor.from_pretrained(model_id)`, load model with `self.load_hf_model(AutoModelForImageClassification, model_id)` for multi-GPU support
+   - Always call `super().__init__(config)` first when using transformers models
    - Optionally download features file (synset.txt) if using ImageNet classes
+   - Handle config parameter if needed for model configuration
    - Set model to eval mode if necessary
 
 5. **Preprocess Method:**
@@ -164,13 +153,13 @@ Example 1: TorchVision ResNet50 (torchvision_hub)
     "postprocess_body": "probabilities = torch.nn.functional.softmax(model_output, dim=1)\\n        return probabilities.tolist()"
 }}}}
 
-Example 2: HuggingFace ViT (transformers with Multi-GPU)
+Example 2: HuggingFace ViT (transformers)
 {{{{
     "model_type": "transformers",
     "imports": "from transformers import AutoImageProcessor, AutoModelForImageClassification\\nfrom PIL import Image\\nimport torch",
     "class_name": "PyTorch_Transformers_ViT_Base_Patch16_224",
     "init_config": ", config=None",
-    "init_body": "model_id = \\"google/vit-base-patch16-224\\"\\n        self.processor = AutoImageProcessor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(AutoModelForImageClassification, model_id)\\n        self.model.eval()",
+    "init_body": "super().__init__(config)\\n        model_id = \\"google/vit-base-patch16-224\\"\\n        \\n        self.processor = AutoImageProcessor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(AutoModelForImageClassification, model_id)\\n        self.model.eval()",
     "preprocess_body": "processed_images = [\\n            Image.open(image_path).convert('RGB')\\n            for image_path in input_images\\n        ]\\n        model_input = self.processor(processed_images, return_tensors=\\"pt\\")\\n        return model_input",
     "predict_body": "return self.model(**model_input)",
     "postprocess_body": "probabilities = torch.nn.functional.softmax(model_output.logits, dim=1)\\n        return probabilities.tolist()"
@@ -189,12 +178,9 @@ Example 3: Custom torchvision model (custom_torchvision)
 }}}}
 
 **CRITICAL NOTES:**
-- **Multi-GPU Support for Transformers**: Use `self.load_hf_model(ModelClass, model_id)` - it handles multi-GPU automatically via the parent class
-- **DO NOT** manually extract device/multi_gpu or add device_map/torch_dtype for transformers models - use `self.load_hf_model()` instead
-- For torchvision models: device placement is handled via `.to(device)` method (not device_map)
 - Pay attention to image size requirements (224x224, 299x299, 384x384, etc.)
 - Check normalization values (ImageNet standard vs custom)
-- For transformers models, check if trust_remote_code is needed (pass as kwarg to load_hf_model)
+- For transformers models, check if trust_remote_code is needed
 - Handle different model output formats (logits attribute vs direct output)
 - I will take care of indentation when filling the template, so provide code bodies without extra indentation
 - Include features file download if using ImageNet classes
@@ -248,10 +234,7 @@ Make sure to:
 
     # --- 4. Main Generation Loop ---
     BASE_DIR = "mlmodelscope/pytorch_agent/models/default/image_classification"
-    ERROR_DIR = (
-        "mlmodelscope/pytorch_agent/models/default/image_classification/automation/"
-        + str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-    )
+    ERROR_DIR = "mlmodelscope/pytorch_agent/models/default/image_classification/errors"
     if not os.path.exists(ERROR_DIR):
         os.makedirs(ERROR_DIR)
         print(f"Created error directory: '{ERROR_DIR}'")
@@ -278,18 +261,13 @@ Make sure to:
         error_log = ""
 
         try:
-            check_syntax = lambda fileName: os.system(
+            check_python_file_syntax_issue = lambda fileName: os.system(
                 f"python -m py_compile {fileName}"
             )
             error = False
-            MAX_TRIES_PER_MODEL = 5
-            try_count_my_model = 0
             while not os.path.exists(model_py_path) or (
-                error := check_syntax(model_py_path)
+                error := check_python_file_syntax_issue(model_py_path)
             ):
-                if try_count_my_model >= MAX_TRIES_PER_MODEL:
-                    break
-                try_count_my_model += 1
                 if error:
                     print(
                         f"Syntax error detected in generated file '{model_py_path}'. Regenerating..."
@@ -355,20 +333,14 @@ Make sure to:
                     ),
                     init_config=model_config_dict.get("init_config", ""),
                     init_body=handle_indent(init_body),
-                    preprocess_body=handle_indent(
-                        model_config_dict.get("preprocess_body", "pass")
-                    ),
-                    predict_body=handle_indent(
-                        model_config_dict.get(
+                    preprocess_body=handle_indent(model_config_dict.get("preprocess_body", "pass")),
+                    predict_body=handle_indent(model_config_dict.get(
                         "predict_body", "return self.model(model_input)"
-                        )
-                    ),
-                    postprocess_body=handle_indent(
-                        model_config_dict.get(
+                    )),
+                    postprocess_body=handle_indent(model_config_dict.get(
                         "postprocess_body",
                         "probabilities = torch.nn.functional.softmax(model_output, dim=1)\n        return probabilities.tolist()",
-                        )
-                    ),
+                    )),
                 )
 
                 # --- 4. Create directory and write file ---
@@ -419,8 +391,7 @@ Make sure to:
 
 
 if __name__ == "__main__":
-    image_classification_model_automation(
-        models_to_add=[
+    image_classification_model_automation(models_to_add=[
     "Falconsai/nsfw_image_detection",
     "dima806/fairface_age_image_detection",
     "timm/mobilenetv3_small_100.lamb_in1k",
@@ -600,6 +571,5 @@ if __name__ == "__main__":
     "timm/convnextv2_tiny.fcmae_ft_in22k_in1k_384",
     "timm/resnet50.am_in1k",
     "timm/resnet18.tv_in1k",
-            "timm/tiny_vit_21m_512.dist_in22k_ft_in1k",
-        ]
-    )
+    "timm/tiny_vit_21m_512.dist_in22k_ft_in1k"
+])

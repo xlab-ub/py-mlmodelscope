@@ -1,4 +1,3 @@
-from datetime import datetime
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -50,7 +49,7 @@ class {class_name}(PyTorchAbstractClass):
         )
 
         init_body: str = Field(
-            description="The complete body of the __init__ method. Should include: 1) config initialization, 2) loading tokenizer from_pretrained with padding_side='left', 3) loading model from_pretrained, 4) setting tokenizer.pad_token to eos_token, 5) getting max_new_tokens from config with default. Include proper indentation (8 spaces).",
+            description="The complete body of the __init__ method. Should include: 1) config initialization with super().__init__(config), 2) loading tokenizer from_pretrained with padding_side='left', 3) loading model using self.load_hf_model(ModelClass, model_id) for multi-GPU support, 4) setting tokenizer.pad_token to eos_token, 5) getting max_new_tokens from config with default. Include proper indentation (8 spaces).",
         )
 
         preprocess_body: str = Field(
@@ -84,20 +83,9 @@ You are an expert in PyTorch text-to-code models. Your task is to generate a com
    - Standard: `from transformers import AutoTokenizer, AutoModelForCausalLM`
 
 3. **Init Method:**
-   - Initialize config: `self.config = config if config else dict()`
-   - **ALWAYS extract device and multi_gpu settings:**
-     ```
-     device = self.config.pop("_device", "cpu")
-     multi_gpu = self.config.pop("_multi_gpu", False)
-     ```
+   - Initialize config: `super().__init__(config)` (required for load_hf_model to work)
    - Load tokenizer with padding_side='left': `AutoTokenizer.from_pretrained(model_id, padding_side="left")`
-   - **Load model with multi-GPU support:**
-     ```
-     if multi_gpu and device == "cuda":
-         self.model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
-     else:
-         self.model = AutoModelForCausalLM.from_pretrained(model_id)
-     ```
+   - Load model: `self.model = self.load_hf_model(AutoModelForCausalLM, model_id)` (use load_hf_model for multi-GPU support)
    - Set pad token: `self.tokenizer.pad_token = self.tokenizer.eos_token`
    - Get max_new_tokens: `self.max_new_tokens = self.config.get('max_new_tokens', 32)` or similar
 
@@ -116,7 +104,7 @@ You are an expert in PyTorch text-to-code models. Your task is to generate a com
     "imports": "from transformers import AutoModelForCausalLM, AutoTokenizer",
     "class_name": "PyTorch_Transformers_CodeGen_350M_Mono",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        checkpoint = \\"Salesforce/codegen-350M-mono\\"\\n        self.tokenizer = AutoTokenizer.from_pretrained(checkpoint, padding_side=\\"left\\")\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = AutoModelForCausalLM.from_pretrained(checkpoint, device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = AutoModelForCausalLM.from_pretrained(checkpoint)\\n\\n        self.tokenizer.pad_token = self.tokenizer.eos_token\\n\\n        self.max_new_tokens = self.config.get('max_new_tokens', 32)",
+    "init_body": "super().__init__(config)\\n        model_id = \\"Salesforce/codegen-350M-mono\\"\\n        self.tokenizer = AutoTokenizer.from_pretrained(model_id, padding_side=\\"left\\")\\n        self.model = self.load_hf_model(AutoModelForCausalLM, model_id)\\n\\n        self.tokenizer.pad_token = self.tokenizer.eos_token\\n\\n        self.max_new_tokens = self.config.get('max_new_tokens', 32)",
     "preprocess_body": "return self.tokenizer(input_texts, return_tensors=\\"pt\\", padding=True)",
     "predict_body": "return self.model.generate(**model_input, pad_token_id=self.tokenizer.eos_token_id, max_new_tokens=self.max_new_tokens)",
     "postprocess_body": "return self.tokenizer.batch_decode(model_output, skip_special_tokens=True)"
@@ -155,9 +143,7 @@ Use the exact model identifier '{model_identifier}' in the init_body.
     chain = prompt | llm | parser
 
     BASE_DIR = "mlmodelscope/pytorch_agent/models/default/text_to_code"
-    ERROR_DIR = f"{BASE_DIR}/automation/" + str(
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    )
+    ERROR_DIR = f"{BASE_DIR}/errors"
     os.makedirs(ERROR_DIR, exist_ok=True)
     failed_models = []
     login_req_models = []
@@ -180,14 +166,9 @@ Use the exact model identifier '{model_identifier}' in the init_body.
         try:
             check_syntax = lambda fn: os.system(f"python -m py_compile {fn}")
             error = False
-            MAX_TRIES_PER_MODEL = 5
-            try_count_my_model = 0
             while not os.path.exists(model_py_path) or (
                 error := check_syntax(model_py_path)
             ):
-                if try_count_my_model >= MAX_TRIES_PER_MODEL:
-                    break
-                try_count_my_model += 1
                 if error:
                     error_log += f"Syntax error, regenerating...\n"
 
@@ -278,3 +259,4 @@ Use the exact model identifier '{model_identifier}' in the init_body.
 
 if __name__ == "__main__":
     text_to_code_model_automation(models_to_add=["Salesforce/codegen-350M-mono"])
+

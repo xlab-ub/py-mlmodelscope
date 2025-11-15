@@ -1,4 +1,3 @@
-from datetime import datetime
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -50,7 +49,7 @@ class {class_name}(PyTorchAbstractClass):
         )
 
         init_body: str = Field(
-            description="The complete body of the __init__ method. Should include: 1) loading model (for torchvision: use pretrained=True or weights parameter, for transformers: from_pretrained), 2) warning about batch size if needed. Include proper indentation (8 spaces).",
+            description="The complete body of the __init__ method. Should include: 1) call super().__init__(config) for transformers models, 2) loading model (for torchvision: use pretrained=True or weights parameter, for transformers: use self.load_hf_model(ModelClass, model_id) for multi-GPU support), 3) warning about batch size if needed. Include proper indentation (8 spaces).",
         )
 
         preprocess_body: str = Field(
@@ -85,21 +84,9 @@ You are an expert in PyTorch semantic segmentation models. Your task is to gener
    - For Transformers: `from transformers import AutoImageProcessor, AutoModelForSemanticSegmentation`, `from PIL import Image`
 
 3. **Init Method:**
-   - Initialize config: `self.config = config if config else dict()`
-   - **ALWAYS extract device and multi_gpu settings:**
-     ```
-     device = self.config.pop("_device", "cpu")
-     multi_gpu = self.config.pop("_multi_gpu", False)
-     ```
-   - For TorchVision: Load model with pretrained=True or weights parameter (doesn't support device_map)
+   - For TorchVision: Load model with pretrained=True or weights parameter (no super().__init__ needed)
    - Add warning: `warnings.warn("If the size of the images is not consistent, the batch size should be 1.")`
-   - **For Transformers: Load processor and model with multi-GPU support:**
-     ```
-     if multi_gpu and device == "cuda":
-         self.model = AutoModelForSemanticSegmentation.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
-     else:
-         self.model = AutoModelForSemanticSegmentation.from_pretrained(model_id)
-     ```
+   - For Transformers: Call `super().__init__(config)` first, then load processor with `from_pretrained`, load model with `self.load_hf_model(ModelClass, model_id)` for multi-GPU support
 
 4. **Preprocess Method:**
    - For TorchVision: Get transforms from Weights.DEFAULT.transforms(), open images, apply transforms, stack
@@ -114,12 +101,12 @@ You are an expert in PyTorch semantic segmentation models. Your task is to gener
 
 **Reference Example:**
 
-TorchVision DeepLabV3 (with config extraction)
+TorchVision DeepLabV3
 {{{{
     "imports": "import torch\\nfrom torchvision.models.segmentation import deeplabv3_resnet50, DeepLabV3_ResNet50_Weights\\nfrom PIL import Image\\nimport warnings",
     "class_name": "PyTorch_TorchVision_DeepLabV3_ResNet50",
-    "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        warnings.warn(\\"If the size of the images is not consistent, the batch size should be 1.\\")\\n        # Note: TorchVision models don't support device_map\\n        self.model = deeplabv3_resnet50(pretrained=True)",
+    "init_config": "",
+    "init_body": "warnings.warn(\\"If the size of the images is not consistent, the batch size should be 1.\\")\\n        self.model = deeplabv3_resnet50(pretrained=True)",
     "preprocess_body": "preprocessor = DeepLabV3_ResNet50_Weights.DEFAULT.transforms()\\n        for i in range(len(input_images)):\\n            input_images[i] = preprocessor(Image.open(input_images[i]).convert('RGB'))\\n        model_input = torch.stack(input_images)\\n        return model_input",
     "predict_body": "return self.model(model_input)",
     "postprocess_body": "return torch.argmax(model_output[\\"out\\"], axis=1).tolist()"
@@ -158,9 +145,7 @@ Use the exact model identifier '{model_identifier}' in the init_body.
     chain = prompt | llm | parser
 
     BASE_DIR = "mlmodelscope/pytorch_agent/models/default/image_semantic_segmentation"
-    ERROR_DIR = f"{BASE_DIR}/automation/" + str(
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    )
+    ERROR_DIR = f"{BASE_DIR}/errors"
     os.makedirs(ERROR_DIR, exist_ok=True)
     failed_models = []
     login_req_models = []
@@ -183,14 +168,9 @@ Use the exact model identifier '{model_identifier}' in the init_body.
         try:
             check_syntax = lambda fn: os.system(f"python -m py_compile {fn}")
             error = False
-            MAX_TRIES_PER_MODEL = 5
-            try_count_my_model = 0
             while not os.path.exists(model_py_path) or (
                 error := check_syntax(model_py_path)
             ):
-                if try_count_my_model >= MAX_TRIES_PER_MODEL:
-                    break
-                try_count_my_model += 1
                 if error:
                     error_log += f"Syntax error, regenerating...\n"
 
@@ -282,3 +262,4 @@ if __name__ == "__main__":
     image_semantic_segmentation_model_automation(
         models_to_add=["nvidia/segformer-b0-finetuned-ade-512-512"]
     )
+

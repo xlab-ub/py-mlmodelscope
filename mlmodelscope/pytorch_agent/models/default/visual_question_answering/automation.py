@@ -1,4 +1,3 @@
-from datetime import datetime
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -50,7 +49,7 @@ class {class_name}(PyTorchAbstractClass):
         )
 
         init_body: str = Field(
-            description="Complete __init__ body. Include: 1) config init, 2) load processor/model from_pretrained, 3) set max_new_tokens from config, 4) handle special requirements (pad_token for LLaVA, torch_dtype, warnings). Indentation: 8 spaces.",
+            description="Complete __init__ body. Include: 1) call super().__init__(config), 2) load processor from_pretrained, 3) load model using self.load_hf_model(ModelClass, model_id) for multi-GPU support, 4) set max_new_tokens from config, 5) handle special requirements (pad_token for LLaVA, torch_dtype, warnings). Indentation: 8 spaces.",
         )
 
         preprocess_body: str = Field(
@@ -85,29 +84,18 @@ You are an expert in PyTorch visual question answering models. Generate complete
    - LLaVA: `from transformers import LlavaNextProcessor, LlavaNextForConditionalGeneration`, `import torch`, `from PIL import Image`, optionally `import warnings`
 
 3. **Init Method:**
-   - Config initialization: `self.config = config if config else dict()`
-   - **ALWAYS extract device and multi_gpu settings:**
-     ```
-     device = self.config.pop("_device", "cpu")
-     multi_gpu = self.config.pop("_multi_gpu", False)
-     ```
-   - Load processor from_pretrained
-   - **Load model with multi-GPU support:**
-     ```
-     if multi_gpu and device == "cuda":
-         self.model = BlipForQuestionAnswering.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
-     else:
-         self.model = BlipForQuestionAnswering.from_pretrained(model_id)
-     ```
+   - Initialize config: `super().__init__(config)` (required for load_hf_model to work)
+   - Load processor: `ProcessorClass.from_pretrained(model_id)`
+   - Load model: `self.model = self.load_hf_model(ModelClass, model_id)` (use load_hf_model for multi-GPU support). For LLaVA, pass torch_dtype as kwargs: `self.load_hf_model(ModelClass, model_id, torch_dtype=torch.float16)`
    - Set max_new_tokens from config (default 32 for BLIP, 100 for LLaVA)
-   - For LLaVA: Set torch_dtype, configure pad_token, add warning about batch processing
+   - For LLaVA: Configure pad_token, add warning about batch processing
 
 4. **Preprocess Method:**
    - Input is list of (image_path, question) tuples
    - Open images: `[Image.open(item[0]).convert('RGB') for item in input_image_and_questions]`
    - Extract questions: `[item[1] for item in input_image_and_questions]`
    - For BLIP: `self.processor(images, questions, return_tensors="pt")`
-   - For LLaVA: Format prompts with `[INST] <image>\\n{{{{question}}}} [/INST]`, use processor with padding/truncation
+   - For LLaVA: Format prompts with `[INST] <image>\\n{{question}} [/INST]`, use processor with padding/truncation
 
 5. **Predict Method:**
    - BLIP: `return self.model.generate(**model_input, max_new_tokens=self.max_new_tokens)`
@@ -119,24 +107,24 @@ You are an expert in PyTorch visual question answering models. Generate complete
 
 **Reference Examples:**
 
-Example 1: BLIP VQA Model (with Multi-GPU)
+Example 1: BLIP VQA Model
 {{{{
     "imports": "from transformers import BlipProcessor, BlipForQuestionAnswering\\nfrom PIL import Image",
     "class_name": "PyTorch_Transformers_BLIP_VQA_Base",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        model_id = \\"Salesforce/blip-vqa-base\\"\\n        self.processor = BlipProcessor.from_pretrained(model_id)\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = BlipForQuestionAnswering.from_pretrained(model_id, device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = BlipForQuestionAnswering.from_pretrained(model_id)\\n\\n        self.max_new_tokens = self.config.get('max_new_tokens', 32)",
+    "init_body": "super().__init__(config)\\n        model_id = \\"Salesforce/blip-vqa-base\\"\\n        self.processor = BlipProcessor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(BlipForQuestionAnswering, model_id)\\n\\n        self.max_new_tokens = self.config.get('max_new_tokens', 32)",
     "preprocess_body": "images = [Image.open(input_image_and_question[0]).convert('RGB') for input_image_and_question in input_image_and_questions]\\n        questions = [input_image_and_question[1] for input_image_and_question in input_image_and_questions]\\n        return self.processor(images, questions, return_tensors=\\"pt\\")",
     "predict_body": "return self.model.generate(**model_input, max_new_tokens=self.max_new_tokens)",
     "postprocess_body": "return self.processor.batch_decode(model_output, skip_special_tokens=True)"
 }}}}
 
-Example 2: LLaVA Model (Complex with Multi-GPU)
+Example 2: LLaVA Model (Complex)
 {{{{
     "imports": "import warnings\\nimport torch\\nfrom transformers import LlavaNextProcessor, LlavaNextForConditionalGeneration\\nfrom PIL import Image",
     "class_name": "PyTorch_Transformers_LLaVA_v1_6_Mistral_7B_HF",
     "init_config": ", config=None",
-    "init_body": "warnings.warn(\\"Currently, this model does not support batched forward with multiple images of different sizes.\\")\\n        self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        model_id = \\"llava-hf/llava-v1.6-mistral-7b-hf\\"\\n        self.processor = LlavaNextProcessor.from_pretrained(model_id)\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = LlavaNextForConditionalGeneration.from_pretrained(model_id, device_map=\\"auto\\", torch_dtype=torch.float16)\\n        else:\\n            self.model = LlavaNextForConditionalGeneration.from_pretrained(model_id, torch_dtype=torch.float16)\\n\\n        self.processor.tokenizer.pad_token = self.processor.tokenizer.eos_token\\n\\n        self.max_new_tokens = self.config.get('max_new_tokens', 100)",
-    "preprocess_body": "images = [Image.open(input_image_and_question[0]) for input_image_and_question in input_image_and_questions]\\n        prompts = [f\\"[INST] <image>\\\\n{{{{input_image_and_question[1]}}}} [/INST]\\" for input_image_and_question in input_image_and_questions]\\n        return self.processor(text=prompts, images=images, return_tensors=\\"pt\\", padding=\\"max_length\\", max_length=4096, truncation=True)",
+    "init_body": "super().__init__(config)\\n        warnings.warn(\\"Currently, this model does not support batched forward with multiple images of different sizes.\\")\\n        model_id = \\"llava-hf/llava-v1.6-mistral-7b-hf\\"\\n        self.processor = LlavaNextProcessor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(LlavaNextForConditionalGeneration, model_id, torch_dtype=torch.float16)\\n\\n        self.processor.tokenizer.pad_token = self.processor.tokenizer.eos_token\\n\\n        self.max_new_tokens = self.config.get('max_new_tokens', 100)",
+    "preprocess_body": "images = [Image.open(input_image_and_question[0]) for input_image_and_question in input_image_and_questions]\\n        prompts = [f\\"[INST] <image>\\\\n{{input_image_and_question[1]}} [/INST]\\" for input_image_and_question in input_image_and_questions]\\n        return self.processor(text=prompts, images=images, return_tensors=\\"pt\\", padding=\\"max_length\\", max_length=4096, truncation=True)",
     "predict_body": "return self.model.generate(**model_input, pad_token_id=self.processor.tokenizer.eos_token_id, max_new_tokens=self.max_new_tokens)",
     "postprocess_body": "return [output.split('[/INST]')[1].strip() for output in self.processor.batch_decode(model_output, skip_special_tokens=True)]"
 }}}}
@@ -157,19 +145,12 @@ Use exact identifier '{model_identifier}'.
 
     modelCounter = 0
     load_dotenv()
-    llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-pro",
-        model_kwargs={"thinkingBudget": -1},
-        temperature=0,
-        convert_system_message_to_human=True,
-    )
+    llm = ChatGoogleGenerativeAI(model="gemini-2.5-pro", model_kwargs={"thinkingBudget": -1}, temperature=0, convert_system_message_to_human=True)
     parser = JsonOutputParser(pydantic_object=ModelConfig)
     chain = prompt | llm | parser
 
     BASE_DIR = "mlmodelscope/pytorch_agent/models/default/visual_question_answering"
-    ERROR_DIR = f"{BASE_DIR}/automation/" + str(
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    )
+    ERROR_DIR = f"{BASE_DIR}/errors"
     os.makedirs(ERROR_DIR, exist_ok=True)
     failed_models = []
     login_req_models = []
@@ -177,103 +158,59 @@ Use exact identifier '{model_identifier}'.
     for model_name in models_to_add:
         if modelCounter == 50:
             break
-        model_folder_name = (
-            model_name.split("/")[-1].replace("-", "_").replace(".", "_").lower()
-        )
+        model_folder_name = model_name.split("/")[-1].replace("-", "_").replace(".", "_").lower()
         model_py_path = os.path.join(BASE_DIR, model_folder_name, "model.py")
 
         if os.path.exists(model_py_path):
-            print(f"Model '{model_folder_name}' already exists. Skipping.")
             continue
 
-        error_log = ""
         try:
             check_syntax = lambda fn: os.system(f"python -m py_compile {fn}")
             error = False
-            MAX_TRIES_PER_MODEL = 5
-            try_count_my_model = 0
-            while not os.path.exists(model_py_path) or (
-                error := check_syntax(model_py_path)
-            ):
-                if try_count_my_model >= MAX_TRIES_PER_MODEL:
-                    break
-                try_count_my_model += 1
-                if error:
-                    error_log += f"Syntax error, regenerating...\n"
-
+            while not os.path.exists(model_py_path) or (error := check_syntax(model_py_path)):
                 url = f"https://huggingface.co/{model_name}"
                 response = requests.get(url)
                 response.raise_for_status()
                 soup = BeautifulSoup(response.text, "html.parser")
-                main_content = (
-                    soup.find("model-card-content")
-                    or soup.find("main")
-                    or soup.find("body")
-                )
+                main_content = soup.find("model-card-content") or soup.find("main") or soup.find("body")
                 if not main_content:
                     break
-                if main_content.find(
-                    "a", href=lambda h: h and h.startswith("/login?next=")
-                ):
+                if main_content.find("a", href=lambda h: h and h.startswith("/login?next=")):
                     login_req_models.append(model_name)
                     break
 
-                context_text = main_content.get_text(separator=" ", strip=True)
-                if len(context_text) > 20000:
-                    context_text = context_text[:20000] + "\n... (truncated)"
-
-                model_config_dict = chain.invoke(
-                    {"model_identifier": model_name, "model_page_context": context_text}
-                )
-
-                init_body = (
-                    model_config_dict.get("init_body", "")
-                    .replace("{hugging_face_model_id}", model_name)
-                    .replace("MODEL_IDENTIFIER_PLACEHOLDER", model_name)
-                )
+                context_text = main_content.get_text(separator=" ", strip=True)[:20000]
+                model_config_dict = chain.invoke({"model_identifier": model_name, "model_page_context": context_text})
+                
+                init_body = model_config_dict.get("init_body", "").replace("{hugging_face_model_id}", model_name)
                 filled_template = MODEL_TEMPLATE.format(
-                    imports=model_config_dict.get(
-                        "imports",
-                        "from transformers import BlipProcessor, BlipForQuestionAnswering\nfrom PIL import Image",
-                    ),
+                    imports=model_config_dict.get("imports", "from transformers import BlipProcessor, BlipForQuestionAnswering\nfrom PIL import Image"),
                     class_name=model_config_dict.get("class_name", "PyTorch_VQA_Model"),
                     init_config=model_config_dict.get("init_config", ", config=None"),
                     init_body=init_body.lstrip(" "),
-                    preprocess_body=model_config_dict.get(
-                        "preprocess_body", "pass"
-                    ).lstrip(" "),
-                    predict_body=model_config_dict.get(
-                        "predict_body", "return self.model.generate(**model_input)"
-                    ).lstrip(" "),
-                    postprocess_body=model_config_dict.get(
-                        "postprocess_body", "return []"
-                    ).lstrip(" "),
+                    preprocess_body=model_config_dict.get("preprocess_body", "pass").lstrip(" "),
+                    predict_body=model_config_dict.get("predict_body", "return self.model.generate(**model_input)").lstrip(" "),
+                    postprocess_body=model_config_dict.get("postprocess_body", "return []").lstrip(" "),
                 )
 
                 os.makedirs(os.path.join(BASE_DIR, model_folder_name), exist_ok=True)
                 with open(model_py_path, "w") as f:
                     f.write(filled_template)
             else:
-                print(f"Successfully generated {model_py_path}")
                 modelCounter += 1
-
         except Exception as e:
-            print(f"Failed: {e}")
             import traceback
-
             traceback.print_exc()
             failed_models.append(model_name)
 
-    print(f"\n--- Automation complete ---")
     with open(os.path.join(ERROR_DIR, "failed_models.log"), "w") as f:
         for fm in failed_models:
             f.write(f"{fm}\n")
-    with open(os.path.join(ERROR_DIR, "login_req_models.log"), "w") as f:
-        for lm in login_req_models:
-            f.write(f"{lm}\n")
 
 
 if __name__ == "__main__":
-    visual_question_answering_model_automation(
-        models_to_add=["Salesforce/blip-vqa-base"]
-    )
+    visual_question_answering_model_automation(models_to_add=["Salesforce/blip-vqa-base"])
+
+
+
+

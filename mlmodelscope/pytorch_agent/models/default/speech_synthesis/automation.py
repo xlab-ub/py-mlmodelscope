@@ -1,4 +1,3 @@
-from datetime import datetime
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -50,7 +49,7 @@ class {class_name}(PyTorchAbstractClass):
         )
 
         init_body: str = Field(
-            description="The complete body of the __init__ method. Should include: 1) config initialization, 2) loading processor from_pretrained, 3) loading model from_pretrained, 4) storing sampling_rate in self.features dict if available. Include proper indentation (8 spaces).",
+            description="The complete body of the __init__ method. Should include: 1) config initialization with super().__init__(config), 2) loading processor from_pretrained, 3) loading model using self.load_hf_model(ModelClass, model_id) for multi-GPU support, 4) storing sampling_rate in self.features dict if available. Include proper indentation (8 spaces).",
         )
 
         preprocess_body: str = Field(
@@ -87,20 +86,9 @@ You are an expert in PyTorch speech synthesis/TTS models. Your task is to genera
    - Add other imports as needed
 
 3. **Init Method:**
-   - Initialize config: `self.config = config if config else dict()`
-   - **ALWAYS extract device and multi_gpu settings:**
-     ```
-     device = self.config.pop("_device", "cpu")
-     multi_gpu = self.config.pop("_multi_gpu", False)
-     ```
-   - Load processor from_pretrained
-   - **Load model with multi-GPU support:**
-     ```
-     if multi_gpu and device == "cuda":
-         self.model = AutoModel.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
-     else:
-         self.model = AutoModel.from_pretrained(model_id)
-     ```
+   - Initialize config: `super().__init__(config)` (required for load_hf_model to work)
+   - Load processor: `AutoProcessor.from_pretrained(model_id)`
+   - Load model: `self.model = self.load_hf_model(ModelClass, model_id)` (use load_hf_model for multi-GPU support)
    - Store sampling_rate: `self.features = {{{{"sampling_rate": 24000}}}}` (or from model config)
 
 4. **Preprocess Method:**
@@ -116,12 +104,12 @@ You are an expert in PyTorch speech synthesis/TTS models. Your task is to genera
 
 **Reference Example:**
 
-Bark Model (with Multi-GPU)
+Bark Model
 {{{{
     "imports": "from transformers import AutoProcessor, AutoModel",
     "class_name": "PyTorch_Transformers_Bark",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        self.processor = AutoProcessor.from_pretrained(\\"suno/bark\\")\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = AutoModel.from_pretrained(\\"suno/bark\\", device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = AutoModel.from_pretrained(\\"suno/bark\\")\\n\\n        self.features = {{{{\\"sampling_rate\\": 24000}}}}",
+    "init_body": "super().__init__(config)\\n        model_id = \\"suno/bark\\"\\n        self.processor = AutoProcessor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(AutoModel, model_id)\\n\\n        self.features = {{{{\\"sampling_rate\\": 24000}}}}",
     "preprocess_body": "return self.processor(input_texts, return_tensors=\\"pt\\")",
     "predict_body": "return self.model.generate(**model_input, do_sample=True)",
     "postprocess_body": "return model_output.cpu().numpy().tolist()"
@@ -160,9 +148,7 @@ Use the exact model identifier '{model_identifier}' in the init_body.
     chain = prompt | llm | parser
 
     BASE_DIR = "mlmodelscope/pytorch_agent/models/default/speech_synthesis"
-    ERROR_DIR = f"{BASE_DIR}/automation/" + str(
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    )
+    ERROR_DIR = f"{BASE_DIR}/errors"
     os.makedirs(ERROR_DIR, exist_ok=True)
     failed_models = []
     login_req_models = []
@@ -185,14 +171,9 @@ Use the exact model identifier '{model_identifier}' in the init_body.
         try:
             check_syntax = lambda fn: os.system(f"python -m py_compile {fn}")
             error = False
-            MAX_TRIES_PER_MODEL = 5
-            try_count_my_model = 0
             while not os.path.exists(model_py_path) or (
                 error := check_syntax(model_py_path)
             ):
-                if try_count_my_model >= MAX_TRIES_PER_MODEL:
-                    break
-                try_count_my_model += 1
                 if error:
                     error_log += f"Syntax error, regenerating...\n"
 
@@ -281,3 +262,4 @@ Use the exact model identifier '{model_identifier}' in the init_body.
 
 if __name__ == "__main__":
     speech_synthesis_model_automation(models_to_add=["suno/bark"])
+

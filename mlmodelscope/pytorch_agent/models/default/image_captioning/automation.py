@@ -1,4 +1,3 @@
-from datetime import datetime
 """
 Generalized automation script for image-to-text PyTorch models.
 
@@ -71,7 +70,7 @@ class {class_name}(PyTorchAbstractClass):
         init_config: str = Field(default=", config=None")
 
         init_body: str = Field(
-            description="__init__ body: config init, load processor/tokenizer/model, set generation params (max_length, num_beams, etc.).",
+            description="__init__ body: call super().__init__(config), load processor/tokenizer from_pretrained, load model using self.load_hf_model(ModelClass, model_id) for multi-GPU support, set generation params (max_length, num_beams, etc.).",
         )
 
         preprocess_input: str = Field(
@@ -123,21 +122,10 @@ You must generate the complete model configuration based *primarily* on the prov
    - Include the framework/library prefix and model architecture
 
 4. **Init Method:**
-   - Initialize config: `self.config = config if config else dict()`
-   - **ALWAYS extract device and multi_gpu settings:**
-     ```
-     device = self.config.pop("_device", "cpu")
-     multi_gpu = self.config.pop("_multi_gpu", False)
-     ```
-   - Load processor/feature_extractor from_pretrained
-   - Load tokenizer from_pretrained
-   - **Load model with multi-GPU support:**
-     ```
-     if multi_gpu and device == "cuda":
-         self.model = ModelClass.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
-     else:
-         self.model = ModelClass.from_pretrained(model_id)
-     ```
+   - Initialize config: `super().__init__(config)` (required for load_hf_model to work)
+   - Load processor/feature_extractor: `ProcessorClass.from_pretrained(model_id)`
+   - Load tokenizer: `AutoTokenizer.from_pretrained(model_id)`
+   - Load model: `self.model = self.load_hf_model(ModelClass, model_id)` (use load_hf_model for multi-GPU support)
    - Set generation parameters from config with defaults:
      - For VisionEncoderDecoderModel: max_length (default 16), num_beams (default 4)
      - For BLIP: max_new_tokens (default 32), text (optional, for conditional generation)
@@ -162,13 +150,13 @@ You must generate the complete model configuration based *primarily* on the prov
 
 **Reference Examples:**
 
-Example 1: VisionEncoderDecoderModel (ViT-GPT2 with Multi-GPU)
+Example 1: VisionEncoderDecoderModel (ViT-GPT2)
 {{{{
     "model_type": "vision_encoder_decoder",
     "imports": "from transformers import VisionEncoderDecoderModel, ViTImageProcessor, AutoTokenizer\\nfrom PIL import Image",
     "class_name": "PyTorch_Transformers_ViT_GPT2_Image_Captioning",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        self.feature_extractor = ViTImageProcessor.from_pretrained(\\"nlpconnect/vit-gpt2-image-captioning\\")\\n        self.tokenizer = AutoTokenizer.from_pretrained(\\"nlpconnect/vit-gpt2-image-captioning\\")\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = VisionEncoderDecoderModel.from_pretrained(\\"nlpconnect/vit-gpt2-image-captioning\\", device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = VisionEncoderDecoderModel.from_pretrained(\\"nlpconnect/vit-gpt2-image-captioning\\")\\n        \\n        self.max_length = self.config.get('max_length', 16)\\n        self.num_beams = self.config.get('num_beams', 4)",
+    "init_body": "super().__init__(config)\\n        model_id = \\"nlpconnect/vit-gpt2-image-captioning\\"\\n        self.feature_extractor = ViTImageProcessor.from_pretrained(model_id)\\n        self.tokenizer = AutoTokenizer.from_pretrained(model_id)\\n        self.model = self.load_hf_model(VisionEncoderDecoderModel, model_id)\\n        \\n        self.max_length = self.config.get('max_length', 16)\\n        self.num_beams = self.config.get('num_beams', 4)",
     "preprocess_body": "for i in range(len(input_images)):\\n            input_images[i] = Image.open(input_images[i]).convert('RGB')\\n        model_input = self.feature_extractor(input_images, return_tensors=\\"pt\\").pixel_values\\n        return model_input",
     "predict_body": "return self.model.generate(model_input, max_length=self.max_length, num_beams=self.num_beams)",
     "postprocess_body": "preds = self.tokenizer.batch_decode(model_output, skip_special_tokens=True)\\n        return [pred.strip() for pred in preds]"
@@ -180,7 +168,7 @@ Example 2: BLIP Model
     "imports": "from transformers import BlipProcessor, BlipForConditionalGeneration\\nfrom PIL import Image",
     "class_name": "PyTorch_Transformers_BLIP_Image_Captioning_Base",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        self.processor = BlipProcessor.from_pretrained(\\"Salesforce/blip-image-captioning-base\\")\\n        self.model = BlipForConditionalGeneration.from_pretrained(\\"Salesforce/blip-image-captioning-base\\")\\n        \\n        self.max_new_tokens = self.config.get('max_new_tokens', 32)\\n        self.text = self.config.get('text', None)",
+    "init_body": "super().__init__(config)\\n        model_id = \\"Salesforce/blip-image-captioning-base\\"\\n        self.processor = BlipProcessor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(BlipForConditionalGeneration, model_id)\\n        \\n        self.max_new_tokens = self.config.get('max_new_tokens', 32)\\n        self.text = self.config.get('text', None)",
     "preprocess_body": "for i in range(len(input_images)):\\n            input_images[i] = Image.open(input_images[i]).convert('RGB')\\n        model_input = self.processor(input_images, text=self.text, return_tensors=\\"pt\\").pixel_values\\n        return model_input",
     "predict_body": "return self.model.generate(model_input, max_new_tokens=self.max_new_tokens)",
     "postprocess_body": "return self.processor.batch_decode(model_output, skip_special_tokens=True)"
@@ -192,7 +180,7 @@ Example 3: VisionEncoderDecoderModel with ViTFeatureExtractor (older API)
     "imports": "from transformers import ViTFeatureExtractor, AutoTokenizer, VisionEncoderDecoderModel\\nfrom PIL import Image",
     "class_name": "PyTorch_Transformers_ViT_GPT2_COCO_EN",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        self.feature_extractor = ViTFeatureExtractor.from_pretrained(\\"ydshieh/vit-gpt2-coco-en\\")\\n        self.tokenizer = AutoTokenizer.from_pretrained(\\"ydshieh/vit-gpt2-coco-en\\")\\n        self.model = VisionEncoderDecoderModel.from_pretrained(\\"ydshieh/vit-gpt2-coco-en\\")\\n        \\n        self.max_length = self.config.get('max_length', 16)\\n        self.num_beams = self.config.get('num_beams', 4)",
+    "init_body": "super().__init__(config)\\n        model_id = \\"ydshieh/vit-gpt2-coco-en\\"\\n        self.feature_extractor = ViTFeatureExtractor.from_pretrained(model_id)\\n        self.tokenizer = AutoTokenizer.from_pretrained(model_id)\\n        self.model = self.load_hf_model(VisionEncoderDecoderModel, model_id)\\n        \\n        self.max_length = self.config.get('max_length', 16)\\n        self.num_beams = self.config.get('num_beams', 4)",
     "preprocess_body": "for i in range(len(input_images)):\\n            input_images[i] = Image.open(input_images[i]).convert('RGB')\\n        model_input = self.feature_extractor(input_images, return_tensors=\\"pt\\").pixel_values\\n        return model_input",
     "predict_body": "return self.model.generate(model_input, max_length=self.max_length, num_beams=self.num_beams)",
     "postprocess_body": "preds = self.tokenizer.batch_decode(model_output, skip_special_tokens=True)\\n        return [pred.strip() for pred in preds]"
@@ -258,9 +246,7 @@ Make sure to:
 
     # --- 4. Main Generation Loop ---
     BASE_DIR = f"mlmodelscope/pytorch_agent/models/default/{task_type}"
-    ERROR_DIR = f"{BASE_DIR}/automation/" + str(
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    )
+    ERROR_DIR = f"{BASE_DIR}/errors"
     if not os.path.exists(ERROR_DIR):
         os.makedirs(ERROR_DIR)
         print(f"Created error directory: '{ERROR_DIR}'")
@@ -287,18 +273,13 @@ Make sure to:
         error_log = ""
 
         try:
-            check_syntax = lambda fileName: os.system(
+            check_python_file_syntax_issue = lambda fileName: os.system(
                 f"python -m py_compile {fileName}"
             )
             error = False
-            MAX_TRIES_PER_MODEL = 5
-            try_count_my_model = 0
             while not os.path.exists(model_py_path) or (
-                error := check_syntax(model_py_path)
+                error := check_python_file_syntax_issue(model_py_path)
             ):
-                if try_count_my_model >= MAX_TRIES_PER_MODEL:
-                    break
-                try_count_my_model += 1
                 if error:
                     print(
                         f"Syntax error detected in generated file '{model_py_path}'. Regenerating..."
