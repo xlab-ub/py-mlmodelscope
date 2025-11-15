@@ -331,7 +331,7 @@ def main(task, dataset_name_src, models_to_test):
         # Get the final result from the list (it's the last one)
         final_result = results_list[-1]
         print(f"  - {final_result['model']}: {final_result['status']}")
-        if final_result["status"] != "Success":
+        if final_result["status"] != "Success": 
             error_preview = final_result.get("error", "No error message.").splitlines()
             error_snippet = f": {error_preview[0]}" if error_preview else ""
             print(
@@ -345,6 +345,7 @@ if __name__ == "__main__":
         "mlmodelscope/pytorch_agent/models/default/depth_estimation/coreml_sam2_1_small/model.py",
         "mlmodelscope/pytorch_agent/models/default/document_visual_question_answering/layoutlm_document_qa/model.py",
         "mlmodelscope/pytorch_agent/models/default/image_captioning/pix2struct_tiny_random/model.py",
+        "mlmodelscope/pytorch_agent/models/default/image_classification/nsfw_image_detector/model.py",
         "mlmodelscope/pytorch_agent/models/default/image_editing/yoso_normal_v1_8_1/model.py",
         "mlmodelscope/pytorch_agent/models/default/image_object_detection/dfine_small_coco/model.py",
         "mlmodelscope/pytorch_agent/models/default/image_semantic_segmentation/seg_zero_7b/model.py",
@@ -353,11 +354,7 @@ if __name__ == "__main__":
         "mlmodelscope/pytorch_agent/models/default/text_to_image/stablematerials/model.py",
         "mlmodelscope/pytorch_agent/models/default/text_to_text/t5_small_booksum/model.py",
         "mlmodelscope/pytorch_agent/models/default/video_classification/xclip_base_patch16/model.py",
-        "mlmodelscope/pytorch_agent/models/default/visual_question_answering/vl_rethinker_72b/model.py",
-        "mlmodelscope/pytorch_agent/models/default/text_to_image/testllm/model.py",
-        "mlmodelscope/pytorch_agent/models/default/image_classification/siglip2_base_patch16_224/model.py",
-        "mlmodelscope/pytorch_agent/models/default/text_to_image/testllm/model.py",
-        "mlmodelscope/pytorch_agent/models/default/music_generation/speecht5_finetuned_voxpopuli_es/model.py",
+        "mlmodelscope/pytorch_agent/models/default/visual_question_answering/vl_rethinker_72b/model.py"
     ]
     myJson = dict(json.loads(open("./test.json").read()))
     for modality in myJson:
