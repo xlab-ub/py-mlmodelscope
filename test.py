@@ -2,7 +2,11 @@ import re, subprocess, sys, os, shutil, json, time, shlex
 from pathlib import Path
 from datetime import datetime
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
+from langchain_core.prompts import (
+    ChatPromptTemplate,
+    SystemMessagePromptTemplate,
+    HumanMessagePromptTemplate,
+)
 from langchain_core.output_parsers import StrOutputParser
 from dotenv import load_dotenv
 
@@ -236,16 +240,18 @@ def debug_with_gemini(file_name: str, error_message: str) -> int:
         0 if the file was successfully fixed and updated.
         -1 if any step failed (file read, API error, no fix, syntax check, file write).
     """
-    
+
     # 1. Check for Google API Key
     if "GOOGLE_API_KEY" not in os.environ:
         print("Error: GOOGLE_API_KEY environment variable not set.", file=sys.stderr)
-        print("Please set this environment variable with your API key.", file=sys.stderr)
+        print(
+            "Please set this environment variable with your API key.", file=sys.stderr
+        )
         return -1
 
     # 2. Read the original code from the file
     try:
-        with open(file_name, 'r') as f:
+        with open(file_name, "r") as f:
             original_code = f.read()
     except FileNotFoundError:
         print(f"Error: File not found at {file_name}", file=sys.stderr)
@@ -272,7 +278,7 @@ Rules:
 3.  Do not include *any* explanation, greeting, or text before or after the code block. Your response must contain *only* the code block.
 4.  If you *cannot* fix the code, or if the error message is insufficient, respond *only* with the exact string: CANNOT_FIX
 """
-        
+
         # Define the human prompt that will contain the code and error
         human_template = """
 Here is the code that needs debugging:
@@ -286,14 +292,16 @@ Here is the error message I received:
 ---END ERROR---
 """
         # Create the full prompt template
-        prompt = ChatPromptTemplate.from_messages([
-            SystemMessagePromptTemplate.from_template(system_template),
-            HumanMessagePromptTemplate.from_template(human_template)
-        ])
-        
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                SystemMessagePromptTemplate.from_template(system_template),
+                HumanMessagePromptTemplate.from_template(human_template),
+            ]
+        )
+
         # Define a simple string output parser
         output_parser = StrOutputParser()
-        
+
         # Create the chain using LangChain Expression Language (LCEL)
         chain = prompt | llm | output_parser
 
@@ -304,56 +312,64 @@ Here is the error message I received:
     # 4. Run the chain (invoke the model)
     try:
         print(f"Sending code from {file_name} to Gemini for debugging...")
-        response = chain.invoke({
-            "code": original_code,
-            "error": error_message
-        })
-        
+        response = chain.invoke({"code": original_code, "error": error_message})
+
         # 5. Process the response
         response_trimmed = response.strip()
-        
+
         if response_trimmed == "CANNOT_FIX":
             print("Gemini reported it cannot fix the code.")
             return -1
 
         # 6. Extract code from the markdown block
         # Use re.DOTALL (s) flag to make '.' match newlines
-        match = re.search(r"```python\n(.*?)\n```", response_trimmed, re.DOTALL | re.IGNORECASE)
-        
+        match = re.search(
+            r"```python\n(.*?)\n```", response_trimmed, re.DOTALL | re.IGNORECASE
+        )
+
         fixed_code = ""
         if match:
             fixed_code = match.group(1).strip()
         else:
             # Fallback: Check if the model *only* returned code without the block
-            if "def " in response_trimmed or "import " in response_trimmed or "print(" in response_trimmed:
-                 print("Warning: Model returned code without markdown block. Trying to use it anyway.")
-                 fixed_code = response_trimmed
+            if (
+                "def " in response_trimmed
+                or "import " in response_trimmed
+                or "print(" in response_trimmed
+            ):
+                print(
+                    "Warning: Model returned code without markdown block. Trying to use it anyway."
+                )
+                fixed_code = response_trimmed
             else:
-                print("Error: Model response was not in the expected format (no ```python block).", file=sys.stderr)
+                print(
+                    "Error: Model response was not in the expected format (no ```python block).",
+                    file=sys.stderr,
+                )
                 print("---GEMINI RESPONSE---")
                 print(response)
                 print("---END RESPONSE---")
                 return -1
 
         if not fixed_code:
-             print("Error: Extracted fixed code is empty.", file=sys.stderr)
-             return -1
+            print("Error: Extracted fixed code is empty.", file=sys.stderr)
+            return -1
 
         # 7. NEW: Validate syntax and write the fixed code
-        
+
         # Define the syntax check function
         # os.system returns 0 on success
         check_syntax = lambda fn: os.system(f"{sys.executable} -m py_compile {fn}")
-        
+
         temp_dir_name = f"_gemini_debug_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
         temp_file_name = os.path.join(temp_dir_name, "fixed_code.py")
-        
+
         try:
             # Create a unique temporary directory in the current folder
             os.makedirs(temp_dir_name, exist_ok=True)
 
             # Write the fixed code to a file inside the temp directory
-            with open(temp_file_name, 'w') as temp_file:
+            with open(temp_file_name, "w") as temp_file:
                 temp_file.write(fixed_code)
 
             # Run the syntax check on the temporary file
@@ -361,15 +377,18 @@ Here is the error message I received:
             exit_code = check_syntax(temp_file_name)
 
             if exit_code != 0:
-                print(f"Error: Gemini's fix failed the syntax check (exit code: {exit_code}).", file=sys.stderr)
+                print(
+                    f"Error: Gemini's fix failed the syntax check (exit code: {exit_code}).",
+                    file=sys.stderr,
+                )
                 print("Original file was NOT modified.")
                 return -1
-            
+
             print("Syntax check passed.")
-            
+
             # 8. Write the validated fixed code back to the original file
             try:
-                with open(file_name, 'w') as f:
+                with open(file_name, "w") as f:
                     f.write(fixed_code)
                 print(f"Successfully fixed and updated {file_name}.")
                 return 0  # Success!
@@ -391,7 +410,9 @@ Here is the error message I received:
 
     except Exception as e:
         # This catches API errors, rate limits, etc.
-        print(f"An error occurred while communicating with Gemini: {e}", file=sys.stderr)
+        print(
+            f"An error occurred while communicating with Gemini: {e}", file=sys.stderr
+        )
         return -1
 
 
@@ -399,7 +420,7 @@ def main(task, dataset_name_src, models_to_test):
     # --- Define the Test Directory ---
     TEST_DIR_STR = f"mlmodelscope/pytorch_agent/models/default/{task}/test/{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     TEST_DIR = Path(TEST_DIR_STR)
-    MAX_TRIES_PER_MODEL = 3
+    MAX_TRIES_PER_MODEL = 5
 
     # Create the directory if it doesn't exist
     try:
@@ -422,7 +443,9 @@ def main(task, dataset_name_src, models_to_test):
     models_need_more_GPU = []
 
     for model in models_to_test:
-        MODEL_FILE = f"mlmodelscope/pytorch_agent/models/default/{task}/{model}/model.py"
+        MODEL_FILE = (
+            f"mlmodelscope/pytorch_agent/models/default/{task}/{model}/model.py"
+        )
         tries = 0
         result = {}  # Initialize result here
         while tries < MAX_TRIES_PER_MODEL:
@@ -430,7 +453,6 @@ def main(task, dataset_name_src, models_to_test):
                 print(f"Going for try {tries+1}")
             start_time = time.time()
             readable_start = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
 
             result = run_model_test(
                 model_name=model,
@@ -452,15 +474,12 @@ def main(task, dataset_name_src, models_to_test):
             error_str = result.get("error", "") + result.get("output", "")
 
             if "CUDA out of memory" in error_str:
-                print(
-                    "Detected CUDA out of memory. Adding to list and stopping tries."
-                )
+                print("Detected CUDA out of memory. Adding to list and stopping tries.")
                 models_need_more_GPU.append(model)
-                break  
+                break
             elif "Expected all tensors to be on the same device" in error_str:
-                models_need_more_GPU.append("CUDA Number issue "+model)
-                break  
-
+                models_need_more_GPU.append("CUDA Number issue " + model)
+                break
 
             elif "pip install" in error_str:
                 print("Detected 'pip install' recommendation.")
@@ -470,23 +489,17 @@ def main(task, dataset_name_src, models_to_test):
                     pip_error = install_packages_in_conda(models_to_install)
                     if pip_error:
                         print("Installation failed. Stopping tries.")
-                        result["error"] = (
-                            result.get("error", "") + "\n" + pip_error
-                        )
-                        break  
+                        result["error"] = result.get("error", "") + "\n" + pip_error
+                        break
             elif "ModuleNotFoundError" in error_str:
                 print("Detected 'ModuleNotFoundError'.")
                 missing_module = extract_missing_module_name(error_str)
                 if missing_module:
-                    print(
-                        f"Trying to install missing module: {missing_module}"
-                    )
+                    print(f"Trying to install missing module: {missing_module}")
                     pip_error = install_packages_in_conda(missing_module)
                     if pip_error:
                         print("Installation failed. Stopping tries.")
-                        result["error"] = (
-                            result.get("error", "") + "\n" + pip_error
-                        )
+                        result["error"] = result.get("error", "") + "\n" + pip_error
                         break
                 else:
                     print(
@@ -495,25 +508,29 @@ def main(task, dataset_name_src, models_to_test):
                     break  # Avoid infinite loop
 
             else:
-                debug_check = debug_with_gemini(file_name= MODEL_FILE, error_message= error_str)
-                if debug_check!=0:
+                debug_check = debug_with_gemini(
+                    file_name=MODEL_FILE, error_message=error_str
+                )
+                if debug_check != 0:
                     break
             tries += 1
 
         all_results.setdefault(model, []).append(result)
-        
+
         if result.get("status") == "Success":
             success_count += 1
         else:
             failure_count += 1
-            
+
         print(f"--- [FINISHED] Test for: {model} ---\n")
         cache_dir = os.path.expanduser("~/.cache/huggingface/")
         if os.path.exists(cache_dir):
             shutil.rmtree(cache_dir, ignore_errors=True)
             print(f"--- Deleted ~/.cache/huggingface/ ---\n")
         else:
-            print(f"--- Cache dir not found. Skipping delete: ~/.cache/huggingface/ ---\n")
+            print(
+                f"--- Cache dir not found. Skipping delete: ~/.cache/huggingface/ ---\n"
+            )
 
     # Save full summary JSON results to the TEST_DIR
     results_filename = TEST_DIR / f"model_test_results.json"
@@ -543,14 +560,16 @@ def main(task, dataset_name_src, models_to_test):
     for model_name, results_list in all_results.items():
         # Get the final result from the list (it's the last one)
         final_result = results_list[-1]
-        print(f"  - {final_result.get('model', model_name)}: {final_result.get('status', 'Unknown')}")
+        print(
+            f"  - {final_result.get('model', model_name)}: {final_result.get('status', 'Unknown')}"
+        )
         if final_result.get("status") != "Success":
             error_preview = final_result.get("error", "No error message.").splitlines()
             error_snippet = f": {error_preview[0]}" if error_preview else ""
             print(
                 f"    - Details: Return Code {final_result.get('returncode', 'N/A')}{error_snippet}"
             )
-            
+
     # Return the number of failures for sys.exit()
     return failure_count
 
@@ -573,47 +592,60 @@ if __name__ == "__main__":
             "mlmodelscope/pytorch_agent/models/default/text_to_image/stablematerials/model.py",
             "mlmodelscope/pytorch_agent/models/default/text_to_text/t5_small_booksum/model.py",
             "mlmodelscope/pytorch_agent/models/default/video_classification/xclip_base_patch16/model.py",
-            "mlmodelscope/pytorch_agent/models/default/visual_question_answering/vl_rethinker_72b/model.py"
+            "mlmodelscope/pytorch_agent/models/default/visual_question_answering/vl_rethinker_72b/model.py",
         ]
-        
+
         json_file_path = "./test.json"
         if not os.path.exists(json_file_path):
             print(f"❌ Error: JSON file not found at {json_file_path}")
-            sys.exit(1) # Exit with error
-            
+            sys.exit(1)  # Exit with error
+
         with open(json_file_path, "r") as f:
             myJson = dict(json.loads(f.read()))
 
         for modality in myJson:
             dir_key = myJson[modality].get("dir")
             test_data = myJson[modality].get("test")
-            
+
             if not dir_key or test_data is None:
                 print(f"⚠️ Skipping modality '{modality}': missing 'dir' or 'test' key.")
                 continue
 
             test = json.dumps(test_data)
 
-            # Find model and task, with error checking
-            modelName_matches = [x.split("/")[-2] for x in dirs if dir_key in x]
-            task_matches = [x.split("/")[-3] for x in dirs if dir_key in x]
-            
-            if not modelName_matches or not task_matches:
-                print(f"⚠️ Skipping modality '{modality}': could not find matching model/task for dir '{dir_key}'")
+            base_dir = "mlmodelscope/pytorch_agent/models/default/{dir_key}"
+            folders_with_model = [
+                name
+                for name in os.listdir(base_dir)
+                if os.path.isdir(os.path.join(base_dir, name))
+                and os.path.isfile(os.path.join(base_dir, name, "model.py"))
+            ]
+
+            if not folders_with_model:
+                print(
+                    f"⚠️ Skipping modality '{modality}': could not find matching model/task for dir '{dir_key}'"
+                )
                 overall_failures += 1
                 continue
-                
-            modelName = modelName_matches[0]
-            task = task_matches[0]
-            
-            print(f"\n{'='*20} 🚀 Starting Test for Task: {task}, Model: {modelName} {'='*20}\n")
-            # main() now returns the number of failures for that run
-            failures = main(task=task, dataset_name_src=test, models_to_test=[modelName])
-            overall_failures += failures
-            print(f"\n{'='*20} 🏁 Finished Test for Task: {task}, Model: {modelName} {'='*20}\n")
-            
+
+            task = dir_key
+            for modelName in folders_with_model:
+                print(
+                    f"\n{'='*20} 🚀 Starting Test for Task: {task}, Model: {modelName} {'='*20}\n"
+                )
+                # main() now returns the number of failures for that run
+                failures = main(
+                    task=task, dataset_name_src=test, models_to_test=[modelName]
+                )
+                overall_failures += failures
+                print(
+                    f"\n{'='*20} 🏁 Finished Test for Task: {task}, Model: {modelName} {'='*20}\n"
+                )
+
     except json.JSONDecodeError:
-        print("❌ Error: Failed to decode './test.json'. Please check for syntax errors.")
+        print(
+            "❌ Error: Failed to decode './test.json'. Please check for syntax errors."
+        )
         overall_failures += 1
     except FileNotFoundError:
         print("❌ Error: './test.json' file not found.")
@@ -621,12 +653,12 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"❌ An unexpected error occurred in the main execution block: {e}")
         overall_failures += 1
-        
+
     finally:
         # --- This is the new exit logic ---
         if overall_failures > 0:
             print(f"\n🚫 Script finished with {overall_failures} total failures.")
-            sys.exit(1) # Exit with a non-zero status code
+            sys.exit(1)  # Exit with a non-zero status code
         else:
             print("\n✅ All tests passed. Script finished successfully.")
-            sys.exit(0) # Exit with status code 0
+            sys.exit(0)  # Exit with status code 0

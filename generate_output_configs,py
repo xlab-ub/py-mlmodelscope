@@ -1,0 +1,427 @@
+"""
+LangChain automation to generate output configurations for existing models.
+
+This script:
+1. Iterates over modalities and models from automateAll.py structure
+2. Checks if models exist in the filesystem
+3. Fetches Hugging Face documentation for existing models
+4. Uses Gemini to determine output types and counts
+5. Generates JSON configuration
+"""
+
+import os
+import json
+import requests
+from bs4 import BeautifulSoup
+from dotenv import load_dotenv
+from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel, Field
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_google_genai import ChatGoogleGenerativeAI
+from typing import Dict, Optional
+from datetime import datetime
+
+
+class OutputConfig(BaseModel):
+    """Configuration for model output types and counts."""
+
+    outputs: Dict[str, int] = Field(
+        description="Dictionary mapping output type names to their counts. "
+        "Positive integers indicate exact count (e.g., 1 means exactly 1). "
+        "-1 indicates variable/any number of that output type. "
+        "Valid output types: 'Image', 'Text', 'Audio', 'Video', 'Tensor', 'Logits', 'Embeddings', 'JSON', etc. "
+        "Example: {'Text': 1} for models outputting 1 text, "
+        "or {'Image': -1} for models generating any number of images."
+    )
+
+
+def fetch_huggingface_doc(model_name: str) -> Optional[str]:
+    """Fetch documentation from Hugging Face model page."""
+    try:
+        url = f"https://huggingface.co/{model_name}"
+        print(f"Fetching documentation from {url}...")
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, "html.parser")
+        main_content = (
+            soup.find("model-card-content") or soup.find("main") or soup.find("body")
+        )
+
+        if not main_content:
+            print(f"Could not find main content on page for {model_name}")
+            return None
+
+        login_link = main_content.find(
+            "a", href=lambda h: h and h.startswith("/login?next=")
+        )
+        if login_link:
+            print(f"Login required for {model_name}, skipping.")
+            return None
+
+        context_text = main_content.get_text(separator=" ", strip=True)
+        max_length = 15000
+        if len(context_text) > max_length:
+            context_text = context_text[:max_length] + "\n... (content truncated)"
+
+        print(f"Successfully fetched documentation for {model_name}")
+        return context_text
+
+    except Exception as e:
+        print(f"Error fetching documentation for {model_name}: {e}")
+        return None
+
+
+def check_model_exists(modality_dir: str, model_name: str) -> bool:
+    """Check if model exists in the filesystem."""
+    model_folder_name = (
+        model_name.split("/")[-1].replace("-", "_").replace(".", "_").lower()
+    )
+    model_py_path = os.path.join(
+        "mlmodelscope/pytorch_agent/models/default",
+        modality_dir,
+        model_folder_name,
+        "model.py",
+    )
+    return os.path.exists(model_py_path)
+
+
+def main():
+    # Load configuration files
+    print("Loading configuration files...")
+    with open("test.json", "r") as f:
+        modality_mapping = json.load(f)
+
+    with open("categorized_huggingFaceModels.json", "r") as f:
+        categorized_models = json.load(f)
+
+    # Setup LLM
+    load_dotenv()
+    if not os.getenv("GOOGLE_API_KEY"):
+        raise EnvironmentError("GOOGLE_API_KEY not found in .env file or environment.")
+
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-2.5-pro",
+        model_kwargs={"thinkingBudget": -1},
+        temperature=0,
+        convert_system_message_to_human=True,
+    )
+
+    # Create prompt template
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                """
+You are an expert in machine learning model output requirements. Your task is to analyze a Hugging Face model's documentation and determine what outputs the model produces.
+
+You will be given:
+1. A model identifier (e.g., "google/vit-base-patch16-224")
+2. The documentation/content from the model's Hugging Face page
+
+Your task is to determine:
+- What types of outputs the model generates (Image, Text, Audio, Video, Tensor, Logits, Embeddings, etc.)
+- How many of each output type are produced for a single input sample
+
+**CRITICAL RULES - READ CAREFULLY:**
+
+1. **Output Types**: Use standard, simple names.
+   - **'Text'**: For text generation, translation, summarization, VQA answers, image captions.
+   - **'Image'**: For image generation (text-to-image).
+   - **'Audio'**: For text-to-speech, speech-to-speech.
+   - **'Logits'**: For classification models (image classification, text classification). This is the raw output before softmax.
+   - **'Embeddings'**: For models that output feature vectors (e.g., sentence transformers, base models).
+   - **'Tensor'**: Use this as a general-purpose type for complex outputs like object detection (bounding boxes, scores) or segmentation masks if 'Logits' or 'Embeddings' isn't specific enough.
+   - **'Video'**: For video generation.
+
+2. **Counts - VERY IMPORTANT**:
+   - **Use 1 (MOST COMMON)**: Assume the model produces ONE output (or one set of outputs) for ONE input sample.
+     - An image classifier produces ONE set of logits. -> {"Logits": 1}
+     - An image captioning model produces ONE caption. -> {"Text": 1}
+     - A text-to-image model produces ONE image. -> {"Image": 1}
+     - An object detection model produces ONE tensor of detections. -> {"Tensor": 1}
+   - **Use -1 (RARE)**: Only use -1 if the model is explicitly designed to produce a *variable number* of distinct outputs *per sample*, and this is its primary function (e.g., a model that generates an unknown number of separate text documents, not just one).
+   - **DO NOT use -1** just because a model *can* be configured to return multiple outputs (e.g., `num_images_per_prompt > 1` in a diffusion model). Assume the default, single-sample-in, single-sample-out case.
+   - **When in doubt, use 1.**
+
+3. **Common Patterns - Study These Carefully:**
+
+   - **Image Classification (ViT, ResNet)**
+     Model: "google/vit-base-patch16-224"
+     Outputs: {{"Logits": 1}}
+     Explanation: Outputs a single tensor of logits for classification.
+
+   - **Text Classification (BERT, DistilBERT)**
+     Model: "distilbert-base-uncased-finetuned-sst-2-english"
+     Outputs: {{"Logits": 1}}
+     Explanation: Outputs a single tensor of logits for classification.
+
+   - **Text-to-Image (Stable Diffusion)**
+     Model: "CompVis/stable-diffusion-v1-4"
+     Outputs: {{"Image": 1}}
+     Explanation: Generates one image per prompt.
+
+   - **Image-to-Text (BLIP, ViT-GPT2)**
+     Model: "Salesforce/blip-image-captioning-base"
+     Outputs: {{"Text": 1}}
+     Explanation: Generates one text caption per image.
+
+   - **Visual Question Answering (BLIP-VQA, LLaVA)**
+     Model: "Salesforce/blip-vqa-base"
+     Outputs: {{"Text": 1}}
+     Explanation: Generates one text answer per image+question.
+
+   - **Object Detection (YOLO, DETR)**
+     Model: "facebook/detr-resnet-50"
+     Outputs: {{"Tensor": 1}}
+     Explanation: Outputs a single set of detections (boxes, scores, labels) as a tensor.
+
+   - **Text-to-Text Generation (GPT-2, T5, Llama)**
+     Model: "gpt2"
+     Outputs: {{"Text": 1}}
+     Explanation: Generates one continuation or answer text.
+
+   - **Feature Extraction / Embeddings (SentenceTransformers)**
+     Model: "sentence-transformers/all-MiniLM-L6-v2"
+     Outputs: {{"Embeddings": 1}}
+     Explanation: Outputs a single tensor representing the embedding.
+
+   - **Audio Generation (SpeechT5)**
+     Model: "microsoft/speecht5_tts"
+     Outputs: {{"Audio": 1}}
+     Explanation: Generates one audio waveform.
+
+4. **Analyze the model's purpose CAREFULLY**:
+   - What is the task? (e.g., "Image Classification", "Text-to-Image")
+   - The task itself strongly implies the output type.
+   - **If it's classification -> {"Logits": 1}**
+   - **If it's text generation -> {"Text": 1}**
+   - **If it's image generation -> {"Image": 1}**
+   - **If it's feature extraction -> {"Embeddings": 1}**
+   - **If it's object detection -> {"Tensor": 1}**
+
+Respond ONLY with the JSON structure matching the OutputConfig schema:
+{{"outputs": {{"OutputType": count, ...}}}}
+""",
+            ),
+            (
+                "human",
+                """
+Model Identifier: '{model_identifier}'
+
+Model Documentation:
+---
+{model_page_context}
+---
+
+Based on the documentation above, determine the output types and counts produced by this model for a single input sample.
+
+**CRITICAL INSTRUCTIONS:**
+1. Determine the model's main task (e.g., Classification, Generation).
+2. Use standard output types: 'Text', 'Image', 'Audio', 'Logits', 'Embeddings', 'Tensor'.
+3. DEFAULT to using 1 for output counts. Use 1 even for classification (one set of logits) or object detection (one set of tensors).
+4. Use -1 ONLY if the model's core function is to produce a variable number of distinct outputs, which is very rare.
+5. When in doubt, use 1.
+
+Return a JSON object with the "outputs" field containing a dictionary of output types to counts.
+Example: {{"outputs": {{"Logits": 1}}}} or {{"outputs": {{"Text": 1}}}} or {{"outputs": {{"Image": 1}}}}
+""",
+            ),
+        ]
+    )
+
+    parser = JsonOutputParser(pydantic_object=OutputConfig)
+    chain = prompt | llm | parser
+
+    # Generate output configs for all existing models
+    failed_models = []  # List of tuples: (modality_name, model_name, error_reason)
+    skipped_models = []  # List of tuples: (modality_name, model_name)
+    processed_modalities = 0
+    total_models_processed = 0
+
+    for modality_name, modality_info in modality_mapping.items():
+        if modality_name not in categorized_models:
+            print(
+                f"Modality '{modality_name}' not found in categorized_models.json, skipping."
+            )
+            continue
+
+        modality_dir = modality_info.get("dir")
+        if not modality_dir:
+            print(f"No directory mapping for modality '{modality_name}', skipping.")
+            continue
+
+        print(f"\n{'='*60}")
+        print(f"Processing modality: {modality_name} (dir: {modality_dir})")
+        print(f"{'='*60}")
+
+        # Path to the output config JSON file for this modality
+        modality_base_dir = os.path.join(
+            "mlmodelscope/pytorch_agent/models/default", modality_dir
+        )
+        output_config_file = os.path.join(modality_base_dir, "output_configs.json")
+
+        # Load existing config if it exists
+        existing_config = {}
+        if os.path.exists(output_config_file):
+            try:
+                with open(output_config_file, "r") as f:
+                    existing_config = json.load(f)
+                print(f"Loaded existing config with {len(existing_config)} models")
+            except Exception as e:
+                print(f"Warning: Could not load existing config: {e}")
+                existing_config = {}
+
+        models = categorized_models[modality_name].get("allModels", [])
+        modality_config = existing_config.copy()  # Start with existing config
+        models_processed_this_modality = 0
+
+        for model_name in models:
+            # Check if model exists
+            if not check_model_exists(modality_dir, model_name):
+                print(f"Model '{model_name}' does not exist, skipping.")
+                skipped_models.append((modality_name, model_name))
+                continue
+
+            # Update existing configs if they exist (merge/update behavior)
+            if model_name in modality_config:
+                print(f"Model '{model_name}' already has config, will update it.")
+
+            print(f"\n--- Processing: {model_name} ---")
+
+            # Fetch Hugging Face documentation
+            model_doc = fetch_huggingface_doc(model_name)
+            if not model_doc:
+                error_reason = "Could not fetch documentation from Hugging Face"
+                print(f"Could not fetch documentation for {model_name}, skipping.")
+                failed_models.append((modality_name, model_name, error_reason))
+                continue
+
+            # Generate output config using LLM
+            try:
+                print(f"Invoking LLM to generate output config for {model_name}...")
+                result = chain.invoke(
+                    {
+                        "model_identifier": model_name,
+                        "model_page_context": model_doc,
+                    }
+                )
+                # Extract the outputs dictionary from the result
+                output_config = result.get("outputs", {})
+                if output_config and isinstance(output_config, dict):
+                    # Validate that all values are integers
+                    valid_config = {}
+                    for key, value in output_config.items():
+                        if isinstance(value, int):
+                            valid_config[key] = value
+                        else:
+                            print(
+                                f"Warning: Invalid count type for {key} in {model_name}: {value}, skipping."
+                            )
+
+                    if valid_config:
+                        modality_config[model_name] = valid_config
+                        models_processed_this_modality += 1
+                        total_models_processed += 1
+                        print(
+                            f"✓ Successfully generated config for {model_name}: {valid_config}"
+                        )
+                    else:
+                        error_reason = (
+                            "No valid output config generated (invalid or empty config)"
+                        )
+                        print(f"✗ No valid output config generated for {model_name}")
+                        failed_models.append((modality_name, model_name, error_reason))
+                else:
+                    error_reason = "No output config returned from LLM"
+                    print(f"✗ No output config generated for {model_name}")
+                    failed_models.append((modality_name, model_name, error_reason))
+            except Exception as e:
+                error_reason = f"Exception: {str(e)}"
+                print(f"✗ Error generating output config for {model_name}: {e}")
+                import traceback
+
+                traceback.print_exc()
+                failed_models.append((modality_name, model_name, error_reason))
+
+        # Save config for this modality (only if we have configs)
+        if modality_config:
+            # Ensure directory exists
+            os.makedirs(modality_base_dir, exist_ok=True)
+
+            # Save updated config
+            with open(output_config_file, "w") as f:
+                json.dump(modality_config, f, indent=2)
+
+            print(
+                f"\n✓ Processed {models_processed_this_modality} new models for {modality_name}"
+            )
+            print(f"✓ Total models in config: {len(modality_config)}")
+            print(f"✓ Saved config to: {output_config_file}")
+            processed_modalities += 1
+        else:
+            print(f"\n✗ No models with configs for {modality_name}")
+
+    # Save common log file for failed models
+    log_file = "model_output_configs_failed.log"
+    if failed_models:
+        # Append to log file if it exists, otherwise create new one
+        file_exists = os.path.exists(log_file)
+        with open(log_file, "a") as f:
+            if not file_exists:
+                f.write("# Failed Models Log (Outputs)\n")
+                f.write("# Format: Timestamp | Modality | Model Name | Error Reason\n")
+                f.write("# " + "=" * 80 + "\n\n")
+
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            f.write(f"\n# Run at {timestamp}\n")
+            f.write("# " + "-" * 80 + "\n")
+            for modality, model, reason in failed_models:
+                f.write(f"{timestamp} | {modality} | {model} | {reason}\n")
+        print(
+            f"\nFailed models log saved to: {log_file} ({len(failed_models)} entries)"
+        )
+
+    # Save common log file for skipped models (optional - only if user wants to track these)
+    skipped_log_file = "model_output_configs_skipped.log"
+    if skipped_models:
+        file_exists = os.path.exists(skipped_log_file)
+        with open(skipped_log_file, "a") as f:
+            if not file_exists:
+                f.write("# Skipped Models Log (Outputs, not found in filesystem)\n")
+                f.write("# Format: Timestamp | Modality | Model Name\n")
+                f.write("# " + "=" * 80 + "\n\n")
+
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            f.write(f"\n# Run at {timestamp}\n")
+            f.write("# " + "-" * 80 + "\n")
+            for modality, model in skipped_models:
+                f.write(f"{timestamp} | {modality} | {model}\n")
+        print(
+            f"Skipped models log saved to: {skipped_log_file} ({len(skipped_models)} entries)"
+        )
+
+    print(f"\n{'='*60}")
+    print(f"Generation complete!")
+    print(f"{'='*60}")
+    print(f"Total modalities processed: {processed_modalities}")
+    print(f"Total new models with configs: {total_models_processed}")
+    print(f"Failed models: {len(failed_models)}")
+    if failed_models:
+        print(f"  Failed models log: {log_file}")
+    print(f"Skipped models (not found): {len(skipped_models)}")
+    if skipped_models:
+        print(f"  Skipped models log: {skipped_log_file}")
+
+    if failed_models:
+        print(f"\nFailed models (showing first 10):")
+        for modality, model, reason in failed_models[:10]:
+            print(f"  - [{modality}] {model}: {reason}")
+        if len(failed_models) > 10:
+            print(
+                f"  ... and {len(failed_models) - 10} more (see log file for full list)"
+            )
+
+
+if __name__ == "__main__":
+    main()
