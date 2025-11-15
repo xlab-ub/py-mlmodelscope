@@ -45,7 +45,7 @@
         ]
     },
     "Text to Image": {
-        "dir": "image_generation",
+        "dir": "image_captioning",
         "test": [
             {
                 "src": "https://cdn.pixabay.com/photo/2025/10/17/09/29/nature-9899712_1280.jpg",
@@ -90,7 +90,7 @@
         ]
     },
     "Text to Audio": {
-        "dir": "audio_generation",
+        "dir": "music_generation",
         "test": [
             {
                 "src": "I would like to test this modality by generating human voices.",
