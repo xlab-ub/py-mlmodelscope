@@ -5,6 +5,7 @@ import tempfile
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from dotenv import load_dotenv
 
 # ! This script installs depencies by itself which could be a security risk !
 
@@ -546,6 +547,7 @@ def main(task, dataset_name_src, models_to_test):
 
 
 if __name__ == "__main__":
+    load_dotenv()  # Load variables from .env file
     overall_failures = 0
     try:
         dirs = [
