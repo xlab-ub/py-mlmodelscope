@@ -399,7 +399,7 @@ def main(task, dataset_name_src, models_to_test):
     # --- Define the Test Directory ---
     TEST_DIR_STR = f"mlmodelscope/pytorch_agent/models/default/{task}/test/{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     TEST_DIR = Path(TEST_DIR_STR)
-    MAX_TRIES_PER_MODEL = 5
+    MAX_TRIES_PER_MODEL = 3
 
     # Create the directory if it doesn't exist
     try:
@@ -457,6 +457,10 @@ def main(task, dataset_name_src, models_to_test):
                 )
                 models_need_more_GPU.append(model)
                 break  
+            elif "Expected all tensors to be on the same device" in error_str:
+                models_need_more_GPU.append("CUDA Number issue "+model)
+                break  
+
 
             elif "pip install" in error_str:
                 print("Detected 'pip install' recommendation.")
