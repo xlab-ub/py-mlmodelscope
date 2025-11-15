@@ -363,4 +363,4 @@ if __name__ == "__main__":
         modelName = [x.split("/")[-2] for x in dirs if dir in x][0]
         task = [x.split("/")[-3] for x in dirs if dir in x][0]
         print(task,modelName)
-        run_model_test(modelName,test,Path("./test_run/"), task )
+        main(task=task, dataset_name_src=test, models_to_test=[modelName])
