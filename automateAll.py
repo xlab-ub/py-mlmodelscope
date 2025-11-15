@@ -105,12 +105,11 @@ categories = {
 
 # ]
 
-from random import choice
 
 for modality in masterDataSet:
     if modality not in categories:
         continue
     print("Doing", modality)
     processorFunction = categories[modality][0]
-    models = [masterDataSet[modality]["allModels"][0]]
+    models = masterDataSet[modality]["allModels"]
     processorFunction(models)
