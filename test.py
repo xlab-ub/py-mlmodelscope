@@ -1,7 +1,6 @@
 import re, subprocess, sys, os, shutil, json, time, shlex
 from pathlib import Path
 from datetime import datetime
-import tempfile
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -346,13 +345,16 @@ Here is the error message I received:
         # os.system returns 0 on success
         check_syntax = lambda fn: os.system(f"{sys.executable} -m py_compile {fn}")
         
-        temp_file = None
-        temp_file_name = ""
+        temp_dir_name = f"_gemini_debug_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
+        temp_file_name = os.path.join(temp_dir_name, "fixed_code.py")
+        
         try:
-            # Create a temporary file to write the fix to
-            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.py') as temp_file:
+            # Create a unique temporary directory in the current folder
+            os.makedirs(temp_dir_name, exist_ok=True)
+
+            # Write the fixed code to a file inside the temp directory
+            with open(temp_file_name, 'w') as temp_file:
                 temp_file.write(fixed_code)
-                temp_file_name = temp_file.name
 
             # Run the syntax check on the temporary file
             print(f"Checking syntax of Gemini's fix in {temp_file_name}...")
@@ -383,6 +385,9 @@ Here is the error message I received:
             if temp_file_name and os.path.exists(temp_file_name):
                 os.remove(temp_file_name)
                 print(f"Cleaned up temporary file: {temp_file_name}")
+            if os.path.isdir(temp_dir_name):
+                shutil.rmtree(temp_dir_name)
+                print(f"Deleted directory: {temp_dir_name}")
 
     except Exception as e:
         # This catches API errors, rate limits, etc.
