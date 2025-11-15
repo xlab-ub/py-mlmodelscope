@@ -4,30 +4,19 @@ from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 import torch
 from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
 import librosa
-from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 
 class PyTorch_Transformers_Wav2Vec2_Large_XLSR_Punjabi(PyTorchAbstractClass):
     def __init__(self, config=None):
-        self.config = config if config else dict()
-        device = self.config.pop("_device", "cpu")
-        multi_gpu = self.config.pop("_multi_gpu", False)
-
+        super().__init__(config)
         model_id = "manandey/wav2vec2-large-xlsr-punjabi"
         self.processor = Wav2Vec2Processor.from_pretrained(model_id)
-        
-        if multi_gpu and device == "cuda":
-            self.model = Wav2Vec2ForCTC.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
-        else:
-            self.model = Wav2Vec2ForCTC.from_pretrained(model_id)
-
+        self.model = self.load_hf_model(Wav2Vec2ForCTC, model_id)
         self.sampling_rate = self.config.get('sampling_rate', 16_000)
 
     def preprocess(self, input_audios):
-        audio_arrays = []
-        for audio_path in input_audios:
-            audio_array, _ = librosa.load(audio_path, sr=self.sampling_rate)
-            audio_arrays.append(audio_array)
-        model_input = self.processor(audio_arrays, sampling_rate=self.sampling_rate, return_tensors="pt", padding="longest")
+        for i in range(len(input_audios)):
+            input_audios[i], _ = librosa.load(input_audios[i], sr=self.sampling_rate)
+        model_input = self.processor(input_audios, sampling_rate=self.sampling_rate, return_tensors="pt", padding="longest")
         return model_input
 
     def predict(self, model_input):

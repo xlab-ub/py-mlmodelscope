@@ -8,28 +8,26 @@ from transformers import T5Tokenizer, T5ForConditionalGeneration
 
 class PyTorch_Transformers_T5_Small_Booksum(PyTorchAbstractClass):
     def __init__(self, config=None):
-        self.config = config if config else {}
-        
-        # Extract device and multi_gpu settings for multi-GPU support
-        device = self.config.pop("_device", "cpu")
-        multi_gpu = self.config.pop("_multi_gpu", False)
+        super().__init__(config)
 
         model_id = "cnicu/t5-small-booksum"
 
         # --- Generated Configuration ---
         # trust_remote_code=False
         tokenizer_args = {'padding_side': 'left'}
-        model_args = {}
         
-        # Add multi-GPU support to model_args if enabled
-        if multi_gpu and device == "cuda":
-            model_args['device_map'] = "auto"
-            model_args['torch_dtype'] = "auto"
+        try:
+            self.tokenizer = T5Tokenizer.from_pretrained(model_id, **tokenizer_args)
+            self.model = self.load_hf_model(T5ForConditionalGeneration, model_id)
+        except Exception as e:
+            if model_id in e.__str__():
+                self.huggingface_authenticate()
+                self.tokenizer = T5Tokenizer.from_pretrained(model_id, **tokenizer_args)
+                self.model = self.load_hf_model(T5ForConditionalGeneration, model_id)
+            else:
+                raise e
 
-        self.tokenizer = T5Tokenizer.from_pretrained(model_id, **tokenizer_args)
-        self.model = T5ForConditionalGeneration.from_pretrained(model_id, **model_args)
-
-        self.tokenizer.pad_token = self.tokenizer.eos_token
+        None
         # --- End Generated Configuration ---
 
         self.max_new_tokens = self.config.get("max_new_tokens", 256)
@@ -48,7 +46,7 @@ class PyTorch_Transformers_T5_Small_Booksum(PyTorchAbstractClass):
             model_input["input_ids"],
             attention_mask=model_input.get("attention_mask"), # Use .get for safety
             max_new_tokens=self.max_new_tokens,
-            pad_token_id=self.tokenizer.eos_token_id
+            pad_token_id=None
         )
         return outputs
 

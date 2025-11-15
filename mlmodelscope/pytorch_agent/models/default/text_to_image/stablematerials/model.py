@@ -12,15 +12,23 @@ class PyTorch_Diffusers_StableMaterials(PyTorchAbstractClass):
 
         model_id = "gvecchio/StableMaterials"
         if multi_gpu and device == "cuda":
-            self.pipeline = DiffusionPipeline.from_pretrained(model_id, trust_remote_code=True, torch_dtype=torch.float16)
+            self.pipeline = DiffusionPipeline.from_pretrained(
+                model_id,
+                trust_remote_code=True,
+                torch_dtype=torch.float16
+            )
         else:
-            self.pipeline = DiffusionPipeline.from_pretrained(model_id, trust_remote_code=True)
+            self.pipeline = DiffusionPipeline.from_pretrained(
+                model_id,
+                trust_remote_code=True
+            )
 
         self.num_inference_steps = self.config.get('num_inference_steps', 50)
         self.guidance_scale = self.config.get('guidance_scale', 10.0)
         self.tileable = self.config.get('tileable', True)
 
     def preprocess(self, input_prompts):
+        # The model can also accept an image prompt, but we default to text prompts.
         return input_prompts
 
     def predict(self, model_input):
@@ -33,10 +41,17 @@ class PyTorch_Diffusers_StableMaterials(PyTorchAbstractClass):
 
     def postprocess(self, model_output):
         import numpy as np
-        # The pipeline output is a list of custom 'Material' objects.
-        # Each object has attributes like .basecolor, .normal, etc., which are PIL Images.
-        # We will postprocess the .basecolor image as the primary output.
-        return [np.array(material.basecolor).tolist() for material in model_output]
+        # The model output is a list of custom material objects.
+        # We extract the 'basecolor' map as the primary image output.
+        # Other maps include: normal, height, roughness, metallic.
+        processed_images = []
+        for material in model_output:
+            if hasattr(material, 'basecolor'):
+                processed_images.append(np.array(material.basecolor).tolist())
+            else:
+                # Fallback for standard PIL.Image output
+                processed_images.append(np.array(material).tolist())
+        return processed_images
 
     def to(self, device):
         self.device = device

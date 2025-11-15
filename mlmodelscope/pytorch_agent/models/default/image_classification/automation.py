@@ -25,6 +25,7 @@ from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 
 class {class_name}(PyTorchAbstractClass):
     def __init__(self{init_config}):
+        super().__init__(config)
         {init_body}
 
     def preprocess(self, input_images):
@@ -65,7 +66,7 @@ class {class_name}(PyTorchAbstractClass):
         )
 
         init_body: str = Field(
-            description="The complete body of the __init__ method. This should include model loading, any setup, optional features file download, etc. Be comprehensive and handle all model-specific initialization.",
+            description="The complete body of the __init__ method (after super().__init__(config) call). This should include model loading, any setup, optional features file download, etc. For transformers models: use self.load_hf_model(ModelClass, model_id) instead of from_pretrained with device_map. For torchvision: use torch.hub.load as normal. Be comprehensive and handle all model-specific initialization.",
         )
 
         # Preprocess method
@@ -115,20 +116,19 @@ You must generate the complete model configuration based *primarily* on the prov
    - Include the framework/library prefix
 
 4. **Init Method:**
-   - Initialize config: `self.config = config if config else dict()`
-   - **ALWAYS extract device and multi_gpu settings:**
+   - The template already calls `super().__init__(config)` which handles device/multi_gpu from config
+   - For torchvision_hub: Use `torch.hub.load(repo, model_name, pretrained=True)` (doesn't support device_map, uses .to(device) instead)
+   - **For transformers: Load processor and model using self.load_hf_model() which handles multi-GPU automatically:**
      ```
-     device = self.config.pop("_device", "cpu")
-     multi_gpu = self.config.pop("_multi_gpu", False)
+     model_id = "google/vit-base-patch16-224"
+     self.processor = AutoImageProcessor.from_pretrained(model_id)
+     self.model = self.load_hf_model(AutoModelForImageClassification, model_id)
      ```
-   - For torchvision_hub: Use `torch.hub.load(repo, model_name, pretrained=True)` (doesn't support device_map)
-   - **For transformers: Load processor and model with multi-GPU support:**
+     Or with trust_remote_code:
      ```
-     if multi_gpu and device == "cuda":
-         self.model = AutoModelForImageClassification.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
-     else:
-         self.model = AutoModelForImageClassification.from_pretrained(model_id)
+     self.model = self.load_hf_model(AutoModelForImageClassification, model_id, trust_remote_code=True)
      ```
+   - **DO NOT manually extract device/multi_gpu or add device_map/torch_dtype for transformers** - use `self.load_hf_model()` instead
    - Optionally download features file (synset.txt) if using ImageNet classes
    - Set model to eval mode if necessary
 
@@ -170,7 +170,7 @@ Example 2: HuggingFace ViT (transformers with Multi-GPU)
     "imports": "from transformers import AutoImageProcessor, AutoModelForImageClassification\\nfrom PIL import Image\\nimport torch",
     "class_name": "PyTorch_Transformers_ViT_Base_Patch16_224",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n        \\n        model_id = \\"google/vit-base-patch16-224\\"\\n        self.processor = AutoImageProcessor.from_pretrained(model_id)\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = AutoModelForImageClassification.from_pretrained(model_id, device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = AutoModelForImageClassification.from_pretrained(model_id)\\n            self.model.eval()",
+    "init_body": "model_id = \\"google/vit-base-patch16-224\\"\\n        self.processor = AutoImageProcessor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(AutoModelForImageClassification, model_id)\\n        self.model.eval()",
     "preprocess_body": "processed_images = [\\n            Image.open(image_path).convert('RGB')\\n            for image_path in input_images\\n        ]\\n        model_input = self.processor(processed_images, return_tensors=\\"pt\\")\\n        return model_input",
     "predict_body": "return self.model(**model_input)",
     "postprocess_body": "probabilities = torch.nn.functional.softmax(model_output.logits, dim=1)\\n        return probabilities.tolist()"
@@ -189,9 +189,12 @@ Example 3: Custom torchvision model (custom_torchvision)
 }}}}
 
 **CRITICAL NOTES:**
+- **Multi-GPU Support for Transformers**: Use `self.load_hf_model(ModelClass, model_id)` - it handles multi-GPU automatically via the parent class
+- **DO NOT** manually extract device/multi_gpu or add device_map/torch_dtype for transformers models - use `self.load_hf_model()` instead
+- For torchvision models: device placement is handled via `.to(device)` method (not device_map)
 - Pay attention to image size requirements (224x224, 299x299, 384x384, etc.)
 - Check normalization values (ImageNet standard vs custom)
-- For transformers models, check if trust_remote_code is needed
+- For transformers models, check if trust_remote_code is needed (pass as kwarg to load_hf_model)
 - Handle different model output formats (logits attribute vs direct output)
 - I will take care of indentation when filling the template, so provide code bodies without extra indentation
 - Include features file download if using ImageNet classes

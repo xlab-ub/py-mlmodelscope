@@ -183,8 +183,10 @@ Use exact identifier '{model_identifier}'.
         model_py_path = os.path.join(BASE_DIR, model_folder_name, "model.py")
 
         if os.path.exists(model_py_path):
+            print(f"Model '{model_folder_name}' already exists. Skipping.")
             continue
 
+        error_log = ""
         try:
             check_syntax = lambda fn: os.system(f"python -m py_compile {fn}")
             error = False
@@ -196,6 +198,9 @@ Use exact identifier '{model_identifier}'.
                 if try_count_my_model >= MAX_TRIES_PER_MODEL:
                     break
                 try_count_my_model += 1
+                if error:
+                    error_log += f"Syntax error, regenerating...\n"
+
                 url = f"https://huggingface.co/{model_name}"
                 response = requests.get(url)
                 response.raise_for_status()
@@ -213,13 +218,18 @@ Use exact identifier '{model_identifier}'.
                     login_req_models.append(model_name)
                     break
 
-                context_text = main_content.get_text(separator=" ", strip=True)[:20000]
+                context_text = main_content.get_text(separator=" ", strip=True)
+                if len(context_text) > 20000:
+                    context_text = context_text[:20000] + "\n... (truncated)"
+
                 model_config_dict = chain.invoke(
                     {"model_identifier": model_name, "model_page_context": context_text}
                 )
 
-                init_body = model_config_dict.get("init_body", "").replace(
-                    "{hugging_face_model_id}", model_name
+                init_body = (
+                    model_config_dict.get("init_body", "")
+                    .replace("{hugging_face_model_id}", model_name)
+                    .replace("MODEL_IDENTIFIER_PLACEHOLDER", model_name)
                 )
                 filled_template = MODEL_TEMPLATE.format(
                     imports=model_config_dict.get(
@@ -244,16 +254,23 @@ Use exact identifier '{model_identifier}'.
                 with open(model_py_path, "w") as f:
                     f.write(filled_template)
             else:
+                print(f"Successfully generated {model_py_path}")
                 modelCounter += 1
+
         except Exception as e:
+            print(f"Failed: {e}")
             import traceback
 
             traceback.print_exc()
             failed_models.append(model_name)
 
+    print(f"\n--- Automation complete ---")
     with open(os.path.join(ERROR_DIR, "failed_models.log"), "w") as f:
         for fm in failed_models:
             f.write(f"{fm}\n")
+    with open(os.path.join(ERROR_DIR, "login_req_models.log"), "w") as f:
+        for lm in login_req_models:
+            f.write(f"{lm}\n")
 
 
 if __name__ == "__main__":

@@ -62,26 +62,24 @@ from transformers import {tokenizer_class}, {model_class}
 
 class {class_name}(PyTorchAbstractClass):
     def __init__(self, config=None):
-        self.config = config if config else {{}}
-        
-        # Extract device and multi_gpu settings for multi-GPU support
-        device = self.config.pop("_device", "cpu")
-        multi_gpu = self.config.pop("_multi_gpu", False)
+        super().__init__(config)
 
         model_id = "{hugging_face_model_id}"
 
         # --- Generated Configuration ---
         {trust_remote_code_comment}
         tokenizer_args = {{'padding_side': 'left'{tokenizer_trust_remote}}}
-        model_args = {{{model_trust_remote}}}
         
-        # Add multi-GPU support to model_args if enabled
-        if multi_gpu and device == "cuda":
-            model_args['device_map'] = "auto"
-            model_args['torch_dtype'] = "auto"
-
-        self.tokenizer = {tokenizer_class}.from_pretrained(model_id, **tokenizer_args)
-        self.model = {model_class}.from_pretrained(model_id, **model_args)
+        try:
+            self.tokenizer = {tokenizer_class}.from_pretrained(model_id, **tokenizer_args)
+            self.model = self.load_hf_model({model_class}, model_id{model_trust_remote_kwargs})
+        except Exception as e:
+            if model_id in e.__str__():
+                self.huggingface_authenticate()
+                self.tokenizer = {tokenizer_class}.from_pretrained(model_id, **tokenizer_args)
+                self.model = self.load_hf_model({model_class}, model_id{model_trust_remote_kwargs})
+            else:
+                raise e
 
         {pad_token_str}
         # --- End Generated Configuration ---
@@ -174,10 +172,11 @@ First, determine if the model is a 'base' model (for text completion) or a 'chat
 3.  If `is_chat_model` is `False`, you **MUST** set `preprocess_chat_logic` and `postprocess_chat_logic` to `null`.
 
 **MULTI-GPU SUPPORT:**
-All generated models automatically support multi-GPU via config parameters:
-- `_device`: Device to use (default: "cpu")
-- `_multi_gpu`: Enable multi-GPU distribution (default: False)
-- When `multi_gpu=True` and `device="cuda"`, models load with `device_map="auto"` and `torch_dtype="auto"`
+All generated models automatically support multi-GPU via the `load_hf_model` method from the parent class:
+- The parent class `PyTorchAbstractClass` automatically handles `_device` and `_multi_gpu` from config
+- Simply use `self.load_hf_model(ModelClass, model_id)` - it handles multi-GPU automatically
+- When `_multi_gpu=True` and `_device="cuda"`, the model loads with `device_map="auto"` and `torch_dtype="auto"`
+- **DO NOT** manually extract device/multi_gpu or add device_map/torch_dtype - use `self.load_hf_model()` instead
 
 Pay close attention to these details:
 - **Trust Remote Code**: Is `trust_remote_code=True` needed? (e.g., Phi-3 needs it).
@@ -403,7 +402,13 @@ Based on the examples AND the context above, generate the config for the model: 
                     )
                     print("Identified as BASE model. Omitting chat methods.")
 
-                # --- 5. Fill Main Template ---
+                # --- 5. Prepare model_trust_remote_kwargs for load_hf_model ---
+                if model_config_dict.get("trust_remote_code"):
+                    model_trust_remote_kwargs = ", trust_remote_code=True"
+                else:
+                    model_trust_remote_kwargs = ""
+
+                # --- 6. Fill Main Template ---
                 filled_template = MODEL_TEMPLATE.format(
                     tokenizer_class=model_config_dict.get(
                         "tokenizer_class", "AutoTokenizer"
@@ -418,7 +423,7 @@ Based on the examples AND the context above, generate the config for the model: 
                     hugging_face_model_id=model_name,
                     trust_remote_code_comment=trust_comment,
                     tokenizer_trust_remote=tokenizer_trust,
-                    model_trust_remote=model_trust,
+                    model_trust_remote_kwargs=model_trust_remote_kwargs,
                     max_new_tokens=model_config_dict.get("max_new_tokens", 32),
                     pad_token_str=model_config_dict.get("pad_token_str", "pass"),
                     pad_token_id_val=model_config_dict.get(

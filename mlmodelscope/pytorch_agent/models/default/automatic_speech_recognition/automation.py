@@ -60,6 +60,7 @@ from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 
 class {class_name}(PyTorchAbstractClass):
     def __init__(self{init_config}):
+        super().__init__(config)
         {init_body}
 
     def preprocess(self, input_audios):
@@ -95,7 +96,7 @@ class {class_name}(PyTorchAbstractClass):
         )
 
         init_body: str = Field(
-            description="The complete body of the __init__ method. Should include: 1) config initialization, 2) loading processor/feature_extractor from_pretrained, 3) loading model from_pretrained, 4) setting sampling_rate from config (default 16_000), 5) for classification: extracting labels from model.config.id2label to self.features list.",
+            description="The complete body of the __init__ method (after super().__init__(config) call). Should include: 1) loading processor/feature_extractor from_pretrained, 2) loading model using self.load_hf_model(ModelClass, model_id), 3) setting sampling_rate from config (default 16_000), 4) for classification: extracting labels from model.config.id2label to self.features list. DO NOT include device/multi_gpu extraction - use self.load_hf_model() instead which handles multi-GPU automatically.",
         )
 
         preprocess_body: str = Field(
@@ -141,20 +142,19 @@ You must generate the complete model configuration based *primarily* on the prov
    - Always include: `import librosa` for audio loading
 
 3. **Init Method:**
-   - Initialize config: `self.config = config if config else dict()`
-   - **ALWAYS extract device and multi_gpu settings:**
-     ```
-     device = self.config.pop("_device", "cpu")
-     multi_gpu = self.config.pop("_multi_gpu", False)
-     ```
+   - The template already calls `super().__init__(config)` which handles device/multi_gpu from config
    - Load processor/feature_extractor from_pretrained
-   - **Load model with multi-GPU support for transformers models:**
+   - **Load model using self.load_hf_model() which handles multi-GPU automatically:**
      ```
-     if multi_gpu and device == "cuda":
-         self.model = ModelClass.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
-     else:
-         self.model = ModelClass.from_pretrained(model_id)
+     model_id = "openai/whisper-base"
+     self.processor = WhisperProcessor.from_pretrained(model_id)
+     self.model = self.load_hf_model(WhisperForConditionalGeneration, model_id)
      ```
+     Or with trust_remote_code:
+     ```
+     self.model = self.load_hf_model(ModelClass, model_id, trust_remote_code=True)
+     ```
+   - **DO NOT manually extract device/multi_gpu or add device_map/torch_dtype** - use `self.load_hf_model()` instead
    - Set sampling_rate from config with default: `self.config.get('sampling_rate', 16_000)`
    - For classification: Extract labels: `self.features = list(self.model.config.id2label.values())`
 
@@ -184,7 +184,7 @@ Example 1: Whisper ASR Model (with Multi-GPU Support)
     "imports": "from transformers import WhisperForConditionalGeneration, WhisperProcessor\\nimport librosa",
     "class_name": "PyTorch_Transformers_Whisper_Base",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        self.processor = WhisperProcessor.from_pretrained(\\"openai/whisper-base\\")\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = WhisperForConditionalGeneration.from_pretrained(\\"openai/whisper-base\\", device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = WhisperForConditionalGeneration.from_pretrained(\\"openai/whisper-base\\")\\n\\n        self.sampling_rate = self.config.get('sampling_rate', 16_000)",
+    "init_body": "model_id = \\"openai/whisper-base\\"\\n        self.processor = WhisperProcessor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(WhisperForConditionalGeneration, model_id)\\n        self.sampling_rate = self.config.get('sampling_rate', 16_000)",
     "preprocess_body": "for i in range(len(input_audios)):\\n            input_audios[i], _ = librosa.load(input_audios[i], sr=self.sampling_rate)\\n        model_input = self.processor(input_audios, sampling_rate=self.sampling_rate, return_tensors=\\"pt\\").input_features\\n        return model_input",
     "predict_body": "return self.model.generate(model_input)",
     "postprocess_body": "return self.processor.batch_decode(model_output, skip_special_tokens=True)"
@@ -196,7 +196,7 @@ Example 2: Wav2Vec2 CTC ASR Model (with Multi-GPU Support)
     "imports": "import torch\\nfrom transformers import Wav2Vec2ForCTC, Wav2Vec2Processor\\nimport librosa",
     "class_name": "PyTorch_Transformers_Wav2Vec2_Base_960h",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        self.processor = Wav2Vec2Processor.from_pretrained(\\"facebook/wav2vec2-base-960h\\")\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = Wav2Vec2ForCTC.from_pretrained(\\"facebook/wav2vec2-base-960h\\", device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = Wav2Vec2ForCTC.from_pretrained(\\"facebook/wav2vec2-base-960h\\")\\n\\n        self.sampling_rate = self.config.get('sampling_rate', 16_000)",
+    "init_body": "model_id = \\"facebook/wav2vec2-base-960h\\"\\n        self.processor = Wav2Vec2Processor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(Wav2Vec2ForCTC, model_id)\\n        self.sampling_rate = self.config.get('sampling_rate', 16_000)",
     "preprocess_body": "for i in range(len(input_audios)):\\n            input_audios[i], _ = librosa.load(input_audios[i], sr=self.sampling_rate)\\n        model_input = self.processor(input_audios, sampling_rate=self.sampling_rate, return_tensors=\\"pt\\", padding=\\"longest\\")\\n        return model_input",
     "predict_body": "return self.model(**model_input).logits",
     "postprocess_body": "predicted_ids = torch.argmax(model_output, dim=-1)\\n        return self.processor.batch_decode(predicted_ids)"
@@ -208,7 +208,7 @@ Example 3: Audio Classification Model (AST with Multi-GPU)
     "imports": "from transformers import ASTForAudioClassification, ASTFeatureExtractor\\nfrom torch.nn.functional import softmax\\nimport librosa",
     "class_name": "PyTorch_Transformers_AST_AudioClassification",
     "init_config": ", config=None",
-    "init_body": "self.config = config if config else dict()\\n        device = self.config.pop(\\"_device\\", \\"cpu\\")\\n        multi_gpu = self.config.pop(\\"_multi_gpu\\", False)\\n\\n        self.feature_extractor = ASTFeatureExtractor.from_pretrained(\\"MIT/ast-finetuned-audioset-10-10-0.4593\\")\\n        \\n        if multi_gpu and device == \\"cuda\\":\\n            self.model = ASTForAudioClassification.from_pretrained(\\"MIT/ast-finetuned-audioset-10-10-0.4593\\", device_map=\\"auto\\", torch_dtype=\\"auto\\")\\n        else:\\n            self.model = ASTForAudioClassification.from_pretrained(\\"MIT/ast-finetuned-audioset-10-10-0.4593\\")\\n\\n        self.sampling_rate = self.config.get('sampling_rate', 16_000)\\n        self.features = list(self.model.config.id2label.values())",
+    "init_body": "model_id = \\"MIT/ast-finetuned-audioset-10-10-0.4593\\"\\n        self.feature_extractor = ASTFeatureExtractor.from_pretrained(model_id)\\n        self.model = self.load_hf_model(ASTForAudioClassification, model_id)\\n        self.sampling_rate = self.config.get('sampling_rate', 16_000)\\n        self.features = list(self.model.config.id2label.values())",
     "preprocess_body": "for i in range(len(input_audios)):\\n            input_audios[i], _ = librosa.load(input_audios[i], sr=self.sampling_rate)\\n        model_input = self.feature_extractor(input_audios, sampling_rate=self.sampling_rate, return_tensors=\\"pt\\")\\n        return model_input",
     "predict_body": "return self.model(**model_input).logits",
     "postprocess_body": "return softmax(model_output, dim=1).tolist()"

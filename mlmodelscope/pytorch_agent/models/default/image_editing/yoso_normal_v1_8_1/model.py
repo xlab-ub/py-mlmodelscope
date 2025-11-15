@@ -10,36 +10,33 @@ class PyTorch_Custom_StableNormal(PyTorchAbstractClass):
     def __init__(self, config=None):
         self.config = config if config else dict()
         device = self.config.pop("_device", "cpu")
-        multi_gpu = self.config.pop("_multi_gpu", False) # multi_gpu not directly supported by torch.hub load, but we'll move the model to the device
+        multi_gpu = self.config.pop("_multi_gpu", False)
 
-        # The model card specifies loading from a different repo but using this model's version
-        # The model identifier is passed via the yoso_version parameter
+        # The model card specifies loading from a different repo via torch.hub,
+        # using the yoso_version parameter to specify the actual model weights.
+        hub_repo = "hugoycj/StableNormal"
+        model_name_in_hub = "StableNormal_turbo"
+        model_version = "Stable-X/yoso-normal-v1-8-1"
+
         self.model = torch.hub.load(
-            "hugoycj/StableNormal",
-            "StableNormal_turbo",
+            hub_repo,
+            model_name_in_hub,
             trust_repo=True,
-            yoso_version='Stable-X/yoso-normal-v1-8-1'
+            yoso_version=model_version
         )
 
     def preprocess(self, input_images):
-        # The model expects PIL images as input
         return [Image.open(img_path).convert('RGB') for img_path in input_images]
 
     def predict(self, model_input):
         # The model processes one image at a time
-        output_images = []
-        for image in model_input:
-            # The model card shows direct application of the predictor to the image
-            normal_map = self.model(image)
-            output_images.append(normal_map)
-        return output_images
+        return [self.model(image) for image in model_input]
 
     def postprocess(self, model_output):
-        # The model output is a list of PIL Images
+        # The model output is a list of PIL Images, which need to be converted to numpy arrays and then lists for JSON serialization.
         return [np.array(img).tolist() for img in model_output]
 
     def to(self, device):
-        self.device = device
         self.model.to(device)
 
     def eval(self):

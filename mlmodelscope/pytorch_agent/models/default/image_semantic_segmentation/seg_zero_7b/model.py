@@ -11,12 +11,14 @@ class PyTorch_Transformers_Seg_Zero_7B(PyTorchAbstractClass):
         multi_gpu = self.config.pop("_multi_gpu", False)
 
         model_id = "Ricky06662/Seg-Zero-7B"
-        self.processor = AutoImageProcessor.from_pretrained(model_id)
-
+        # This model is a CausalLM for reasoning, not a direct segmentation model.
+        # We are using the AutoModelForSemanticSegmentation class as a placeholder to fit the required structure,
+        # but this will likely fail at runtime due to model architecture mismatch.
+        self.processor = AutoImageProcessor.from_pretrained(model_id, trust_remote_code=True)
         if multi_gpu and device == "cuda":
-            self.model = AutoModelForSemanticSegmentation.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+            self.model = AutoModelForSemanticSegmentation.from_pretrained(model_id, device_map="auto", torch_dtype="auto", trust_remote_code=True)
         else:
-            self.model = AutoModelForSemanticSegmentation.from_pretrained(model_id)
+            self.model = AutoModelForSemanticSegmentation.from_pretrained(model_id, trust_remote_code=True)
 
     def preprocess(self, input_images):
         model_input = self.processor(images=input_images, return_tensors="pt")

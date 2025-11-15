@@ -25,7 +25,8 @@ class PyTorch_Transformers_XCLIP_Base_Patch16(PyTorchAbstractClass):
 
     def preprocess(self, input_videos):
         container = av.open(input_videos[0])
-        indices = self.sample_frame_indices(clip_len=16, frame_sample_rate=1, seg_len=container.streams.video[0].frames)
+        # The model was trained on 8 frames, so we sample 8 frames.
+        indices = self.sample_frame_indices(clip_len=8, frame_sample_rate=1, seg_len=container.streams.video[0].frames)
         video = self.read_video_pyav(container, indices)
         pixel_values = self.processor(videos=list(video), return_tensors="pt").pixel_values
         return pixel_values

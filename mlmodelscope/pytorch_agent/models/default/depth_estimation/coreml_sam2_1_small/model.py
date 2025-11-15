@@ -12,18 +12,19 @@ class PyTorch_Transformers_Apple_Coreml_Sam2_1_Small(PyTorchAbstractClass):
         self.config = config if config else dict()
         device = self.config.pop("_device", "cpu")
         multi_gpu = self.config.pop("_multi_gpu", False)
+        model_id = "apple/coreml-sam2.1-small"
 
-        self.image_processor = AutoImageProcessor.from_pretrained("apple/coreml-sam2.1-small")
+        self.image_processor = AutoImageProcessor.from_pretrained(model_id)
         
         if multi_gpu and device == "cuda":
-            self.model = AutoModelForDepthEstimation.from_pretrained("apple/coreml-sam2.1-small", device_map="auto", torch_dtype="auto")
+            self.model = AutoModelForDepthEstimation.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
         else:
-            self.model = AutoModelForDepthEstimation.from_pretrained("apple/coreml-sam2.1-small")
+            self.model = AutoModelForDepthEstimation.from_pretrained(model_id)
 
         self.original_sizes = None
 
     def preprocess(self, input_images):
-        images = [Image.open(input_image) for input_image in input_images]
+        images = [Image.open(img_path).convert("RGB") for img_path in input_images]
         self.original_sizes = [image.size for image in images]
         return self.image_processor(images, return_tensors="pt")
 
@@ -33,14 +34,17 @@ class PyTorch_Transformers_Apple_Coreml_Sam2_1_Small(PyTorchAbstractClass):
     def postprocess(self, model_output):
         predictions_resized = []
         for output, original_size in zip(model_output, self.original_sizes):
+            # Interpolate to original size
             prediction = torch.nn.functional.interpolate(
                 output.unsqueeze(0).unsqueeze(0),
-                size=original_size[::-1], # PIL size is (width, height), interpolate needs (height, width)
+                size=original_size[::-1],  # PIL size is (width, height), torch size is (height, width)
                 mode="bicubic",
                 align_corners=False,
             )
+            # Format output
             output = prediction.squeeze().cpu().numpy()
-            formatted = (output * 255 / np.max(output)).astype("uint8").tolist()
-            predictions_resized.append(formatted)
+            formatted = (output * 255 / np.max(output)).astype("uint8")
+            predictions_resized.append(formatted.tolist())
+        
         self.original_sizes = None
         return predictions_resized

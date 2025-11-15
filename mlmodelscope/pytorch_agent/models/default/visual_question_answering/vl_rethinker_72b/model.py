@@ -2,8 +2,9 @@
 from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 
 import torch
-from transformers import AutoModelForCausalLM, AutoProcessor
+from transformers import AutoProcessor, AutoModelForCausalLM
 from PIL import Image
+from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 
 class PyTorch_Transformers_TIGER_Lab_VL_Rethinker_72B(PyTorchAbstractClass):
     def __init__(self, config=None):
@@ -12,42 +13,72 @@ class PyTorch_Transformers_TIGER_Lab_VL_Rethinker_72B(PyTorchAbstractClass):
         multi_gpu = self.config.pop("_multi_gpu", False)
 
         model_id = "TIGER-Lab/VL-Rethinker-72B"
-        self.processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
-        
-        if multi_gpu and device == "cuda":
-            self.model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto", torch_dtype=torch.bfloat16, trust_remote_code=True)
-        else:
-            self.model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.bfloat16, trust_remote_code=True)
-
-        self.max_new_tokens = self.config.get('max_new_tokens', 256)
         self.prompt_suffix = """Guidelines: Please think step by step, and **regularly perform self-questioning, self-verification, self-correction to check your ongoing reasoning**, using connectives such as \"Wait a moment\", \"Wait, does it seem right?\", etc. Remember to put your final answer within \\boxed{}. """
 
-    def preprocess(self, input_image_and_questions):
-        images = [Image.open(item[0]).convert('RGB') for item in input_image_and_questions]
-        questions = [item[1] for item in input_image_and_questions]
+        self.processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
 
+        if multi_gpu and device == "cuda":
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_id,
+                torch_dtype=torch.bfloat16,
+                device_map="auto",
+                trust_remote_code=True
+            )
+        else:
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_id,
+                torch_dtype=torch.bfloat16,
+                trust_remote_code=True
+            )
+
+        self.terminators = [
+            self.processor.tokenizer.eos_token_id,
+            self.processor.tokenizer.convert_tokens_to_ids("<|eot_id|>")
+        ]
+        self.max_new_tokens = self.config.get('max_new_tokens', 256)
+
+    def preprocess(self, input_image_and_questions):
+        images = [Image.open(item[0]) for item in input_image_and_questions]
         texts = []
-        for question in questions:
-            full_prompt = f"{question}\n{self.prompt_suffix}"
+        for _, question in input_image_and_questions:
+            full_prompt = f"{question}{self.prompt_suffix}"
             messages = [
-                {"role": "user", "content": [{"type": "image"}, {"type": "text", "text": full_prompt}]}
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "image"},
+                        {"type": "text", "text": full_prompt},
+                    ],
+                }
             ]
-            text = self.processor.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+            text = self.processor.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=True
+            )
             texts.append(text)
-        
-        return self.processor(text=texts, images=images, return_tensors="pt")
+
+        return self.processor(text=texts, images=images, return_tensors="pt", padding=True)
 
     def predict(self, model_input):
-        return self.model.generate(**model_input, max_new_tokens=self.max_new_tokens, pad_token_id=self.processor.tokenizer.eos_token_id)
+        return self.model.generate(**model_input, max_new_tokens=self.max_new_tokens, eos_token_id=self.terminators)
 
     def postprocess(self, model_output):
-        decoded_outputs = self.processor.batch_decode(model_output, skip_special_tokens=True)
-        results = []
+        decoded_outputs = self.processor.batch_decode(model_output, skip_special_tokens=False)
+        # The prompt ends with "<|im_start|>assistant\n", and the model's response follows.
+        # We split the output at the last occurrence of this marker to isolate the response.
+        split_marker = "<|im_start|>assistant\n"
+        answers = []
+        stop_tokens = ["<|im_end|>", self.processor.tokenizer.eos_token]
+
         for output in decoded_outputs:
-            # The prompt template adds '<|im_start|>assistant\n' to signal the start of the model's response.
-            parts = output.split('<|im_start|>assistant\n')
-            if len(parts) > 1:
-                results.append(parts[-1].strip())
+            if split_marker in output:
+                answer = output.split(split_marker)[-1].strip()
+                # Clean up stop tokens from the response
+                for token in stop_tokens:
+                    if token:
+                        answer = answer.replace(token, "").strip()
+                answers.append(answer)
             else:
-                results.append(output.strip())
-        return results
+                # Fallback if the marker is not found (might be an error or unexpected output)
+                # Return the full decoded output for debugging purposes
+                answers.append(output)
+        return answers

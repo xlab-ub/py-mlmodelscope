@@ -160,8 +160,6 @@ Use the exact model identifier '{model_identifier}' in the init_body.
 
     modelCounter = 0
     load_dotenv()
-    if not os.getenv("GOOGLE_API_KEY"):
-        raise EnvironmentError("GOOGLE_API_KEY not found.")
 
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-pro",
@@ -241,8 +239,10 @@ Use the exact model identifier '{model_identifier}' in the init_body.
                     }
                 )
 
-                init_body = model_config_dict.get("init_body", "").replace(
-                    "{hugging_face_model_id}", model_name
+                init_body = (
+                    model_config_dict.get("init_body", "")
+                    .replace("{hugging_face_model_id}", model_name)
+                    .replace("MODEL_IDENTIFIER_PLACEHOLDER", model_name)
                 )
 
                 filled_template = MODEL_TEMPLATE.format(
