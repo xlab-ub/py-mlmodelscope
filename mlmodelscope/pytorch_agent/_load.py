@@ -70,7 +70,33 @@ def create_instance_from_model_manifest_file(task, model_name, security_check=Tr
         instance_config = config if config else {}
         instance_config['_device'] = device
         instance_config['_multi_gpu'] = multi_gpu
-        return target_class(instance_config) # Create an instance of the found class 
+        
+        # Check if __init__ accepts config parameter
+        init_signature = inspect.signature(target_class.__init__)
+        init_params = list(init_signature.parameters.keys())
+        
+        # Create instance based on signature (excluding 'self')
+        if len(init_params) > 1 or 'config' in init_params:
+            # New style: accepts config
+            instance = target_class(instance_config)
+        else:
+            # Old style: no config parameter
+            # Manually set _device and _multi_gpu BEFORE instantiation by monkey-patching
+            # This ensures they're available when __init__ runs
+            original_init = target_class.__init__
+            def patched_init(self):
+                self._device = device
+                self._multi_gpu = multi_gpu
+                self._is_dispatched = False
+                self._disable_accelerate = True  # Flag to disable Accelerate for old models
+                self.config = instance_config
+                original_init(self)
+            target_class.__init__ = patched_init
+            instance = target_class()
+            # Restore original __init__
+            target_class.__init__ = original_init
+        
+        return instance
     else:
         raise ModuleNotFoundError("No subclass of PyTorchAbstractClass was found in the module.")
 
