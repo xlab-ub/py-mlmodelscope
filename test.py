@@ -240,7 +240,7 @@ def debug_with_gemini(file_name: str, error_message: str) -> int:
         0 if the file was successfully fixed and updated.
         -1 if any step failed (file read, API error, no fix, syntax check, file write).
     """
-
+    return -1
     # 1. Check for Google API Key
     if "GOOGLE_API_KEY" not in os.environ:
         print("Error: GOOGLE_API_KEY environment variable not set.", file=sys.stderr)
@@ -613,7 +613,7 @@ if __name__ == "__main__":
 
             test = json.dumps(test_data)
 
-            base_dir = "mlmodelscope/pytorch_agent/models/default/{dir_key}"
+            base_dir = f"mlmodelscope/pytorch_agent/models/default/{dir_key}"
             folders_with_model = [
                 name
                 for name in os.listdir(base_dir)
@@ -647,9 +647,6 @@ if __name__ == "__main__":
             "❌ Error: Failed to decode './test.json'. Please check for syntax errors."
         )
         overall_failures += 1
-    except FileNotFoundError:
-        print("❌ Error: './test.json' file not found.")
-        overall_failures += 1
     except Exception as e:
         print(f"❌ An unexpected error occurred in the main execution block: {e}")
         overall_failures += 1
@@ -662,3 +659,4 @@ if __name__ == "__main__":
         else:
             print("\n✅ All tests passed. Script finished successfully.")
             sys.exit(0)  # Exit with status code 0
+
