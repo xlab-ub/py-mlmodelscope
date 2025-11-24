@@ -152,6 +152,10 @@ def run_model_test(model_name, dataset_name_str, test_dir_path, task):
     print(f"Running command: {' '.join(shlex.quote(arg) for arg in command)}")
 
     try:
+        # Set the environment variable for GPU device 2
+        my_env = os.environ.copy()
+        my_env["CUDA_VISIBLE_DEVICES"] = "2"
+
         # Execute the command
         completed_process = subprocess.run(
             command,
@@ -159,6 +163,7 @@ def run_model_test(model_name, dataset_name_str, test_dir_path, task):
             text=True,
             encoding="utf-8",
             check=False,  # We set this to False to handle non-zero exits manually
+            env=my_env,
         )
 
         # --- NEW: Write individual log files ---
@@ -571,12 +576,13 @@ def main(task, dataset_name_src, models_to_test):
             )
 
     # Return the number of failures for sys.exit()
-    return failure_count
+    return failure_count,success_count
 
 
 if __name__ == "__main__":
     load_dotenv()  # Load variables from .env file
     overall_failures = 0
+    overall_successes = 0
     try:
         dirs = [
             "mlmodelscope/pytorch_agent/models/default/automatic_speech_recognition/wav2vec2_large_xlsr_punjabi/model.py",
@@ -606,7 +612,6 @@ if __name__ == "__main__":
         for modality in myJson:
             dir_key = myJson[modality].get("dir")
             test_data = myJson[modality].get("test")
-
             if not dir_key or test_data is None:
                 print(f"⚠️ Skipping modality '{modality}': missing 'dir' or 'test' key.")
                 continue
@@ -634,13 +639,17 @@ if __name__ == "__main__":
                     f"\n{'='*20} 🚀 Starting Test for Task: {task}, Model: {modelName} {'='*20}\n"
                 )
                 # main() now returns the number of failures for that run
-                failures = main(
+                failures, successes = main(
                     task=task, dataset_name_src=test, models_to_test=[modelName]
                 )
                 overall_failures += failures
+                overall_successes += successes
                 print(
                     f"\n{'='*20} 🏁 Finished Test for Task: {task}, Model: {modelName} {'='*20}\n"
                 )
+                with open("./master_log.json", "a") as f:
+                    f.write(json.dumps({task: {modelName: {"failures": failures, "successes": successes}}}))
+                    f.write("\n")
 
     except json.JSONDecodeError:
         print(
@@ -655,6 +664,9 @@ if __name__ == "__main__":
         # --- This is the new exit logic ---
         if overall_failures > 0:
             print(f"\n🚫 Script finished with {overall_failures} total failures.")
+            print(f"\n✅ Script finished with {overall_successes} total successes.")
+            print(f"\nTotal Tests: {overall_failures + overall_successes}")
+            print("\n Successes Percentage: ", overall_successes / (overall_failures + overall_successes))
             sys.exit(1)  # Exit with a non-zero status code
         else:
             print("\n✅ All tests passed. Script finished successfully.")
