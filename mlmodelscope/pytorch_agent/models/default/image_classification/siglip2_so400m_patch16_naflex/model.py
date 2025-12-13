@@ -22,7 +22,7 @@ class PyTorch_Transformers_SigLIP2_SO400M_Patch16_NAFlex(PyTorchAbstractClass):
         model_input = self.processor(images=processed_images, return_tensors="pt")
         return model_input
 
-    def predict(self, model_input):
+    def predict(self, model_input, **kwargs):
         candidate_labels = kwargs.get("candidate_labels")
         if not candidate_labels or not isinstance(candidate_labels, list):
             raise ValueError("A list of candidate_labels must be provided via kwargs for zero-shot classification.")

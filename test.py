@@ -1,13 +1,13 @@
 import re, subprocess, sys, os, shutil, json, time, shlex
 from pathlib import Path
 from datetime import datetime
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import (
-    ChatPromptTemplate,
-    SystemMessagePromptTemplate,
-    HumanMessagePromptTemplate,
-)
-from langchain_core.output_parsers import StrOutputParser
+# from langchain_google_genai import ChatGoogleGenerativeAI
+# from langchain_core.prompts import (
+#     ChatPromptTemplate,
+#     SystemMessagePromptTemplate,
+#     HumanMessagePromptTemplate,
+# )
+# from langchain_core.output_parsers import StrOutputParser
 from dotenv import load_dotenv
 
 # ! This script installs depencies by itself which could be a security risk !
@@ -58,10 +58,11 @@ def install_packages_in_conda(package_names):
         # Catches failures like 'package not found' or build errors
         print("\n❌ Installation Failed!")
         print(f"**Command:** `{' '.join(full_command)}`")
+        error_details = e.output.decode() if e.output else "See above for error details."
         print(
-            f"**Error Details:**\n{e.output.decode()}"
+            f"**Error Details:**\n{error_details}"
         )  # Decode output for clean error message
-        return e.output.decode()
+        return error_details
 
     except FileNotFoundError:
         # Catches if the Python executable itself (sys.executable) is somehow broken/missing
@@ -129,7 +130,7 @@ def run_model_test(model_name, dataset_name_str, test_dir_path, task):
         "conda",
         "run",
         "-n",
-        "py-mlmodelscope",  # Specify the conda environment
+        "py-mlmodelscope", 
         "python",
         "run_mlmodelscope.py",
         "--standalone",
@@ -232,195 +233,6 @@ def run_model_test(model_name, dataset_name_str, test_dir_path, task):
         return {"status": "Unexpected Error", "model": model_name, "error": str(e)}
 
 
-def debug_with_gemini(file_name: str, error_message: str) -> int:
-    """
-    Attempts to debug a Python file using the Gemini API via LangChain.
-    Validates the fix with a syntax check before overwriting.
-
-    Args:
-        file_name: The path to the Python file with the bug.
-        error_message: The error message received when running the file.
-
-    Returns:
-        0 if the file was successfully fixed and updated.
-        -1 if any step failed (file read, API error, no fix, syntax check, file write).
-    """
-    return -1
-    # 1. Check for Google API Key
-    if "GOOGLE_API_KEY" not in os.environ:
-        print("Error: GOOGLE_API_KEY environment variable not set.", file=sys.stderr)
-        print(
-            "Please set this environment variable with your API key.", file=sys.stderr
-        )
-        return -1
-
-    # 2. Read the original code from the file
-    try:
-        with open(file_name, "r") as f:
-            original_code = f.read()
-    except FileNotFoundError:
-        print(f"Error: File not found at {file_name}", file=sys.stderr)
-        return -1
-    except IOError as e:
-        print(f"Error reading file {file_name}: {e}", file=sys.stderr)
-        return -1
-    except Exception as e:
-        print(f"An unexpected error occurred during file read: {e}", file=sys.stderr)
-        return -1
-
-    # 3. Set up LangChain components
-    try:
-        # Initialize the Google Generative AI model
-        llm = ChatGoogleGenerativeAI(model="gemini-2.5-pro")
-
-        # Define the system prompt to instruct the model
-        system_template = """
-You are an expert Python debugger. Your task is to fix the provided Python code based on the given error message.
-
-Rules:
-1.  Analyze the code and the error message.
-2.  If you can fix the code, respond *only* with the complete, corrected Python code, inside a single markdown code block (```python ... ```).
-3.  Do not include *any* explanation, greeting, or text before or after the code block. Your response must contain *only* the code block.
-4.  If you *cannot* fix the code, or if the error message is insufficient, respond *only* with the exact string: CANNOT_FIX
-"""
-
-        # Define the human prompt that will contain the code and error
-        human_template = """
-Here is the code that needs debugging:
----CODE---
-{code}
----END CODE---
-
-Here is the error message I received:
----ERROR---
-{error}
----END ERROR---
-"""
-        # Create the full prompt template
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                SystemMessagePromptTemplate.from_template(system_template),
-                HumanMessagePromptTemplate.from_template(human_template),
-            ]
-        )
-
-        # Define a simple string output parser
-        output_parser = StrOutputParser()
-
-        # Create the chain using LangChain Expression Language (LCEL)
-        chain = prompt | llm | output_parser
-
-    except Exception as e:
-        print(f"Error setting up LangChain components: {e}", file=sys.stderr)
-        return -1
-
-    # 4. Run the chain (invoke the model)
-    try:
-        print(f"Sending code from {file_name} to Gemini for debugging...")
-        response = chain.invoke({"code": original_code, "error": error_message})
-
-        # 5. Process the response
-        response_trimmed = response.strip()
-
-        if response_trimmed == "CANNOT_FIX":
-            print("Gemini reported it cannot fix the code.")
-            return -1
-
-        # 6. Extract code from the markdown block
-        # Use re.DOTALL (s) flag to make '.' match newlines
-        match = re.search(
-            r"```python\n(.*?)\n```", response_trimmed, re.DOTALL | re.IGNORECASE
-        )
-
-        fixed_code = ""
-        if match:
-            fixed_code = match.group(1).strip()
-        else:
-            # Fallback: Check if the model *only* returned code without the block
-            if (
-                "def " in response_trimmed
-                or "import " in response_trimmed
-                or "print(" in response_trimmed
-            ):
-                print(
-                    "Warning: Model returned code without markdown block. Trying to use it anyway."
-                )
-                fixed_code = response_trimmed
-            else:
-                print(
-                    "Error: Model response was not in the expected format (no ```python block).",
-                    file=sys.stderr,
-                )
-                print("---GEMINI RESPONSE---")
-                print(response)
-                print("---END RESPONSE---")
-                return -1
-
-        if not fixed_code:
-            print("Error: Extracted fixed code is empty.", file=sys.stderr)
-            return -1
-
-        # 7. NEW: Validate syntax and write the fixed code
-
-        # Define the syntax check function
-        # os.system returns 0 on success
-        check_syntax = lambda fn: os.system(f"{sys.executable} -m py_compile {fn}")
-
-        temp_dir_name = f"_gemini_debug_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
-        temp_file_name = os.path.join(temp_dir_name, "fixed_code.py")
-
-        try:
-            # Create a unique temporary directory in the current folder
-            os.makedirs(temp_dir_name, exist_ok=True)
-
-            # Write the fixed code to a file inside the temp directory
-            with open(temp_file_name, "w") as temp_file:
-                temp_file.write(fixed_code)
-
-            # Run the syntax check on the temporary file
-            print(f"Checking syntax of Gemini's fix in {temp_file_name}...")
-            exit_code = check_syntax(temp_file_name)
-
-            if exit_code != 0:
-                print(
-                    f"Error: Gemini's fix failed the syntax check (exit code: {exit_code}).",
-                    file=sys.stderr,
-                )
-                print("Original file was NOT modified.")
-                return -1
-
-            print("Syntax check passed.")
-
-            # 8. Write the validated fixed code back to the original file
-            try:
-                with open(file_name, "w") as f:
-                    f.write(fixed_code)
-                print(f"Successfully fixed and updated {file_name}.")
-                return 0  # Success!
-            except IOError as e:
-                print(f"Error writing fixed code to {file_name}: {e}", file=sys.stderr)
-                return -1
-
-        except Exception as e:
-            print(f"An error occurred during validation/writing: {e}", file=sys.stderr)
-            return -1
-        finally:
-            # Clean up the temporary file
-            if temp_file_name and os.path.exists(temp_file_name):
-                os.remove(temp_file_name)
-                print(f"Cleaned up temporary file: {temp_file_name}")
-            if os.path.isdir(temp_dir_name):
-                shutil.rmtree(temp_dir_name)
-                print(f"Deleted directory: {temp_dir_name}")
-
-    except Exception as e:
-        # This catches API errors, rate limits, etc.
-        print(
-            f"An error occurred while communicating with Gemini: {e}", file=sys.stderr
-        )
-        return -1
-
-
 def main(task, dataset_name_src, models_to_test):
     # --- Define the Test Directory ---
     TEST_DIR_STR = f"mlmodelscope/pytorch_agent/models/default/{task}/test/{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
@@ -513,9 +325,7 @@ def main(task, dataset_name_src, models_to_test):
                     break  # Avoid infinite loop
 
             else:
-                debug_check = debug_with_gemini(
-                    file_name=MODEL_FILE, error_message=error_str
-                )
+                debug_check = -1
                 if debug_check != 0:
                     break
             tries += 1
@@ -576,7 +386,7 @@ def main(task, dataset_name_src, models_to_test):
             )
 
     # Return the number of failures for sys.exit()
-    return failure_count,success_count
+    return failure_count, 1 if not failure_count else 0, all_results
 
 
 if __name__ == "__main__":
@@ -635,11 +445,17 @@ if __name__ == "__main__":
 
             task = dir_key
             for modelName in folders_with_model:
+                alreadyTested = modelName in open("./master_log.json").read()
+                if alreadyTested:
+                    print(
+                        f"\n{'='*20} 🚀 Skipping Test for Task: {task}, Model: {modelName} {'='*20}\n"
+                    )
+                    continue
                 print(
                     f"\n{'='*20} 🚀 Starting Test for Task: {task}, Model: {modelName} {'='*20}\n"
                 )
                 # main() now returns the number of failures for that run
-                failures, successes = main(
+                failures, successes, results = main(
                     task=task, dataset_name_src=test, models_to_test=[modelName]
                 )
                 overall_failures += failures
@@ -647,8 +463,17 @@ if __name__ == "__main__":
                 print(
                     f"\n{'='*20} 🏁 Finished Test for Task: {task}, Model: {modelName} {'='*20}\n"
                 )
+                
+                log_entry = {"failures": failures, "successes": successes}
+                if failures > 0:
+                     # Get the error from the last result for this model
+                     model_results = results.get(modelName, [])
+                     if model_results:
+                         last_result = model_results[-1]
+                         log_entry["error"] = last_result.get("error", "Unknown error")
+                
                 with open("./master_log.json", "a") as f:
-                    f.write(json.dumps({task: {modelName: {"failures": failures, "successes": successes}}}))
+                    f.write(json.dumps({task: {modelName: log_entry}}))
                     f.write("\n")
 
     except json.JSONDecodeError:
