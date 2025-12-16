@@ -4,18 +4,18 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 
 class PyTorch_Transformers_Llama_3_1_8B_Instruct(PyTorchAbstractClass):
   def __init__(self, config=None):
-    self.config = config if config else {}
+    super().__init__(config)
 
     model_id = "meta-llama/Llama-3.1-8B-Instruct" 
     try: 
       self.tokenizer = AutoTokenizer.from_pretrained(model_id, padding_side='left') 
-      self.model = AutoModelForCausalLM.from_pretrained(model_id) 
+      self.model = self.load_hf_model(AutoModelForCausalLM, model_id) 
     except Exception as e:
       if model_id in e.__str__():
         self.huggingface_authenticate() 
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_id, padding_side='left') 
-        self.model = AutoModelForCausalLM.from_pretrained(model_id) 
+        self.model = self.load_hf_model(AutoModelForCausalLM, model_id) 
       else:
         raise e
 
