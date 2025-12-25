@@ -37,7 +37,8 @@ class PyTorch_Agent:
         self.model_name = model_name
         with self.tracer.start_as_current_span_from_context(f'{self.model_name} model load', context=self.ctx, trace_level="APPLICATION_TRACE"):
             self.model = _load(task=task, model_name=self.model_name, security_check=security_check, config=config, user=user, device=self.device, multi_gpu=self.multi_gpu)
-            self.model.to(self.device, multi_gpu=self.multi_gpu)
+            if not getattr(self.model, '_is_dispatched', False):
+                self.model.to(self.device, multi_gpu=self.multi_gpu)
             self.model.eval()
 
         if (
@@ -47,6 +48,7 @@ class PyTorch_Agent:
                 'ScriptModule' in type(self.model.model).__name__
             ])
             and hasattr(self.model.model, "named_modules")
+            and not getattr(self.model, '_is_dispatched', False)
         ):
             self._register_hooks(self.model.model)
 

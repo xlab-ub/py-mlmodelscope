@@ -3,6 +3,7 @@
 # Using the absolute import path to avoid ModuleNotFoundError
 from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 
+<<<<<<< HEAD
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
@@ -16,6 +17,17 @@ class PyTorch_Transformers_Gpt_Oss_120b(PyTorchAbstractClass):
         # trust_remote_code=False
         tokenizer_args = {'padding_side': 'left'}
         model_args = {}
+=======
+class PyTorch_Transformers_GPT_OSS_120B(PyTorchAbstractClass):
+  def __init__(self, config=None):
+    super().__init__(config)
+
+    self.tokenizer = AutoTokenizer.from_pretrained("openai/gpt-oss-120b", padding_side='left')
+    self.model = self.load_hf_model(AutoModelForCausalLM, "openai/gpt-oss-120b")
+    self.tokenizer.pad_token = self.tokenizer.eos_token 
+
+    self.max_new_tokens = self.config.get('max_new_tokens', 32)
+>>>>>>> main
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_id, **tokenizer_args)
         self.model = AutoModelForCausalLM.from_pretrained(model_id, **model_args)
