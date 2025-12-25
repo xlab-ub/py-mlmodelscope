@@ -1,0 +1,136 @@
+{
+    "Image Classification": {
+        "dir": "image_classification",
+        "test": [
+            {
+                "src": "https://cdn.pixabay.com/photo/2025/10/17/09/29/nature-9899712_1280.jpg",
+                "inputType": "IMAGE"
+            }
+        ]
+    },
+    "Object detection": {
+        "dir": "image_object_detection",
+        "test": [
+            {
+                "src": "https://cdn.pixabay.com/photo/2025/10/17/09/29/nature-9899712_1280.jpg",
+                "inputType": "IMAGE"
+            }
+        ]
+    },
+    "Instance segmentation": {
+        "dir": "image_semantic_segmentation",
+        "test": [
+            {
+                "src": "https://cdn.pixabay.com/photo/2025/10/17/09/29/nature-9899712_1280.jpg",
+                "inputType": "IMAGE"
+            }
+        ]
+    },
+    "Style Transfer": {
+        "dir": "image_editing",
+        "test": [
+            {
+                "src": "https://cdn.pixabay.com/photo/2025/10/17/09/29/nature-9899712_1280.jpg",
+                "inputType": "IMAGE"
+            }
+        ]
+    },
+    "Mask Generation": {
+        "dir": "depth_estimation",
+        "test": [
+            {
+                "src": "https://cdn.pixabay.com/photo/2025/10/17/09/29/nature-9899712_1280.jpg",
+                "inputType": "IMAGE"
+            }
+        ]
+    },
+    "Text to Image": {
+        "dir": "image_captioning",
+        "test": [
+            {
+                "src": "https://cdn.pixabay.com/photo/2025/10/17/09/29/nature-9899712_1280.jpg",
+                "inputType": "IMAGE"
+            }
+        ]
+    },
+    "Image to Text": {
+        "dir": "image_captioning",
+        "test": [
+            {
+                "src": "https://cdn.pixabay.com/photo/2025/10/17/09/29/nature-9899712_1280.jpg",
+                "inputType": "IMAGE"
+            }
+        ]
+    },
+    "Video Classification": {
+        "dir": "video_classification",
+        "test": [
+            {
+                "src": "https://cdn.pixabay.com/video/2024/05/31/214669_tiny.mp4",
+                "inputType": "VIDEO"
+            }
+        ]
+    },
+    "Text to Text": {
+        "dir": "text_to_text",
+        "test": [
+            {
+                "src": "What is Earth?",
+                "inputType": "TEXT"
+            }
+        ]
+    },
+    "Text Classification": {
+        "dir": "sentiment_analysis",
+        "test": [
+            {
+                "src": "What is Earth?",
+                "inputType": "TEXT"
+            }
+        ]
+    },
+    "Text to Audio": {
+        "dir": "music_generation",
+        "test": [
+            {
+                "src": "I would like to test this modality by generating human voices.",
+                "inputType": "TEXT"
+            }
+        ]
+    },
+    "Audio to Text": {
+        "dir": "automatic_speech_recognition",
+        "test": [
+            {
+                "src": "https://cdn.pixabay.com/audio/2025/11/12/audio_58447c1d65.mp3",
+                "inputType": "AUDIO"
+            }
+        ]
+    },
+    "Visual Question Answering": {
+        "dir": "visual_question_answering",
+        "test": [
+            {
+                "src": "https://cdn.pixabay.com/photo/2023/08/20/20/36/irish-setter-8203156_1280.jpg",
+                "inputType": "IMAGE"
+            },
+            {
+                "src": "What is the animal in the image?",
+                "inputType": "TEXT"
+            }
+        ]
+    },
+    "Document Question Answering": {
+        "dir": "document_visual_question_answering",
+        "test": [
+            {
+                "src": "https://cdn.pixabay.com/photo/2023/08/20/20/36/irish-setter-8203156_1280.jpg",
+                "inputType": "IMAGE"
+            },
+            {
+                "src": "What is the animal in the image?",
+                "inputType": "TEXT"
+            }
+        ]
+    }
+}

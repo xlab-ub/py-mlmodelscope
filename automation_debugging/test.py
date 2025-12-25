@@ -1,65 +1,16 @@
 import re, subprocess, sys, os, shutil, json, time, shlex
 from pathlib import Path
 from datetime import datetime
+# from langchain_google_genai import ChatGoogleGenerativeAI
+# from langchain_core.prompts import (
+#     ChatPromptTemplate,
+#     SystemMessagePromptTemplate,
+#     HumanMessagePromptTemplate,
+# )
+# from langchain_core.output_parsers import StrOutputParser
+from dotenv import load_dotenv
 
 # ! This script installs depencies by itself which could be a security risk !
-
-TASK = "image_classification"
-DATASET_NAME_SRC = '[{"src":"https://cdn.pixabay.com/photo/2025/10/17/09/29/nature-9899712_1280.jpg","inputType":"IMAGE"}]'
-MODELS_TO_TEST = [
-    "ai_image_detector_dev_deploy",
-    "beit_base_patch16_224_pt22k_ft22k",
-    "chart_recognizer",
-    "convnext_base_clip_laion2b_augreg_ft_in12k_in1k",
-    "convnext_femto_d1_in1k",
-    "convnext_large_fb_in22k_ft_in1k",
-    "convnext_tiny_in12k_ft_in1k",
-    "convnextv2_nano_fcmae_ft_in22k_in1k",
-    "convnextv2_tiny_fcmae_ft_in1k",
-    "deit_small_patch16_224_fb_in1k",
-    "deit_tiny_patch16_224_fb_in1k",
-    "edgenext_small_usi_in1k",
-    "efficientnet_b0_imagenet",
-    "efficientnet_b0_ra_in1k",
-    "fairface_age_image_detection",
-    "gender_classification",
-    "gender_classification_2",
-    "inception_v3_tv_in1k",
-    "mit_b2",
-    "mit_b3",
-    "mobilenetv3_large_100_ra_in1k",
-    "mobilenetv3_small_100_lamb_in1k",
-    "mobilevit_small",
-    "nsfw_image_detection",
-    "nsfw_image_detector",
-    "pokemon_classifier_gen9_1025",
-    "regnety_032_ra_in1k",
-    "resnet18_a1_in1k",
-    "resnet34_a1_in1k",
-    "resnet50_a1_in1k",
-    "resnet50_fb_swsl_ig1b_ft_in1k",
-    "resnet50_ram_in1k",
-    "resnet_18",
-    "resnet_50",
-    "rexnet_150_nav_in1k",
-    "rorshark_vit_base",
-    "swinv2_tiny_patch4_window16_256",
-    "test.p",
-    "test",
-    "vgg19_tv_in1k",
-    "vit_age_classifier",
-    "vit_base_nsfw_detector",
-    "vit_base_patch16_224",
-    "vit_base_patch16_224_augreg2_in21k_ft_in1k",
-    "vit_base_patch16_224_augreg_in21k",
-    "vit_base_patch16_384",
-    "vit_base_patch32_384_augreg_in21k_ft_in1k",
-    "vit_face_expression",
-    "vit_hybrid_base_bit_384",
-    "vit_small_patch16_224_augreg_in21k_ft_in1k",
-    "vit_tiny_patch16_224_augreg_in21k_ft_in1k",
-    "wide_resnet50_2_racm_in1k",
-]
 
 
 def install_packages_in_conda(package_names):
@@ -107,10 +58,11 @@ def install_packages_in_conda(package_names):
         # Catches failures like 'package not found' or build errors
         print("\n❌ Installation Failed!")
         print(f"**Command:** `{' '.join(full_command)}`")
+        error_details = e.output.decode() if e.output else "See above for error details."
         print(
-            f"**Error Details:**\n{e.output.decode()}"
+            f"**Error Details:**\n{error_details}"
         )  # Decode output for clean error message
-        return e.output.decode()
+        return error_details
 
     except FileNotFoundError:
         # Catches if the Python executable itself (sys.executable) is somehow broken/missing
@@ -178,7 +130,7 @@ def run_model_test(model_name, dataset_name_str, test_dir_path, task):
         "conda",
         "run",
         "-n",
-        "py-mlmodelscope",  # Specify the conda environment
+        "py-mlmodelscope", 
         "python",
         "run_mlmodelscope.py",
         "--standalone",
@@ -201,6 +153,10 @@ def run_model_test(model_name, dataset_name_str, test_dir_path, task):
     print(f"Running command: {' '.join(shlex.quote(arg) for arg in command)}")
 
     try:
+        # Set the environment variable for GPU device 2
+        my_env = os.environ.copy()
+        my_env["CUDA_VISIBLE_DEVICES"] = "2"
+
         # Execute the command
         completed_process = subprocess.run(
             command,
@@ -208,11 +164,12 @@ def run_model_test(model_name, dataset_name_str, test_dir_path, task):
             text=True,
             encoding="utf-8",
             check=False,  # We set this to False to handle non-zero exits manually
+            env=my_env,
         )
 
         # --- NEW: Write individual log files ---
         # Ensure the test directory exists (it should, but good to be safe)
-        test_dir_path.mkdir(parents=True, exist_ok=True)
+        # # test_dir_path.mkdir(parents=True, exist_ok=True)
         log_file = test_dir_path / f"{model_name}.log"
         err_file = test_dir_path / f"{model_name}.err"
 
@@ -289,7 +246,7 @@ def main(task, dataset_name_src, models_to_test):
     except Exception as e:
         print(f"--- [CRITICAL FAILURE] Could not create directory: {TEST_DIR_STR} ---")
         print(f"Error: {e}")
-        return  # Exit if we can't create the log directory
+        return 1  # Exit if we can't create the log directory, return failure
 
     # --- EDIT THIS LIST ---
     # Add all the model names you want to test here
@@ -303,12 +260,17 @@ def main(task, dataset_name_src, models_to_test):
     models_need_more_GPU = []
 
     for model in models_to_test:
+        MODEL_FILE = (
+            f"mlmodelscope/pytorch_agent/models/default/{task}/{model}/model.py"
+        )
         tries = 0
+        result = {}  # Initialize result here
         while tries < MAX_TRIES_PER_MODEL:
             if tries != 0:
                 print(f"Going for try {tries+1}")
             start_time = time.time()
             readable_start = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
             result = run_model_test(
                 model_name=model,
                 dataset_name_str=dataset_name_src,
@@ -319,35 +281,71 @@ def main(task, dataset_name_src, models_to_test):
             duration = round(end_time - start_time, 2)
             result["startTime"] = readable_start
             result["runTime"] = duration
-            if "CUDA out of memory" in result["error"]:
+
+            # --- FIXED LOGIC ---
+            # Check the result status
+            if result["status"] == "Success":
+                break  # Successful run, exit the while loop
+
+            # If it failed, check why. Combine output and error for searching.
+            error_str = result.get("error", "") + result.get("output", "")
+
+            if "CUDA out of memory" in error_str:
+                print("Detected CUDA out of memory. Adding to list and stopping tries.")
                 models_need_more_GPU.append(model)
                 break
-            elif "pip install" in result["error"]:
-                models_to_install = extract_pip_modules(result["error"])
-                print("Trying to install", models_to_install)
-                # !TODO: Log model name and their package dependencies, check for version conflicts
-                if pip_error := install_packages_in_conda(models_to_install):
-                    result["error"] += "\n" + pip_error
-                    break
-            elif "ModuleNotFoundError" in result["error"]:
-                missing_module_match = extract_missing_module_name(result["error"])
-                if missing_module_match:
-                    print(f"Trying to install missing module: {missing_module_match}")
-                    if pip_error := install_packages_in_conda(missing_module_match):
-                        result["error"] += "\n" + pip_error
-                        break
-            else:
+            elif "Expected all tensors to be on the same device" in error_str:
+                models_need_more_GPU.append("CUDA Number issue " + model)
                 break
+
+            elif "pip install" in error_str:
+                print("Detected 'pip install' recommendation.")
+                models_to_install = extract_pip_modules(error_str)
+                if models_to_install:
+                    print(f"Trying to install: {models_to_install}")
+                    pip_error = install_packages_in_conda(models_to_install)
+                    if pip_error:
+                        print("Installation failed. Stopping tries.")
+                        result["error"] = result.get("error", "") + "\n" + pip_error
+                        break
+            elif "ModuleNotFoundError" in error_str:
+                print("Detected 'ModuleNotFoundError'.")
+                missing_module = extract_missing_module_name(error_str)
+                if missing_module:
+                    print(f"Trying to install missing module: {missing_module}")
+                    pip_error = install_packages_in_conda(missing_module)
+                    if pip_error:
+                        print("Installation failed. Stopping tries.")
+                        result["error"] = result.get("error", "") + "\n" + pip_error
+                        break
+                else:
+                    print(
+                        "Found 'ModuleNotFoundError' but couldn't parse module. Stopping tries."
+                    )
+                    break  # Avoid infinite loop
+
+            else:
+                debug_check = -1
+                if debug_check != 0:
+                    break
             tries += 1
+
         all_results.setdefault(model, []).append(result)
-        if result["status"] == "Success":
+
+        if result.get("status") == "Success":
             success_count += 1
         else:
             failure_count += 1
+
         print(f"--- [FINISHED] Test for: {model} ---\n")
         cache_dir = os.path.expanduser("~/.cache/huggingface/")
-        shutil.rmtree(cache_dir, ignore_errors=True)
-        print(f"--- Deleted ~/.cache/huggingface/ ---\n")
+        if os.path.exists(cache_dir):
+            shutil.rmtree(cache_dir, ignore_errors=True)
+            print(f"--- Deleted ~/.cache/huggingface/ ---\n")
+        else:
+            print(
+                f"--- Cache dir not found. Skipping delete: ~/.cache/huggingface/ ---\n"
+            )
 
     # Save full summary JSON results to the TEST_DIR
     results_filename = TEST_DIR / f"model_test_results.json"
@@ -377,14 +375,125 @@ def main(task, dataset_name_src, models_to_test):
     for model_name, results_list in all_results.items():
         # Get the final result from the list (it's the last one)
         final_result = results_list[-1]
-        print(f"  - {final_result['model']}: {final_result['status']}")
-        if final_result["status"] != "Success":
+        print(
+            f"  - {final_result.get('model', model_name)}: {final_result.get('status', 'Unknown')}"
+        )
+        if final_result.get("status") != "Success":
             error_preview = final_result.get("error", "No error message.").splitlines()
             error_snippet = f": {error_preview[0]}" if error_preview else ""
             print(
                 f"    - Details: Return Code {final_result.get('returncode', 'N/A')}{error_snippet}"
             )
 
+    # Return the number of failures for sys.exit()
+    return failure_count, 1 if not failure_count else 0, all_results
+
 
 if __name__ == "__main__":
-    main(task=TASK, dataset_name_src=DATASET_NAME_SRC, models_to_test=MODELS_TO_TEST)
+    load_dotenv()  # Load variables from .env file
+    overall_failures = 0
+    overall_successes = 0
+    try:
+        dirs = [
+            "mlmodelscope/pytorch_agent/models/default/automatic_speech_recognition/wav2vec2_large_xlsr_punjabi/model.py",
+            "mlmodelscope/pytorch_agent/models/default/depth_estimation/coreml_sam2_1_small/model.py",
+            "mlmodelscope/pytorch_agent/models/default/document_visual_question_answering/layoutlm_document_qa/model.py",
+            "mlmodelscope/pytorch_agent/models/default/image_captioning/pix2struct_tiny_random/model.py",
+            "mlmodelscope/pytorch_agent/models/default/image_classification/nsfw_image_detector/model.py",
+            "mlmodelscope/pytorch_agent/models/default/image_editing/yoso_normal_v1_8_1/model.py",
+            "mlmodelscope/pytorch_agent/models/default/image_object_detection/dfine_small_coco/model.py",
+            "mlmodelscope/pytorch_agent/models/default/image_semantic_segmentation/seg_zero_7b/model.py",
+            "mlmodelscope/pytorch_agent/models/default/music_generation/qwen2_5_omni_wo_video_1016/model.py",
+            "mlmodelscope/pytorch_agent/models/default/sentiment_analysis/deberta_v3_xsmall_mnli_fever_anli_ling_binary/model.py",
+            "mlmodelscope/pytorch_agent/models/default/text_to_image/stablematerials/model.py",
+            "mlmodelscope/pytorch_agent/models/default/text_to_text/t5_small_booksum/model.py",
+            "mlmodelscope/pytorch_agent/models/default/video_classification/xclip_base_patch16/model.py",
+            "mlmodelscope/pytorch_agent/models/default/visual_question_answering/vl_rethinker_72b/model.py",
+        ]
+
+        json_file_path = "./test.json"
+        if not os.path.exists(json_file_path):
+            print(f"❌ Error: JSON file not found at {json_file_path}")
+            sys.exit(1)  # Exit with error
+
+        with open(json_file_path, "r") as f:
+            myJson = dict(json.loads(f.read()))
+
+        for modality in myJson:
+            dir_key = myJson[modality].get("dir")
+            test_data = myJson[modality].get("test")
+            if not dir_key or test_data is None:
+                print(f"⚠️ Skipping modality '{modality}': missing 'dir' or 'test' key.")
+                continue
+
+            test = json.dumps(test_data)
+
+            base_dir = f"mlmodelscope/pytorch_agent/models/default/{dir_key}"
+            folders_with_model = [
+                name
+                for name in os.listdir(base_dir)
+                if os.path.isdir(os.path.join(base_dir, name))
+                and os.path.isfile(os.path.join(base_dir, name, "model.py"))
+            ]
+
+            if not folders_with_model:
+                print(
+                    f"⚠️ Skipping modality '{modality}': could not find matching model/task for dir '{dir_key}'"
+                )
+                overall_failures += 1
+                continue
+
+            task = dir_key
+            for modelName in folders_with_model:
+                alreadyTested = modelName in open("./master_log.json").read()
+                if alreadyTested:
+                    print(
+                        f"\n{'='*20} 🚀 Skipping Test for Task: {task}, Model: {modelName} {'='*20}\n"
+                    )
+                    continue
+                print(
+                    f"\n{'='*20} 🚀 Starting Test for Task: {task}, Model: {modelName} {'='*20}\n"
+                )
+                # main() now returns the number of failures for that run
+                failures, successes, results = main(
+                    task=task, dataset_name_src=test, models_to_test=[modelName]
+                )
+                overall_failures += failures
+                overall_successes += successes
+                print(
+                    f"\n{'='*20} 🏁 Finished Test for Task: {task}, Model: {modelName} {'='*20}\n"
+                )
+                
+                log_entry = {"failures": failures, "successes": successes}
+                if failures > 0:
+                     # Get the error from the last result for this model
+                     model_results = results.get(modelName, [])
+                     if model_results:
+                         last_result = model_results[-1]
+                         log_entry["error"] = last_result.get("error", "Unknown error")
+                
+                with open("./master_log.json", "a") as f:
+                    f.write(json.dumps({task: {modelName: log_entry}}))
+                    f.write("\n")
+
+    except json.JSONDecodeError:
+        print(
+            "❌ Error: Failed to decode './test.json'. Please check for syntax errors."
+        )
+        overall_failures += 1
+    except Exception as e:
+        print(f"❌ An unexpected error occurred in the main execution block: {e}")
+        overall_failures += 1
+
+    finally:
+        # --- This is the new exit logic ---
+        if overall_failures > 0:
+            print(f"\n🚫 Script finished with {overall_failures} total failures.")
+            print(f"\n✅ Script finished with {overall_successes} total successes.")
+            print(f"\nTotal Tests: {overall_failures + overall_successes}")
+            print("\n Successes Percentage: ", overall_successes / (overall_failures + overall_successes))
+            sys.exit(1)  # Exit with a non-zero status code
+        else:
+            print("\n✅ All tests passed. Script finished successfully.")
+            sys.exit(0)  # Exit with status code 0
+
