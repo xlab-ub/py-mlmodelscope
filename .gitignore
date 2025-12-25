@@ -1,5 +1,8 @@
 # VS Code
 .vscode/
+datasets/
+automation_debugging/*.csv
+automation_debugging/*.json
 
 # Temp directory to download model
 /tmp
