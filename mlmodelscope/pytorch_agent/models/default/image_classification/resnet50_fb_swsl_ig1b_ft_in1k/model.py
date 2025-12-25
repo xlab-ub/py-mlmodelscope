@@ -6,7 +6,7 @@ from PIL import Image
 import timm
 
 class Timm_ResNet50_fb_swsl_ig1b_ft_in1k(PyTorchAbstractClass):
-    def __init__(self):
+    def __init__(self, model_config=None):
         model_name = 'resnet50.fb_swsl_ig1b_ft_in1k'
         self.model = timm.create_model(model_name, pretrained=True)
         self.model.eval()

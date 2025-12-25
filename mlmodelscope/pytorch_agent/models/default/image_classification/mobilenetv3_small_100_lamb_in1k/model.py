@@ -6,7 +6,7 @@ import timm
 from PIL import Image
 
 class Timm_MobileNetV3_Small_100(PyTorchAbstractClass):
-    def __init__(self):
+    def __init__(self, model_config=None):
         model_id = "timm/mobilenetv3_small_100.lamb_in1k"
         self.model = timm.create_model(model_id, pretrained=True)
         self.model.eval()

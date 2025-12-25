@@ -7,7 +7,7 @@ from torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_Res
 from PIL import Image 
 
 class PyTorch_TorchVision_FasterRCNN_ResNet50_FPN(PyTorchAbstractClass): 
-  def __init__(self): 
+  def __init__(self, model_config=None): 
     warnings.warn("The batch size should be 1.") 
     # https://pytorch.org/vision/stable/models.html 
     self.model = fasterrcnn_resnet50_fpn(pretrained=True) 

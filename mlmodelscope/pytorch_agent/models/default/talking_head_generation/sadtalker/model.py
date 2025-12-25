@@ -79,7 +79,7 @@ class SadTalker(PyTorchAbstractClass):
   ref_eyeblink = args.ref_eyeblink
   ref_pose = args.ref_pose
 
-  def __init__(self):
+  def __init__(self, model_config=None):
     # current_root_path = os.path.split(sys.argv[0])[0]
     current_root_path = os.path.dirname(__file__)
 

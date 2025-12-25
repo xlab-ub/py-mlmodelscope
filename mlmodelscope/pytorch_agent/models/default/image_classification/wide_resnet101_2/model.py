@@ -5,7 +5,7 @@ from torchvision import transforms
 from PIL import Image 
 
 class TorchVision_Wide_ResNet101_2(PyTorchAbstractClass):
-  def __init__(self):
+  def __init__(self, model_config=None):
     self.model = torch.hub.load('pytorch/vision:v0.10.0', 'wide_resnet101_2', pretrained=True)
   
   def preprocess(self, input_images):

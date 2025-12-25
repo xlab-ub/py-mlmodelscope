@@ -5,7 +5,7 @@ import os
 from transformers import T5Tokenizer, T5ForConditionalGeneration 
 
 class PyTorch_Transformers_T5_Small(PyTorchAbstractClass):
-  def __init__(self):
+  def __init__(self, model_config=None):
     zip_file_url = "https://s3.amazonaws.com/store.carml.org/models/pytorch/t5-small.zip" 
     model_path_dir = self.zip_file_download(zip_file_url)
     model_path = os.path.join(model_path_dir, 't5-small/')

@@ -66,7 +66,7 @@ class PolyConv2d(nn.Module):
 
 class Stem(nn.Module):
 
-    def __init__(self):
+    def __init__(self, model_config=None):
         super(Stem, self).__init__()
         self.conv1 = nn.Sequential(
             BasicConv2d(3, 32, kernel_size=3, stride=2),
@@ -108,7 +108,7 @@ class Stem(nn.Module):
 class BlockA(nn.Module):
     """Inception-ResNet-A block."""
 
-    def __init__(self):
+    def __init__(self, model_config=None):
         super(BlockA, self).__init__()
         self.path0 = nn.Sequential(
             BasicConv2d(384, 32, kernel_size=1),
@@ -134,7 +134,7 @@ class BlockA(nn.Module):
 class BlockB(nn.Module):
     """Inception-ResNet-B block."""
 
-    def __init__(self):
+    def __init__(self, model_config=None):
         super(BlockB, self).__init__()
         self.path0 = nn.Sequential(
             BasicConv2d(1152, 128, kernel_size=1),
@@ -155,7 +155,7 @@ class BlockB(nn.Module):
 class BlockC(nn.Module):
     """Inception-ResNet-C block."""
 
-    def __init__(self):
+    def __init__(self, model_config=None):
         super(BlockC, self).__init__()
         self.path0 = nn.Sequential(
             BasicConv2d(2048, 192, kernel_size=1),
@@ -178,7 +178,7 @@ class ReductionA(nn.Module):
     Inception-ResNet blocks.
     """
 
-    def __init__(self):
+    def __init__(self, model_config=None):
         super(ReductionA, self).__init__()
         self.path0 = nn.Sequential(
             BasicConv2d(384, 256, kernel_size=1),
@@ -200,7 +200,7 @@ class ReductionB(nn.Module):
     """A dimensionality reduction block that is placed after stage-b
     Inception-ResNet blocks.
     """
-    def __init__(self):
+    def __init__(self, model_config=None):
         super(ReductionB, self).__init__()
         self.path0 = nn.Sequential(
             BasicConv2d(1152, 256, kernel_size=1),
@@ -458,7 +458,7 @@ class _PolyNet(nn.Module):
         return x 
 
 class PolyNet(PyTorchAbstractClass):
-  def __init__(self):
+  def __init__(self, model_config=None):
     model_file_url = pretrained_settings['polynet']['imagenet']['url'] 
     model_path = self.model_file_download(model_file_url)
 

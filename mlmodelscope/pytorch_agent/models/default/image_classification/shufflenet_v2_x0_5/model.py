@@ -5,7 +5,7 @@ from torchvision import transforms
 from PIL import Image 
 
 class TorchVision_ShuffleNet_V2_X0_5(PyTorchAbstractClass):
-  def __init__(self):
+  def __init__(self, model_config=None):
     self.model = torch.hub.load('pytorch/vision:v0.10.0', 'shufflenet_v2_x0_5', pretrained=True)
   
   def preprocess(self, input_images):

@@ -6,7 +6,7 @@ from PIL import Image
 import timm
 
 class PyTorch_Timm_VGG19_TV_IN1K(PyTorchAbstractClass):
-    def __init__(self):
+    def __init__(self, model_config=None):
         model_id = 'timm/vgg19.tv_in1k'
         self.model = timm.create_model(model_id, pretrained=True)
         self.model.eval()

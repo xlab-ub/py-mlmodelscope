@@ -7,7 +7,7 @@ from torchvision.models.segmentation import fcn_resnet50, FCN_ResNet50_Weights
 from PIL import Image 
 
 class PyTorch_TorchVision_FCN_ResNet50(PyTorchAbstractClass): 
-  def __init__(self): 
+  def __init__(self, model_config=None): 
     warnings.warn("If the size of the images is not consistent, the batch size should be 1.") 
     # https://pytorch.org/vision/stable/models.html 
     self.model = fcn_resnet50(pretrained=True) 

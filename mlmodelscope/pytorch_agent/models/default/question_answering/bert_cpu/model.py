@@ -6,7 +6,7 @@ import torch
 import numpy as np 
 
 class PyTorch_BERT_cpu(PyTorchAbstractClass): 
-  def __init__(self):
+  def __init__(self, model_config=None):
     if torch.__version__[:5] != "1.8.1": 
       raise RuntimeError("This model needs pytorch v1.8.1") 
     warnings.warn("The batch size should be 1.") 

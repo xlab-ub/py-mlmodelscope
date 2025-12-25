@@ -6,7 +6,7 @@ from PIL import Image
 import timm
 
 class Timm_ConvNext_Femto_D1_In1k(PyTorchAbstractClass):
-    def __init__(self):
+    def __init__(self, model_config=None):
         model_name = 'convnext_femto.d1_in1k'
         self.model = timm.create_model(model_name, pretrained=True)
         self.model.eval()

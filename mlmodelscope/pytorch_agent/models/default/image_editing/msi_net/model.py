@@ -28,7 +28,7 @@ class PyTorch_Custom_MSINet(PyTorchAbstractClass):
 
         # Placeholder model definition
         class PlaceholderMSINet(torch.nn.Module):
-            def __init__(self):
+            def __init__(self, model_config=None):
                 super().__init__()
                 # This is a dummy layer to simulate the image-to-image process
                 self.conv = torch.nn.Conv2d(3, 1, kernel_size=1)

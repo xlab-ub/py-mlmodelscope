@@ -5,7 +5,7 @@ from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
 import librosa 
 
 class PyTorch_Transformers_Wav2Vec2_Large_XLSR_53_English(PyTorchAbstractClass):
-  def __init__(self):
+  def __init__(self, model_config=None):
     self.processor = Wav2Vec2Processor.from_pretrained("jonatasgrosman/wav2vec2-large-xlsr-53-english") 
     self.model = Wav2Vec2ForCTC.from_pretrained("jonatasgrosman/wav2vec2-large-xlsr-53-english") 
   

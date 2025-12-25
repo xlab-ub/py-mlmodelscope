@@ -5,7 +5,7 @@ from torchvision import transforms
 from PIL import Image 
 
 class TorchVision_GoogLeNet(PyTorchAbstractClass):
-  def __init__(self):
+  def __init__(self, model_config=None):
     self.model = torch.hub.load('pytorch/vision:v0.10.0', 'googlenet', pretrained=True)
   
   def preprocess(self, input_images):

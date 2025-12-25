@@ -3,7 +3,7 @@ from ....pytorch_abc import PyTorchAbstractClass
 from transformers import T5Tokenizer, T5ForConditionalGeneration 
 
 class PyTorch_Transformers_T5_Small(PyTorchAbstractClass):
-  def __init__(self):
+  def __init__(self, model_config=None):
     # https://huggingface.co/docs/transformers/model_doc/t5 
     self.tokenizer = T5Tokenizer.from_pretrained("t5-small") 
     self.model = T5ForConditionalGeneration.from_pretrained("t5-small") 

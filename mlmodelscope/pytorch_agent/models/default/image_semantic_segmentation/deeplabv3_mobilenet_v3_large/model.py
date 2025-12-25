@@ -7,7 +7,7 @@ from torchvision.models.segmentation import deeplabv3_mobilenet_v3_large, DeepLa
 from PIL import Image 
 
 class PyTorch_TorchVision_DeepLabV3_MobileNet_V3_Large(PyTorchAbstractClass): 
-  def __init__(self): 
+  def __init__(self, model_config=None): 
     warnings.warn("If the size of the images is not consistent, the batch size should be 1.") 
     # https://pytorch.org/vision/stable/models.html 
     self.model = deeplabv3_mobilenet_v3_large(pretrained=True) 

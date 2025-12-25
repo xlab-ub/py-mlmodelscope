@@ -6,7 +6,7 @@ from PIL import Image
 import numpy as np 
 
 class MobileNet_SSD_v1_0(PyTorchAbstractClass): 
-  def __init__(self):
+  def __init__(self, model_config=None):
     if torch.__version__[:5] != "1.8.1": 
       raise RuntimeError("This model needs pytorch v1.8.1") 
 

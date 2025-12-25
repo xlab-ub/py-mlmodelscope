@@ -6,7 +6,7 @@ from PIL import Image
 import timm
 
 class PyTorch_Timm_DeiT_Tiny_Patch16_224(PyTorchAbstractClass):
-    def __init__(self):
+    def __init__(self, model_config=None):
         model_id = "timm/deit_tiny_patch16_224.fb_in1k"
         self.model = timm.create_model(model_id, pretrained=True)
         self.model.eval()

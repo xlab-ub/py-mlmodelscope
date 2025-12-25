@@ -5,7 +5,7 @@ from torchvision import transforms
 from PIL import Image 
 
 class TorchVision_Fcn_Resnet101(PyTorchAbstractClass): 
-  def __init__(self):
+  def __init__(self, model_config=None):
     if torch.__version__[:5] != "1.8.1": 
       raise RuntimeError("This model needs pytorch v1.8.1") 
 

@@ -5,7 +5,7 @@ from torchvision import transforms
 from PIL import Image 
 
 class TorchVision_VGG_19_BN(PyTorchAbstractClass):
-  def __init__(self):
+  def __init__(self, model_config=None):
     self.model = torch.hub.load('pytorch/vision:v0.10.0', 'vgg19_bn', pretrained=True)
     
     features_file_url = "http://s3.amazonaws.com/store.carml.org/synsets/imagenet/synset.txt" 

@@ -734,7 +734,7 @@ class _ResNeXt101_64x4d(nn.Module):
         return x
 
 class ResNext101_64x4D(PyTorchAbstractClass): 
-  def __init__(self):
+  def __init__(self, model_config=None):
     model_file_url = pretrained_settings['resnext101_64x4d']['imagenet']['url'] 
     model_path = self.model_file_download(model_file_url) 
     

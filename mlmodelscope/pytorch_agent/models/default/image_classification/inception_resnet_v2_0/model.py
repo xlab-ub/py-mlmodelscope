@@ -51,7 +51,7 @@ class BasicConv2d(nn.Module):
 
 class Mixed_5b(nn.Module):
 
-    def __init__(self):
+    def __init__(self, model_config=None):
         super(Mixed_5b, self).__init__()
 
         self.branch0 = BasicConv2d(192, 96, kernel_size=1, stride=1)
@@ -117,7 +117,7 @@ class Block35(nn.Module):
 
 class Mixed_6a(nn.Module):
 
-    def __init__(self):
+    def __init__(self, model_config=None):
         super(Mixed_6a, self).__init__()
 
         self.branch0 = BasicConv2d(320, 384, kernel_size=3, stride=2)
@@ -168,7 +168,7 @@ class Block17(nn.Module):
 
 class Mixed_7a(nn.Module):
 
-    def __init__(self):
+    def __init__(self, model_config=None):
         super(Mixed_7a, self).__init__()
 
         self.branch0 = nn.Sequential(
@@ -329,7 +329,7 @@ class InceptionResNetV2(nn.Module):
         return x
 
 class Inception_ResNet_v2_0(PyTorchAbstractClass): 
-  def __init__(self):
+  def __init__(self, model_config=None):
     model_file_url = pretrained_settings['inceptionresnetv2']['imagenet']['url'] 
     model_path = self.model_file_download(model_file_url) 
 

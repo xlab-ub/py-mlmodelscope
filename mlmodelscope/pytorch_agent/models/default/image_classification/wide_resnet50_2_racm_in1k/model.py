@@ -6,7 +6,7 @@ from PIL import Image
 import timm
 
 class Timm_Wide_ResNet50_2_Racm_In1k(PyTorchAbstractClass):
-    def __init__(self):
+    def __init__(self, model_config=None):
         model_id = "timm/wide_resnet50_2.racm_in1k"
         self.model = timm.create_model(model_id, pretrained=True)
         self.model.eval()

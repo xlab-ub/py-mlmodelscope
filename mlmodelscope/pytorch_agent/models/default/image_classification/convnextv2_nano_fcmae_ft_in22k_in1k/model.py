@@ -6,7 +6,7 @@ from PIL import Image
 import timm
 
 class PyTorch_Timm_ConvNextV2_Nano_Fcmae_Ft_In22k_In1k(PyTorchAbstractClass):
-    def __init__(self):
+    def __init__(self, model_config=None):
         model_id = "convnextv2_nano.fcmae_ft_in22k_in1k"
         self.model = timm.create_model(model_id, pretrained=True)
         self.model.eval()

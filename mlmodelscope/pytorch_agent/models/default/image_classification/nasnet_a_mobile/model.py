@@ -32,7 +32,7 @@ pretrained_settings = {
 
 class MaxPoolPad(nn.Module):
 
-    def __init__(self):
+    def __init__(self, model_config=None):
         super(MaxPoolPad, self).__init__()
         self.pad = nn.ZeroPad2d((1, 0, 1, 0))
         self.pool = nn.MaxPool2d(3, stride=2, padding=1)
@@ -600,7 +600,7 @@ class NASNetAMobile(nn.Module):
         return x
 
 class NasNet_A_Mobile(PyTorchAbstractClass):
-  def __init__(self):
+  def __init__(self, model_config=None):
     model_file_url = pretrained_settings['nasnetamobile']['imagenet']['url']
     model_path = self.model_file_download(model_file_url)
     

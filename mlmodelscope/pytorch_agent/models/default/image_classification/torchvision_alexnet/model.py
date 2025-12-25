@@ -5,7 +5,7 @@ from torchvision import transforms
 from PIL import Image 
 
 class TorchVision_AlexNet(PyTorchAbstractClass):
-  def __init__(self):
+  def __init__(self, model_config=None):
     self.model = torch.hub.load('pytorch/vision:v0.10.0', 'alexnet', pretrained=True)
     
     features_file_url = "http://s3.amazonaws.com/store.carml.org/synsets/imagenet/synset.txt" 

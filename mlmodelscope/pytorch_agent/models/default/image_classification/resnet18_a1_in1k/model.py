@@ -6,7 +6,7 @@ from PIL import Image
 import timm
 
 class PyTorch_Timm_ResNet18_A1_IN1K(PyTorchAbstractClass):
-    def __init__(self):
+    def __init__(self, model_config=None):
         model_id = "timm/resnet18.a1_in1k"
         # timm.create_model expects the model name without the 'timm/' prefix
         timm_model_name = model_id.split('/')[-1]

@@ -6,7 +6,7 @@ from torchvision import transforms
 from PIL import Image
 
 class PyTorch_EfficientNet_B0_Imagenet(PyTorchAbstractClass):
-    def __init__(self):
+    def __init__(self, model_config=None):
         self.model = torch.hub.load('lukemelas/EfficientNet-PyTorch', 'efficientnet_b0', pretrained=True)
         self.model.eval()
 

@@ -282,7 +282,7 @@ class DPN(nn.Module):
     return x
 
 class DPN_68_v1_0(PyTorchAbstractClass): 
-  def __init__(self):
+  def __init__(self, model_config=None):
     model_file_url = pretrained_settings['dpn68']['imagenet']['url']
     model_path = self.model_file_download(model_file_url)
 
