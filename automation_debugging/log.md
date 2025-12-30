@@ -46,22 +46,6 @@ Rewrote `model.py` to use `open_clip` primitives `create_model_from_pretrained` 
 **Result:**
 Success. Model runs and produces output.
 
-## FIXME: blip2_itm_vit_g
-
-**Initial Failure:**
-`ImportError: cannot import name 'Blip2ForImageTextMatching' from 'transformers'`
-The class `Blip2ForImageTextMatching` does not exist in the installed `transformers` version.
-
-**Action:**
-Switched to using `Blip2Model`.
-
-**Second Failure:**
-`AttributeError: 'bool' object has no attribute 'unsqueeze'` in `Blip2Model.forward`.
-This appears to be an internal bug in `transformers` `Blip2Model` implementation related to `get_placeholder_mask`, or compatibility issue with the specific ITM checkpoint. Additionally, `Blip2Model` does not strictly provide the ITM head outputs (logits) required for the task.
-
-**Result:**
-Failed. Unable to resolve without significant library changes or custom implementation of the ITM head.
-
 ## vit_hybrid_base_bit_384
 
 **Result:**
@@ -340,6 +324,23 @@ Rewrote `model.py` to use `open_clip` primitives `create_model_from_pretrained` 
 
 **Result:**
 Success. Model runs and produces output.
+
+## FIXME: blip2_itm_vit_g
+
+**Initial Failure:**
+`ImportError: cannot import name 'Blip2ForImageTextMatching' from 'transformers'`
+The class `Blip2ForImageTextMatching` does not exist in the installed `transformers` version.
+
+**Action:**
+Switched to using `Blip2Model`.
+
+**Second Failure:**
+`AttributeError: 'bool' object has no attribute 'unsqueeze'` in `Blip2Model.forward`.
+This appears to be an internal bug in `transformers` `Blip2Model` implementation related to `get_placeholder_mask`, or compatibility issue with the specific ITM checkpoint. Additionally, `Blip2Model` does not strictly provide the ITM head outputs (logits) required for the task.
+
+**Result:**
+Failed. Unable to resolve without significant library changes or custom implementation of the ITM head.
+
 
 ## FIXME: pickscore_v1
 
