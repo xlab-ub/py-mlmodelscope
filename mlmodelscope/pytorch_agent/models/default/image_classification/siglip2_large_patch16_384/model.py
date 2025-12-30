@@ -13,20 +13,28 @@ class PyTorch_Transformers_SigLIP2_Large_Patch16_384(PyTorchAbstractClass):
 
         # For zero-shot classification, candidate labels are required.
         # They must be passed via the config dictionary during initialization.
-        self.candidate_labels = self.config.pop("candidate_labels", None)
-        if not self.candidate_labels:
-            raise ValueError("The 'candidate_labels' key with a list of label strings must be provided in the config for zero-shot classification.")
+        self.candidate_labels = self.config.pop("candidate_labels", [])
+        if not self.candidate_labels or not isinstance(self.candidate_labels, list):
+            features_file_url = "http://s3.amazonaws.com/store.carml.org/synsets/imagenet/synset.txt"
+            self.candidate_labels = self.features_download(features_file_url)
 
         model_id = "google/siglip2-large-patch16-384"
         self.processor = AutoProcessor.from_pretrained(model_id)
 
         if multi_gpu and device == "cuda":
-            self.model = AutoModelForZeroShotImageClassification.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+            # Disabled device_map="auto" to prevent splitting issues
+            self.model = AutoModelForZeroShotImageClassification.from_pretrained(model_id, torch_dtype="auto")
+            self.model.to(device)
         else:
             self.model = AutoModelForZeroShotImageClassification.from_pretrained(model_id)
             self.model.to(device)
 
+        self.device = device
         self.model.eval()
+
+    def to(self, device, multi_gpu=False):
+        self.model.to(device)
+        self.device = device
 
     def preprocess(self, input_images):
         processed_images = [
@@ -43,6 +51,7 @@ class PyTorch_Transformers_SigLIP2_Large_Patch16_384(PyTorchAbstractClass):
         return model_input
 
     def predict(self, model_input):
+        model_input = {k: v.to(self.device) for k, v in model_input.items()}
         with torch.no_grad():
             model_output = self.model(**model_input)
         return model_output

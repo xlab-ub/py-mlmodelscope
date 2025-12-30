@@ -3,7 +3,6 @@ from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 
 import torch
 from PIL import Image
-from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 
 # User must install perception_models: 
 # git clone https://github.com/facebookresearch/perception_models.git
@@ -25,10 +24,11 @@ class PyTorch_PE_Core_L14_336(PyTorchAbstractClass):
         self.preprocess_transform = transforms.get_image_transform(self.model.image_size)
         self.tokenizer = transforms.get_text_tokenizer(self.model.context_length)
 
-        self.labels = self.config.get("labels")
+        self.labels = self.config.get("labels", [])
         if not self.labels or not isinstance(self.labels, list):
-            raise ValueError("Zero-shot classification requires a list of 'labels' to be provided in the config.")
-
+            features_file_url = "http://s3.amazonaws.com/store.carml.org/synsets/imagenet/synset.txt"
+            self.labels = self.features_download(features_file_url)
+        
         # Pre-tokenize the labels for prediction
         self.tokenized_labels = self.tokenizer(self.labels).to(self.device)
 

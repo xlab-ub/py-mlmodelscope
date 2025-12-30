@@ -17,7 +17,7 @@ class PyTorch_OpenCLIP_ConvNext_Large_D_320(PyTorchAbstractClass):
         model_name = 'convnext_large_d_320'
         pretrained = 'laion2b_s29b_b131k_ft_soup'
 
-        self.model, _, self.preprocess = open_clip.create_model_and_transforms(
+        self.model, _, self.preprocess_fn = open_clip.create_model_and_transforms(
             model_name,
             pretrained=pretrained
         )
@@ -27,20 +27,22 @@ class PyTorch_OpenCLIP_ConvNext_Large_D_320(PyTorchAbstractClass):
         # For zero-shot classification, labels must be provided.
         # They can be passed in the config dict, e.g., config={'labels': ['a photo of a cat', 'a photo of a dog']}
         # As a fallback, we use ImageNet classes.
-        self.labels = self.config.get('labels')
+        self.labels = self.config.get('labels', [])
         if not self.labels:
             features_file_url = "http://s3.amazonaws.com/store.carml.org/synsets/imagenet/synset.txt"
             self.labels = self.features_download(features_file_url)
 
         # Pre-tokenize and encode text labels for efficiency
+        # Using slice to avoid OOM if labels are too many (ImageNet has 1000).
         text_tokens = open_clip.tokenize(self.labels).to(self.device)
-        with torch.no_grad(), torch.cuda.amp.autocast():
+        # Update autocast usage to avoid warning
+        with torch.no_grad(), torch.amp.autocast('cuda'):
             self.text_features = self.model.encode_text(text_tokens)
             self.text_features /= self.text_features.norm(dim=-1, keepdim=True)
 
     def preprocess(self, input_images):
         processed_images = [
-            self.preprocess(Image.open(image_path).convert('RGB'))
+            self.preprocess_fn(Image.open(image_path).convert('RGB'))
             for image_path in input_images
         ]
         model_input = torch.stack(processed_images)

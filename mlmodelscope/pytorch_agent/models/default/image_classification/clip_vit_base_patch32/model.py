@@ -12,7 +12,7 @@ class PyTorch_Transformers_Clip_Vit_Base_Patch32(PyTorchAbstractClass):
         device = self.config.pop("_device", "cpu")
         multi_gpu = self.config.pop("_multi_gpu", False)
 
-        model_id = "Xenova/clip-vit-base-patch32"
+        model_id = "openai/clip-vit-base-patch32"
         # The base model is openai/clip-vit-base-patch32, which uses a specific processor configuration
         self.processor = AutoImageProcessor.from_pretrained(model_id)
 
@@ -23,22 +23,19 @@ class PyTorch_Transformers_Clip_Vit_Base_Patch32(PyTorchAbstractClass):
         # The model will require fine-tuning to produce meaningful classification results.
         num_labels = self.config.get("num_labels", 1000) # Default to ImageNet number of classes
 
-        if multi_gpu and device == "cuda":
-            self.model = AutoModelForImageClassification.from_pretrained(
-                model_id,
-                num_labels=num_labels,
-                ignore_mismatched_sizes=True,
-                device_map="auto",
-                torch_dtype="auto"
-            )
-        else:
-            self.model = AutoModelForImageClassification.from_pretrained(
-                model_id,
-                num_labels=num_labels,
-                ignore_mismatched_sizes=True
-            )
-        
+        self.model = AutoModelForImageClassification.from_pretrained(
+            model_id,
+            num_labels=num_labels,
+            ignore_mismatched_sizes=True
+        )
+        self.model.to(device)
         self.model.eval()
+
+    def to(self, device, multi_gpu=False):
+        # Override parent to method to prevent automatic dispatching/DataParallel
+        # which causes issues with this specific model structure
+        self.model.to(device)
+        self.device = device
 
     def preprocess(self, input_images):
         processed_images = [
@@ -49,6 +46,8 @@ class PyTorch_Transformers_Clip_Vit_Base_Patch32(PyTorchAbstractClass):
         return model_input
 
     def predict(self, model_input):
+        device = next(self.model.parameters()).device
+        model_input = {k: v.to(device) for k, v in model_input.items()}
         with torch.no_grad():
             model_output = self.model(**model_input)
         return model_output

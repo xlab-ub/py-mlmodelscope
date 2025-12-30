@@ -497,3 +497,16 @@ if __name__ == "__main__":
             print("\n✅ All tests passed. Script finished successfully.")
             sys.exit(0)  # Exit with status code 0
 
+"""
+Prompt to debug:
+Start debugging for files in error_data.json and verify using command [MAKE SURE TO USE py-mlmodelscope conda environment]
+python run_mlmodelscope.py --standalone true --agent pytorch --architecture gpu --task <task> --batch_size 1 --model_name <model_name> --dataset_name <dataset_name>
+For Example:
+python run_mlmodelscope.py --standalone true --agent pytorch --architecture gpu --task text_to_text --batch_size 1 --model_name gpt_oss_20b --dataset_name [ { "src": "What is Earth?", "inputType": "TEXT" } ]
+You may find testcases in test.json but they might not be 100% correct. You can use them as a starting point.
+Make sure to keep a log of all the changes you make and the results you get for each model(s) you make changes to at each step.
+Log these changes in a file named log.md in automation_debugging directory. This file will be used to track the progress of the debugging process for each model. Make subheadings for each model and keep a log of all the changes you make and the results you get for each model(s) you make changes to at each step. MAKE NOTE IF THE TEST CASE IS NOT WORKING AND SOME OTHER TEST CASE IS WORKING (HIGHLIGHT IT IN THE LOG). EVEN IF YOU ARE MAKING ANY PIP INSTALL OR CHANGING VERSION OF THE PACKETS, IT SHOULD BE LOGGED IN THE LOG.
+START OFF WITH IMAGE_CLASSIFICATION MODALITY.
+
+CUDA_VISIBLE_DEVICES=3 python run_mlmodelscope.py --standalone true --agent pytorch --architecture gpu --task image_classification --batch_size 1 --dataset_name '[{"src": "https://cdn.pixabay.com/photo/2025/10/17/09/29/nature-9899712_1280.jpg", "inputType": "IMAGE"}]' --model_name clip_vit_b_16_datacomp_xl_s13b_b90k
+"""

@@ -32,10 +32,8 @@ class PyTorch_Transformers_PickScore_v1(PyTorchAbstractClass):
 
     def predict(self, model_input):
         # model_input is a list of PIL images from preprocess
-        # The prompt is expected in the options dictionary
-        prompt = options.get("prompt")
-        if not prompt:
-            raise ValueError("A 'prompt' must be provided in the options dictionary for PickScore model.")
+        # The prompt is expected in the config
+        prompt = self.config.get("prompt", "This is a great image")
 
         # Preprocess image and text inputs
         image_inputs = self.processor(
@@ -62,12 +60,14 @@ class PyTorch_Transformers_PickScore_v1(PyTorchAbstractClass):
             text_embs = self.model.get_text_features(**text_inputs)
             text_embs = text_embs / torch.norm(text_embs, dim=-1, keepdim=True)
         
-            # Calculate scores
-            scores = self.model.logit_scale.exp() * (text_embs @ image_embs.T)[0]
+            # Calculate scores: Image (B, D) @ Text (1, D).T -> (B, 1)
+            # We want to measure alignment of each image with the prompt
+            logits = self.model.logit_scale.exp() * (image_embs @ text_embs.T)
             
-        return scores
+        return logits
 
     def postprocess(self, model_output):
-        # model_output is the raw scores tensor
-        probabilities = torch.softmax(model_output, dim=-1)
+        # model_output is the raw logits tensor of shape (B, 1)
+        # Apply sigmoid to map to [0, 1] as a "probability" of matching
+        probabilities = torch.sigmoid(model_output)
         return probabilities.cpu().tolist()

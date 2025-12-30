@@ -16,21 +16,30 @@ class PyTorch_OpenCLIP_ViT_B_32_256x256(PyTorchAbstractClass):
         self.model, _, self.preprocess_fn = open_clip.create_model_and_transforms(model_id)
         self.tokenizer = open_clip.get_tokenizer(model_id)
         
+        self.device = device
+
+        self.candidate_labels = self.config.get("labels",[])
+
+        if not self.candidate_labels or not isinstance(self.candidate_labels, list):
+            features_file_url = "http://s3.amazonaws.com/store.carml.org/synsets/imagenet/synset.txt"
+            self.candidate_labels = self.features_download(features_file_url)
+
+    def to(self, device, multi_gpu=False):
         self.model.to(device)
-        self.model.eval()
+        self.device = device
 
     def preprocess(self, input_images):
         images = [
             self.preprocess_fn(Image.open(image_path).convert("RGB"))
             for image_path in input_images
         ]
+        # Return stack directly, moved to device in predict
         model_input = torch.stack(images)
         return model_input
 
     def predict(self, model_input):
-        candidate_labels = kwargs.get('candidate_labels')
-        if not candidate_labels or not isinstance(candidate_labels, list):
-            raise ValueError("A list of 'candidate_labels' must be provided in kwargs for zero-shot classification.")
+        # Using self.candidate_labels defined in __init__
+        candidate_labels = self.candidate_labels
 
         device = next(self.model.parameters()).device
         image_tensor = model_input.to(device)

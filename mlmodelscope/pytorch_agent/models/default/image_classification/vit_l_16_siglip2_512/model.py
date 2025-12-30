@@ -18,6 +18,7 @@ class Timm_ViT_L_16_SigLIP2_512(PyTorchAbstractClass):
         self.model, self.preprocessor = create_model_from_pretrained(model_id)
         self.model.to(device)
         self.model.eval()
+        self.device = device
 
         self.tokenizer = get_tokenizer(model_id)
 
@@ -43,7 +44,7 @@ class Timm_ViT_L_16_SigLIP2_512(PyTorchAbstractClass):
 
     def predict(self, model_input):
         # The model is moved to the target device in __init__
-        model_input = model_input.to(self.model.device)
+        model_input = model_input.to(self.device)
         with torch.no_grad():
             # This model encodes the image into a feature vector
             image_features = self.model.encode_image(model_input, normalize=True)

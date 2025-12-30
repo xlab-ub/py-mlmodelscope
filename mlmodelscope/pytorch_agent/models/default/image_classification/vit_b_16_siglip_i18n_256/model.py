@@ -11,7 +11,7 @@ class Timm_ViT_B_16_SigLIP_i18n_256(PyTorchAbstractClass):
         device = self.config.pop("_device", "cpu")
         multi_gpu = self.config.pop("_multi_gpu", False)
 
-        model_id = "timm/ViT-B-16-SigLIP-i18n-256"
+        model_id = "vit_base_patch16_siglip_256"
         # timm handles hub IDs directly
         self.model = timm.create_model(model_id, pretrained=True)
         self.model.to(device)

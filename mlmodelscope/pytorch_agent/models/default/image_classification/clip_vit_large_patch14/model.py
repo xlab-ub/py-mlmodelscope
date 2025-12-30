@@ -15,15 +15,24 @@ class PyTorch_Transformers_CLIP_ViT_Large_Patch14(PyTorchAbstractClass):
         self.processor = CLIPProcessor.from_pretrained(model_id)
 
         if multi_gpu and device == "cuda":
-            self.model = CLIPModel.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+            # Disabled device_map="auto" to prevent splitting issues
+            self.model = CLIPModel.from_pretrained(model_id, torch_dtype="auto")
+            self.model.to(device)
         else:
             self.model = CLIPModel.from_pretrained(model_id)
+            self.model.to(device)
         
+        self.device = device
         self.model.eval()
 
-        self.candidate_labels = self.config.get("candidate_labels")
+        self.candidate_labels = self.config.get("candidate_labels", [])
         if not self.candidate_labels or not isinstance(self.candidate_labels, list):
-            raise ValueError("CLIP model requires a list of 'candidate_labels' to be provided in the config dictionary for zero-shot classification.")
+            features_file_url = "http://s3.amazonaws.com/store.carml.org/synsets/imagenet/synset.txt"
+            self.candidate_labels = self.features_download(features_file_url)
+
+    def to(self, device, multi_gpu=False):
+        self.model.to(device)
+        self.device = device
 
     def preprocess(self, input_images):
         processed_images = [
@@ -40,7 +49,10 @@ class PyTorch_Transformers_CLIP_ViT_Large_Patch14(PyTorchAbstractClass):
         return model_input
 
     def predict(self, model_input):
-        return self.model(**model_input)
+        model_input = {k: v.to(self.device) for k, v in model_input.items()}
+        with torch.no_grad():
+            outputs = self.model(**model_input)
+        return outputs
 
     def postprocess(self, model_output):
         probabilities = torch.nn.functional.softmax(model_output.logits_per_image, dim=1)

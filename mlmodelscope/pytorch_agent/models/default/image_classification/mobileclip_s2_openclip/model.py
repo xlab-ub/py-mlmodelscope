@@ -3,55 +3,58 @@ from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 
 import torch
 from PIL import Image
-from transformers import AutoProcessor, AutoModel
-from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
+import open_clip
 
 class PyTorch_Transformers_MobileCLIP_S2(PyTorchAbstractClass):
     def __init__(self, config=None):
         self.config = config if config else dict()
-        device = self.config.pop("_device", "cpu")
-        multi_gpu = self.config.pop("_multi_gpu", False) # Not used in this custom implementation
-        self.device = device
+        self.device = self.config.pop("_device", "cpu")
+        multi_gpu = self.config.pop("_multi_gpu", False)
 
-        model_id = "apple/MobileCLIP-S2-OpenCLIP"
-        self.processor = AutoProcessor.from_pretrained(model_id)
-        self.model = AutoModel.from_pretrained(model_id)
+        model_id = 'hf-hub:apple/MobileCLIP-S2-OpenCLIP'
+        
+        try:
+             self.model, _, self.preprocess_fn = open_clip.create_model_and_transforms(model_id)
+             self.tokenizer = open_clip.get_tokenizer(model_id)
+        except Exception as e:
+             raise ImportError(f"Failed to load OpenCLIP model: {e}")
+
         self.model.to(self.device)
         self.model.eval()
 
-        # Download ImageNet labels and pre-compute text features for zero-shot classification
-        features_file_url = "http://s3.amazonaws.com/store.carml.org/synsets/imagenet/synset.txt"
-        self.features = self.features_download(features_file_url)
-        
-        # Using standard CLIP prompt engineering
-        text_prompts = [f"a photo of a {label}" for label in self.features]
-        
-        # Process text prompts and move to device
-        inputs = self.processor(text=text_prompts, return_tensors="pt", padding=True)
-        text_inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        self.labels = self.config.get("labels", [])
+        if not self.labels or not isinstance(self.labels, list):
+            features_file_url = "http://s3.amazonaws.com/store.carml.org/synsets/imagenet/synset.txt"
+            self.labels = self.features_download(features_file_url)
 
-        # Compute and store normalized text features
+        # Pre-tokenize labels
+        text_tokens = self.tokenizer(self.labels).to(self.device)
         with torch.no_grad():
-            text_features = self.model.get_text_features(**text_inputs)
-            self.text_features = text_features / text_features.norm(p=2, dim=-1, keepdim=True)
+             self.text_features = self.model.encode_text(text_tokens)
+             self.text_features /= self.text_features.norm(dim=-1, keepdim=True)
+
+    def to(self, device, multi_gpu=False):
+        self.model.to(device)
+        self.device = device
 
     def preprocess(self, input_images):
-        images = [Image.open(image_path).convert('RGB') for image_path in input_images]
-        model_input = self.processor(images=images, return_tensors="pt")
+        images = [
+            self.preprocess_fn(Image.open(image_path).convert('RGB'))
+            for image_path in input_images
+        ]
+        model_input = torch.stack(images)
         return model_input
 
     def predict(self, model_input):
-        pixel_values = model_input['pixel_values'].to(self.device)
-
+        model_input = model_input.to(self.device)
+        
         with torch.no_grad():
-            # Get image features and normalize them
-            image_features = self.model.get_image_features(pixel_values=pixel_values)
-            image_features /= image_features.norm(p=2, dim=-1, keepdim=True)
+            image_features = self.model.encode_image(model_input)
+            image_features /= image_features.norm(dim=-1, keepdim=True)
 
-            # Compute cosine similarity (logits)
-            logit_scale = self.model.logit_scale.exp()
-            logits = logit_scale * image_features @ self.text_features.T
-
+            # Cosine similarity
+            logits = 100.0 * image_features @ self.text_features.T
+            
         return logits
 
     def postprocess(self, model_output):

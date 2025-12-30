@@ -15,39 +15,52 @@ class PyTorch_Transformers_Vinid_PLIP(PyTorchAbstractClass):
         self.processor = AutoProcessor.from_pretrained(model_id)
 
         if multi_gpu and self.device == "cuda":
-            self.model = AutoModelForZeroShotImageClassification.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+            # Disabled device_map="auto" to prevent splitting issues
+            self.model = AutoModelForZeroShotImageClassification.from_pretrained(model_id, torch_dtype="auto")
+            self.model.to(self.device)
         else:
             self.model = AutoModelForZeroShotImageClassification.from_pretrained(model_id)
             self.model.to(self.device)
 
         self.model.eval()
 
+        self.candidate_labels = self.config.get("candidate_labels", [])
+        if not self.candidate_labels or not isinstance(self.candidate_labels, list):
+            features_file_url = "http://s3.amazonaws.com/store.carml.org/synsets/imagenet/synset.txt"
+            self.candidate_labels = self.features_download(features_file_url)
+
+
+    def to(self, device, multi_gpu=False):
+        self.model.to(device)
+        self.device = device
+
     def preprocess(self, input_images):
         images = [
             Image.open(image_path).convert('RGB')
             for image_path in input_images
         ]
+        # Return tensors directly
         model_input = self.processor(images=images, return_tensors="pt")
         return model_input
 
     def predict(self, model_input):
-        candidate_labels = kwargs.get("candidate_labels")
-        if not candidate_labels:
-            raise ValueError("candidate_labels are required for zero-shot classification.")
-
-        # model_input contains pixel_values, which the wrapper moves to the correct device.
         # We process text labels here and must move them to the device manually.
-        text_inputs = self.processor(text=candidate_labels, return_tensors="pt", padding=True)
+        text_inputs = self.processor(text=self.candidate_labels, return_tensors="pt", padding=True)
+        
+        # Move inputs to device
+        model_input = {k: v.to(self.device) for k, v in model_input.items()}
+        text_inputs = {k: v.to(self.device) for k, v in text_inputs.items()}
 
         with torch.no_grad():
             outputs = self.model(
-                pixel_values=model_input.pixel_values,
-                input_ids=text_inputs.input_ids.to(self.model.device),
-                attention_mask=text_inputs.attention_mask.to(self.model.device)
+                pixel_values=model_input['pixel_values'],
+                input_ids=text_inputs['input_ids'],
+                attention_mask=text_inputs['attention_mask']
             )
         return outputs
 
     def postprocess(self, model_output):
         # The model output's logits are the similarity scores between the image and each candidate label.
-        probabilities = torch.nn.functional.softmax(model_output.logits, dim=1)
+        # CLIPOutput has logits_per_image and logits_per_text.
+        probabilities = torch.nn.functional.softmax(model_output.logits_per_image, dim=1)
         return probabilities.tolist()

@@ -2,67 +2,66 @@
 from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
 
 from mlmodelscope.pytorch_agent.models.pytorch_abc import PyTorchAbstractClass
-from transformers import AutoProcessor, AutoModelForZeroShotImageClassification
-from PIL import Image
+import open_clip
 import torch
+from PIL import Image
 
 class PyTorch_Transformers_CLIP_ViT_L_14_DataComp(PyTorchAbstractClass):
     def __init__(self, config=None):
         self.config = config if config else dict()
-        device = self.config.pop("_device", "cpu")
+        self.device = self.config.pop("_device", "cpu")
         multi_gpu = self.config.pop("_multi_gpu", False)
 
-        model_id = "laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K"
-        self.processor = AutoProcessor.from_pretrained(model_id)
+        # Use open_clip with HF hub prefix
+        model_id = "hf-hub:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K"
+        
+        try:
+             self.model, self.preprocessor = open_clip.create_model_from_pretrained(model_id)
+        except Exception as e:
+             raise ImportError(f"Failed to load OpenCLIP model: {e}")
+             
+        self.tokenizer = open_clip.get_tokenizer(model_id)
 
-        if multi_gpu and device == "cuda":
-            self.model = AutoModelForZeroShotImageClassification.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
-        else:
-            self.model = AutoModelForZeroShotImageClassification.from_pretrained(model_id)
-            self.model.to(device)
-
+        self.model.to(self.device)
         self.model.eval()
 
-        # Since this is a zero-shot model, we need a default set of classes to classify against.
-        # The model card mentions performance on ImageNet, so we'll use ImageNet classes as default.
-        features_file_url = "http://s3.amazonaws.com/store.carml.org/synsets/imagenet/synset.txt"
-        self.features = self.features_download(features_file_url)
+        self.labels = self.config.get("labels", [])
 
+        if not self.labels or not isinstance(self.labels, list):
+            features_file_url = "http://s3.amazonaws.com/store.carml.org/synsets/imagenet/synset.txt"
+            self.labels = self.features_download(features_file_url)
+
+             
+        # Pre-tokenize labels
+        text_tokens = self.tokenizer(self.labels).to(self.device)
+        with torch.no_grad():
+             self.text_features = self.model.encode_text(text_tokens)
+             self.text_features /= self.text_features.norm(dim=-1, keepdim=True)
+
+    def to(self, device, multi_gpu=False):
+        self.model.to(device)
+        self.device = device
+        
     def preprocess(self, input_images):
-                # Open images and convert to RGB
         processed_images = [
-            Image.open(image_path).convert('RGB')
+            self.preprocessor(Image.open(image_path).convert('RGB'))
             for image_path in input_images
         ]
-
-        # The processor handles resizing, cropping, normalization, and tokenization
-        # We only process the images here. Text labels will be processed in the predict step.
-        model_input = self.processor(images=processed_images, return_tensors="pt")
+        model_input = torch.stack(processed_images)
         return model_input
 
     def predict(self, model_input):
-                # Prepare the text labels for zero-shot classification
-        # The model compares the image against these text labels.
-        candidate_labels = [f"a photo of a {label}" for label in self.features]
-        text_inputs = self.processor(text=candidate_labels, return_tensors="pt", padding=True)
-
-        # Move all inputs to the model's device
-        pixel_values = model_input.pixel_values.to(self.model.device)
-        input_ids = text_inputs.input_ids.to(self.model.device)
-        attention_mask = text_inputs.attention_mask.to(self.model.device)
-
-        # Perform prediction
-        with torch.no_grad():
-            outputs = self.model(pixel_values=pixel_values, input_ids=input_ids, attention_mask=attention_mask)
+        model_input = model_input.to(self.device)
         
-        return outputs
+        with torch.no_grad():
+            image_features = self.model.encode_image(model_input)
+            image_features /= image_features.norm(dim=-1, keepdim=True)
+            
+            # Cosine similarity
+            logits = 100.0 * image_features @ self.text_features.T
+            
+        return logits
 
     def postprocess(self, model_output):
-                # The output from the zero-shot model contains logits per image.
-        # These logits represent the similarity scores between the image and each text label.
-        logits_per_image = model_output.logits_per_image
-
-        # Apply softmax to get probabilities
-        probabilities = torch.nn.functional.softmax(logits_per_image, dim=1)
-
+        probabilities = torch.nn.functional.softmax(model_output, dim=1)
         return probabilities.tolist()

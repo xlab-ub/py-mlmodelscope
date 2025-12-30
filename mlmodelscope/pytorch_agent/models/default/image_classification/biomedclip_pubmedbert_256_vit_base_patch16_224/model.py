@@ -19,19 +19,13 @@ class PyTorch_Custom_BiomedCLIP(PyTorchAbstractClass):
         self.model.to(device)
         self.model.eval()
 
-        # Default labels from model card, can be overridden in config
-        default_labels = [
-            'adenocarcinoma histopathology',
-            'brain MRI',
-            'covid line chart',
-            'squamous cell carcinoma histopathology',
-            'immunohistochemistry histopathology',
-            'bone X-ray',
-            'chest X-ray',
-            'pie chart',
-            'hematoxylin and eosin histopathology'
-        ]
-        self.labels = self.config.get("labels", default_labels)
+        self.labels = self.config.get("labels",[])
+
+        if not self.labels or not isinstance(self.labels, list):
+            features_file_url = "http://s3.amazonaws.com/store.carml.org/synsets/imagenet/synset.txt"
+            self.labels = self.features_download(features_file_url)
+        
+        
         self.template = self.config.get("template", "this is a photo of ")
         self.context_length = 256
 
@@ -48,7 +42,7 @@ class PyTorch_Custom_BiomedCLIP(PyTorchAbstractClass):
         return model_input
 
     def predict(self, model_input):
-        image_tensor = model_input.to(self.model.device)
+        image_tensor = model_input.to(next(self.model.parameters()).device)
         with torch.no_grad():
             image_features, text_features, logit_scale = self.model(image_tensor, self.text_tokens)
             logits = (logit_scale * image_features @ text_features.t())

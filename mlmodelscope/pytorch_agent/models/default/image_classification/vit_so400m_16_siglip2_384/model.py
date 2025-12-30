@@ -19,6 +19,7 @@ class PyTorch_OpenClip_ViT_SO400M_16_SigLIP2_384(PyTorchAbstractClass):
 
         self.model.to(device)
         self.model.eval()
+        self.device = device
 
         # For zero-shot classification, labels must be provided in the config
         self.labels = self.config.get("labels")
@@ -43,7 +44,7 @@ class PyTorch_OpenClip_ViT_SO400M_16_SigLIP2_384(PyTorchAbstractClass):
         return model_input
 
     def predict(self, model_input):
-        model_input = model_input.to(self.model.device)
+        model_input = model_input.to(self.device)
         with torch.no_grad():
             image_features = self.model.encode_image(model_input, normalize=True)
             # Calculate similarity and apply sigmoid as per SigLIP
