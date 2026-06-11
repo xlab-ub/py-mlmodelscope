@@ -7,6 +7,7 @@ import torch
 from opentelemetry.trace import set_span_in_context
 
 from ._load import _load
+from .explainability import GradCAMExplainer, unsupported_explanation
 
 logger = logging.getLogger(__name__)
 
@@ -131,13 +132,25 @@ class PyTorch_Agent:
             self.tracer.inject_context(prev_ctx)
         return hook
 
-    def predict(self, num_warmup, dataloader, output_processor, serialized=False, mlharness=False):
+    def predict(self, num_warmup, dataloader, output_processor, serialized=False, mlharness=False, explanation=None):
+        explanation = explanation or {}
+        explanation_result = None
         with self.tracer.start_as_current_span_from_context(f'{self.model_name} start', context=self.ctx, trace_level="APPLICATION_TRACE"):
             self._warmup(num_warmup, dataloader)
-            final_outputs = self._evaluate(dataloader, output_processor)
+            if explanation.get("enabled"):
+                final_outputs, explanation_result = self._evaluate_with_explanation(
+                    dataloader, output_processor, explanation
+                )
+            else:
+                final_outputs = self._evaluate(dataloader, output_processor)
 
         if serialized:
-            return output_processor.process_final_outputs_for_serialization(self.task, final_outputs, getattr(self.model, 'features', None))
+            outputs = output_processor.process_final_outputs_for_serialization(
+                self.task, final_outputs, getattr(self.model, 'features', None)
+            )
+            if explanation_result and outputs:
+                outputs[0]["explanation"] = explanation_result
+            return outputs
         elif mlharness:
             return output_processor.process_final_outputs_for_mlharness(self.task, final_outputs)
         return final_outputs
@@ -162,6 +175,44 @@ class PyTorch_Agent:
                 post_processed_output = self._process_batch(data, index, "Evaluate")
                 output_processor.process_batch_outputs_postprocessed(self.task, post_processed_output)
         return output_processor.get_final_outputs()
+
+    def _evaluate_with_explanation(self, dataloader, output_processor, settings):
+        explainer = GradCAMExplainer(self.model_name, self.task, self.multi_gpu)
+        explanation_result = None
+        top_k = settings.get("topK", 2)
+
+        with self.tracer.start_as_current_span_from_context("Evaluate", trace_level="APPLICATION_TRACE"):
+            for index, data in enumerate(dataloader):
+                with self.tracer.start_as_current_span_from_context(f"Evaluate Batch {index}", trace_level="APPLICATION_TRACE"):
+                    with self.tracer.start_as_current_span_from_context("preprocess", trace_level="APPLICATION_TRACE"):
+                        model_input = self.model.preprocess(data)
+                        if hasattr(model_input, 'to'):
+                            model_input = model_input.to(self.device)
+
+                    unsupported_reason = explainer.unsupported_reason(model_input)
+                    with self.tracer.start_as_current_span_from_context("predict", trace_level="MODEL_TRACE") as predict_span:
+                        self.tracer.inject_context(set_span_in_context(predict_span))
+                        if self.c:
+                            self.c.Start(set_span_in_context(predict_span))
+                        if unsupported_reason:
+                            with torch.no_grad():
+                                model_output = self.model.predict(model_input)
+                            explanation_result = unsupported_explanation(unsupported_reason)
+                            explanation_result["topK"] = top_k
+                        else:
+                            model_output, explanation_result = explainer.explain(
+                                self.model, model_input, top_k
+                            )
+                        if self.c:
+                            self.c.Close()
+
+                    with self.tracer.start_as_current_span_from_context("postprocess", trace_level="APPLICATION_TRACE"):
+                        post_processed_output = self.model.postprocess(model_output)
+                    output_processor.process_batch_outputs_postprocessed(
+                        self.task, post_processed_output
+                    )
+
+        return output_processor.get_final_outputs(), explanation_result
 
     def _process_batch(self, data, index, phase):
         with self.tracer.start_as_current_span_from_context(f"{phase} Batch {index}", trace_level="APPLICATION_TRACE"):

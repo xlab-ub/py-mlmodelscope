@@ -132,51 +132,60 @@ class MessageQueueHandler:
 
 def process_message(db_conn: DatabaseConnection, body: bytes, properties, agent: str) -> None:
     received_message = json.loads(body.decode())
-    
-    # Extract message parameters
-    user = received_message.get('User', 'default')
-    task = received_message['DesiredResultModality']
-    architecture = 'gpu' if received_message['UseGpu'] else 'cpu'
-    gpu_trace = received_message['UseGpu'] != "NO_TRACE"
-
-    if architecture != "gpu" and gpu_trace:
-        gpu_trace = False
-        print("GPU trace disabled for CPU architecture")
-
-    # model_name = received_message['ModelName'][:-4].lower().replace('.', '_')
-    model_name = received_message['ModelName'].lower().replace('.', '_')
-    num_warmup = received_message.get('NumWarmup', 0)
-    dataset_name = received_message['InputFiles']
-    batch_size = received_message.get('BatchSize', 1)
-
-    config = received_message.get('Config', None)
-    security_check = received_message.get('SecurityCheck', False)
-
+    mlms = None
     duration_start = time.time()
-    mlms = MLModelScope(architecture, received_message.get('TraceLevel', 'NO_TRACE'), gpu_trace)
+    
+    try:
+        user = received_message.get('User', 'default')
+        task = received_message['DesiredResultModality']
+        architecture = 'gpu' if received_message['UseGpu'] else 'cpu'
+        gpu_trace = received_message['UseGpu'] != "NO_TRACE"
 
-    mlms.load_agent(task, agent, model_name, security_check, config, user)
-    print(f"{agent}-agent loaded with {model_name} model")
-    mlms.load_dataset(dataset_name, batch_size, None, security_check)
-    print(f"{dataset_name} dataset loaded")
-    print("Prediction starts")
+        if architecture != "gpu" and gpu_trace:
+            gpu_trace = False
+            print("GPU trace disabled for CPU architecture")
 
-    duration_for_inference_start_time = time.time()
-    outputs = mlms.predict(num_warmup, True)
-    duration_for_inference_end_time = time.time()
-    duration_for_inference = (duration_for_inference_end_time - duration_for_inference_start_time)
-    print("Prediction done")
+        model_name = received_message['ModelName'].lower().replace('.', '_')
+        num_warmup = received_message.get('NumWarmup', 0)
+        dataset_name = received_message['InputFiles']
+        batch_size = received_message.get('BatchSize', 1)
+        config = received_message.get(
+            'Configuration', received_message.get('Config')
+        )
+        explanation = received_message.get('Explanation')
+        security_check = received_message.get('SecurityCheck', False)
 
-    mlms.Close()
-    duration_end_time = time.time()
+        mlms = MLModelScope(
+            architecture, received_message.get('TraceLevel', 'NO_TRACE'), gpu_trace
+        )
+        mlms.load_agent(task, agent, model_name, security_check, config, user)
+        print(f"{agent}-agent loaded with {model_name} model")
+        mlms.load_dataset(dataset_name, batch_size, None, security_check)
+        print(f"{dataset_name} dataset loaded")
+        print("Prediction starts")
 
-    duration = (duration_end_time - duration_start)
+        inference_start = time.time()
+        outputs = mlms.predict(num_warmup, True, explanation)
+        duration_for_inference = time.time() - inference_start
+        print("Prediction done")
 
-    # result = {'duration': duration, 'duration_for_inference': duration_for_inference, 'responses': outputs} 
-    result = outputs[0] 
-    result["duration"] = f"{duration:.10f}s" 
-    result["duration_for_inference"] = f"{duration_for_inference:.10f}s" 
-    result["responses"][0]["id"] = str(uuid4()) 
+        result = outputs[0]
+        result["duration"] = f"{time.time() - duration_start:.10f}s"
+        result["duration_for_inference"] = f"{duration_for_inference:.10f}s"
+        result["responses"][0]["id"] = str(uuid4())
+    except Exception as error:
+        print(f"Inference failed: {type(error).__name__}: {error}")
+        result = {
+            "responses": [{"features": []}],
+            "error": {
+                "code": "inference_failed",
+                "message": "Model inference failed.",
+            },
+            "duration": f"{time.time() - duration_start:.10f}s",
+        }
+    finally:
+        if mlms is not None:
+            mlms.Close()
 
     db_conn.update_trial(properties.correlation_id, result)
 

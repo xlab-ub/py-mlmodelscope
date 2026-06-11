@@ -190,8 +190,14 @@ class MLModelScope:
     self.agent.Close()
     return train_outputs, test_outputs
 
-  def predict(self, num_warmup, serialized=False):
-    outputs = self.agent.predict(num_warmup, self.dataloader, self.output_processor, serialized)
+  def predict(self, num_warmup, serialized=False, explanation=None):
+    outputs = self.agent.predict(
+      num_warmup,
+      self.dataloader,
+      self.output_processor,
+      serialized,
+      explanation=explanation
+    )
     self.agent.Close()
     return outputs
 
