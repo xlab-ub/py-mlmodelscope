@@ -60,6 +60,13 @@ class MLModelScope:
   def load_dataset(self, dataset_name, batch_size, task=None, security_check=True):
     # Check if dataset_name is a URL or contains URL data
     url = False
+    if task == 'text_to_text' and isinstance(dataset_name, list) and all(isinstance(item, str) for item in dataset_name):
+      with self.tracer.start_as_current_span_from_context('text_to_text dataset load', context=self.ctx, trace_level="APPLICATION_TRACE"):
+        self.dataset = dataset_name
+        self.batch_size = batch_size
+        self.dataloader = DataLoader(self.dataset, self.batch_size)
+      return
+
     if isinstance(dataset_name, list) and len(dataset_name) > 0 and isinstance(dataset_name[0], dict) and "src" in dataset_name[0]:
       # Check if it's actually a URL or just structured text data
       src_value = dataset_name[0]["src"]

@@ -1,5 +1,6 @@
 import base64
 import io
+from collections.abc import Mapping
 
 import numpy as np
 import torch
@@ -15,6 +16,7 @@ SUPPORTED_MODELS = {
     "torchvision_resnet_101",
     "torchvision_resnet_152",
 }
+SUPPORTED_TEXT_MODELS = {"gpt_2", "gpt2"}
 
 
 def unsupported_explanation(reason):
@@ -27,6 +29,64 @@ def unsupported_explanation(reason):
         "comparison": None,
         "limitations": [reason],
     }
+
+
+def unsupported_text_explanation(reason, top_k=5):
+    return {
+        "schemaVersion": SCHEMA_VERSION,
+        "status": "unsupported",
+        "method": "token_probability",
+        "topK": top_k,
+        "tokens": [],
+        "pipeline": None,
+        "limitations": [reason],
+    }
+
+
+def failed_text_explanation(message, top_k=5):
+    return {
+        "schemaVersion": SCHEMA_VERSION,
+        "status": "failed",
+        "method": "token_probability",
+        "topK": top_k,
+        "tokens": [],
+        "pipeline": None,
+        "limitations": [message],
+    }
+
+
+class TokenProbabilityExplainer:
+    def __init__(self, model_name, task, multi_gpu=False):
+        self.model_name = model_name.lower().replace(".", "_")
+        self.task = task
+        self.multi_gpu = multi_gpu
+
+    def unsupported_reason(self, model_input):
+        if self.task != "text_to_text":
+            return "Token probability explanations support text-to-text generation only."
+        if self.model_name not in SUPPORTED_TEXT_MODELS:
+            return "Token probability explanations v1 support the PyTorch GPT-2 wrapper only."
+        if self.multi_gpu:
+            return "Token probability explanations v1 support single-device inference only."
+        if not isinstance(model_input, Mapping) or "input_ids" not in model_input:
+            return "Token probability explanations require tokenizer input IDs."
+        if model_input["input_ids"].shape[0] != 1:
+            return "Token probability explanations v1 require batch size one."
+        return None
+
+    def explain(self, wrapper, model_input, top_k=5):
+        try:
+            return wrapper.predict_with_scores(model_input, top_k=top_k)
+        except Exception:
+            with torch.no_grad():
+                model_output = wrapper.predict(model_input)
+            return (
+                model_output,
+                failed_text_explanation(
+                    "The text was generated, but token probability explanation failed.",
+                    top_k,
+                ),
+            )
 
 
 class GradCAMExplainer:

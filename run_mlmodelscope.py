@@ -160,7 +160,7 @@ def process_message(db_conn: DatabaseConnection, body: bytes, properties, agent:
         )
         mlms.load_agent(task, agent, model_name, security_check, config, user)
         print(f"{agent}-agent loaded with {model_name} model")
-        mlms.load_dataset(dataset_name, batch_size, None, security_check)
+        mlms.load_dataset(dataset_name, batch_size, task, security_check)
         print(f"{dataset_name} dataset loaded")
         print("Prediction starts")
 

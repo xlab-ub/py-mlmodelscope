@@ -7,7 +7,12 @@ import torch
 from opentelemetry.trace import set_span_in_context
 
 from ._load import _load
-from .explainability import GradCAMExplainer, unsupported_explanation
+from .explainability import (
+    GradCAMExplainer,
+    TokenProbabilityExplainer,
+    unsupported_explanation,
+    unsupported_text_explanation,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -176,7 +181,28 @@ class PyTorch_Agent:
                 output_processor.process_batch_outputs_postprocessed(self.task, post_processed_output)
         return output_processor.get_final_outputs()
 
+    def _move_to_device(self, model_input):
+        if hasattr(model_input, 'to'):
+            return model_input.to(self.device)
+        if isinstance(model_input, dict):
+            return {
+                key: value.to(self.device) if hasattr(value, 'to') else value
+                for key, value in model_input.items()
+            }
+        if isinstance(model_input, (list, tuple)):
+            moved = [
+                value.to(self.device) if hasattr(value, 'to') else value
+                for value in model_input
+            ]
+            return tuple(moved) if isinstance(model_input, tuple) else moved
+        return model_input
+
     def _evaluate_with_explanation(self, dataloader, output_processor, settings):
+        if self.task == "text_to_text":
+            return self._evaluate_text_with_explanation(
+                dataloader, output_processor, settings
+            )
+
         explainer = GradCAMExplainer(self.model_name, self.task, self.multi_gpu)
         explanation_result = None
         top_k = settings.get("topK", 2)
@@ -186,8 +212,7 @@ class PyTorch_Agent:
                 with self.tracer.start_as_current_span_from_context(f"Evaluate Batch {index}", trace_level="APPLICATION_TRACE"):
                     with self.tracer.start_as_current_span_from_context("preprocess", trace_level="APPLICATION_TRACE"):
                         model_input = self.model.preprocess(data)
-                        if hasattr(model_input, 'to'):
-                            model_input = model_input.to(self.device)
+                        model_input = self._move_to_device(model_input)
 
                     unsupported_reason = explainer.unsupported_reason(model_input)
                     with self.tracer.start_as_current_span_from_context("predict", trace_level="MODEL_TRACE") as predict_span:
@@ -214,12 +239,49 @@ class PyTorch_Agent:
 
         return output_processor.get_final_outputs(), explanation_result
 
+    def _evaluate_text_with_explanation(self, dataloader, output_processor, settings):
+        explainer = TokenProbabilityExplainer(self.model_name, self.task, self.multi_gpu)
+        explanation_result = None
+        top_k = settings.get("topK", 5)
+
+        with self.tracer.start_as_current_span_from_context("Evaluate", trace_level="APPLICATION_TRACE"):
+            for index, data in enumerate(dataloader):
+                with self.tracer.start_as_current_span_from_context(f"Evaluate Batch {index}", trace_level="APPLICATION_TRACE"):
+                    with self.tracer.start_as_current_span_from_context("preprocess", trace_level="APPLICATION_TRACE"):
+                        model_input = self.model.preprocess(data)
+                        model_input = self._move_to_device(model_input)
+
+                    unsupported_reason = explainer.unsupported_reason(model_input)
+                    with self.tracer.start_as_current_span_from_context("predict", trace_level="MODEL_TRACE") as predict_span:
+                        self.tracer.inject_context(set_span_in_context(predict_span))
+                        if self.c:
+                            self.c.Start(set_span_in_context(predict_span))
+                        if unsupported_reason:
+                            with torch.no_grad():
+                                model_output = self.model.predict(model_input)
+                            explanation_result = unsupported_text_explanation(
+                                unsupported_reason, top_k
+                            )
+                        else:
+                            model_output, explanation_result = explainer.explain(
+                                self.model, model_input, top_k
+                            )
+                        if self.c:
+                            self.c.Close()
+
+                    with self.tracer.start_as_current_span_from_context("postprocess", trace_level="APPLICATION_TRACE"):
+                        post_processed_output = self.model.postprocess(model_output)
+                    output_processor.process_batch_outputs_postprocessed(
+                        self.task, post_processed_output
+                    )
+
+        return output_processor.get_final_outputs(), explanation_result
+
     def _process_batch(self, data, index, phase):
         with self.tracer.start_as_current_span_from_context(f"{phase} Batch {index}", trace_level="APPLICATION_TRACE"):
             with self.tracer.start_as_current_span_from_context("preprocess", trace_level="APPLICATION_TRACE"):
                 model_input = self.model.preprocess(data)
-                if hasattr(model_input, 'to'):
-                    model_input = model_input.to(self.device)
+                model_input = self._move_to_device(model_input)
             with self.tracer.start_as_current_span_from_context("predict", trace_level="MODEL_TRACE") as predict_span:
                 self.tracer.inject_context(set_span_in_context(predict_span))
                 if self.c:
