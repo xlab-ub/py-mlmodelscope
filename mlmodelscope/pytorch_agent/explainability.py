@@ -16,7 +16,7 @@ SUPPORTED_MODELS = {
     "torchvision_resnet_101",
     "torchvision_resnet_152",
 }
-SUPPORTED_TEXT_MODELS = {"gpt_2", "gpt2"}
+SUPPORTED_TEXT_MODELS = {"gpt_2", "gpt2", "bloom_560m"}
 
 
 def unsupported_explanation(reason):
@@ -65,7 +65,7 @@ class TokenProbabilityExplainer:
         if self.task != "text_to_text":
             return "Token probability explanations support text-to-text generation only."
         if self.model_name not in SUPPORTED_TEXT_MODELS:
-            return "Token probability explanations v1 support the PyTorch GPT-2 wrapper only."
+            return "Token probability explanations v1 support the PyTorch GPT-2 and BLOOM-560M wrappers only."
         if self.multi_gpu:
             return "Token probability explanations v1 support single-device inference only."
         if not isinstance(model_input, Mapping) or "input_ids" not in model_input:
